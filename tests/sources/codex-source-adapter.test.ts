@@ -54,7 +54,7 @@ describe('CodexSourceAdapter', () => {
       cacheReadTokens: 20,
       outputTokens: 50,
       reasoningTokens: 10,
-      totalTokens: 180,
+      totalTokens: 150,
       costMode: 'estimated',
     });
 
@@ -67,7 +67,7 @@ describe('CodexSourceAdapter', () => {
       cacheReadTokens: 5,
       outputTokens: 15,
       reasoningTokens: 5,
-      totalTokens: 75,
+      totalTokens: 65,
       costMode: 'estimated',
     });
 
@@ -85,6 +85,7 @@ describe('CodexSourceAdapter', () => {
     expect(events[0]?.model).toBe(LEGACY_CODEX_MODEL_FALLBACK);
     expect(events[0]?.inputTokens).toBe(9);
     expect(events[0]?.cacheReadTokens).toBe(3);
+    expect(events[0]?.totalTokens).toBe(19);
   });
 });
 

@@ -20,8 +20,10 @@ function shouldDrawHorizontalLine(index: number, rowCount: number, rows: string[
 
   const previousSource = previousRow[1];
   const nextSource = nextRow[1];
+  const previousPeriod = previousRow[0];
+  const nextPeriod = nextRow[0];
 
-  return previousSource === 'combined' || nextSource === 'TOTAL';
+  return previousSource === 'combined' || nextSource === 'TOTAL' || previousPeriod !== nextPeriod;
 }
 
 function createTableConfig(rows: string[][]): TableUserConfig {

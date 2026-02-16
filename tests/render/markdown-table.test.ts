@@ -52,9 +52,9 @@ describe('renderMarkdownTable', () => {
     expect(rendered).toMatchInlineSnapshot(`
       "| Period     | Source   | Models               | Input | Output | Reasoning | Cache Read | Total Tokens | Cost (USD) |
       | :--------- | :------- | :------------------- | ----: | -----: | --------: | ---------: | -----------: | ---------: |
-      | 2026-02-10 | pi       | gpt-4.1              | 1,234 |    321 |         0 |         30 |        1,585 |     1.2500 |
-      | 2026-02-10 | combined | gpt-4.1, gpt-5-codex | 2,000 |    500 |       120 |        100 |        2,720 |     2.7500 |
-      | ALL        | TOTAL    | gpt-4.1, gpt-5-codex | 2,000 |    500 |       120 |        100 |        2,720 |     2.7500 |"
+      | 2026-02-10 | pi       | gpt-4.1              | 1,234 |    321 |         0 |         30 |        1,585 |      $1.25 |
+      | 2026-02-10 | combined | gpt-4.1, gpt-5-codex | 2,000 |    500 |       120 |        100 |        2,720 |      $2.75 |
+      | ALL        | TOTAL    | gpt-4.1, gpt-5-codex | 2,000 |    500 |       120 |        100 |        2,720 |      $2.75 |"
     `);
   });
 });

@@ -58,15 +58,19 @@ function toUsage(value: unknown): CodexUsage | undefined {
 
   const rawInputTokens = normalizeNonNegativeInteger(usage.input_tokens as NumberLike);
   const cacheReadTokens = normalizeNonNegativeInteger(usage.cached_input_tokens as NumberLike);
+  const outputTokens = normalizeNonNegativeInteger(usage.output_tokens as NumberLike);
+
+  const inputTokens = Math.max(0, rawInputTokens - cacheReadTokens);
 
   return {
     // Codex input_tokens includes cached_input_tokens. We store net input separately
     // to avoid double counting input + cache read in reports and estimated pricing.
-    inputTokens: Math.max(0, rawInputTokens - cacheReadTokens),
+    inputTokens,
     cacheReadTokens,
-    outputTokens: normalizeNonNegativeInteger(usage.output_tokens as NumberLike),
+    outputTokens,
     reasoningTokens: normalizeNonNegativeInteger(usage.reasoning_output_tokens as NumberLike),
-    totalTokens: normalizeNonNegativeInteger(usage.total_tokens as NumberLike),
+    // Match ccusage semantics: billable total excludes reasoning breakdown.
+    totalTokens: inputTokens + outputTokens + cacheReadTokens,
   };
 }
 

@@ -14,8 +14,10 @@ export const usageTableHeaders = [
 
 const integerFormatter = new Intl.NumberFormat('en-US');
 const usdFormatter = new Intl.NumberFormat('en-US', {
-  minimumFractionDigits: 4,
-  maximumFractionDigits: 6,
+  style: 'currency',
+  currency: 'USD',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
 });
 
 function formatSource(row: UsageReportRow): string {
