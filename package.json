@@ -2,22 +2,35 @@
   "name": "llm-usage-metrics",
   "version": "0.1.0",
   "description": "CLI for aggregating local LLM usage metrics from pi and codex sessions",
-  "private": true,
   "type": "module",
   "engines": {
     "node": ">=20"
   },
   "bin": {
-    "usage": "dist/cli/index.js"
+    "usage": "dist/index.js"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsup src/cli/index.ts --format esm --dts --clean --sourcemap",
     "cli": "bun run src/cli/index.ts",
     "lint": "eslint .",
     "test": "vitest run",
     "format:check": "prettier --check .",
-    "format:write": "prettier --write ."
+    "format:write": "prettier --write .",
+    "pack:check": "npm pack"
   },
+  "keywords": [
+    "llm",
+    "usage",
+    "cli",
+    "pi",
+    "codex"
+  ],
+  "license": "MIT",
   "dependencies": {
     "commander": "^13.1.0"
   },
