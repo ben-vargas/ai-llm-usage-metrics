@@ -41,7 +41,7 @@ describe('createCli', () => {
     );
 
     expect(consoleSpy).toHaveBeenCalledTimes(1);
-    expect(String(consoleSpy.mock.calls[0]?.[0])).toContain('| Period');
+    expect(String(consoleSpy.mock.calls[0]?.[0])).toContain('Period');
     consoleSpy.mockRestore();
   });
 

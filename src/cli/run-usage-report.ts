@@ -108,7 +108,7 @@ export async function buildUsageReport(
     throw new Error('--since must be less than or equal to --until');
   }
 
-  const timezone = options.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'UTC';
+  const timezone = options.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
   validateTimezone(timezone);
 
   const providerFilter = normalizeProviderFilter(options.provider);

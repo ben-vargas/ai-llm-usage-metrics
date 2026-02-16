@@ -2,8 +2,10 @@ import { readFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import { createUsageEvent, type NumberLike, type UsageEvent } from '../../domain/usage-event.js';
-import { type SourceAdapter } from '../source-adapter.js';
+import { createUsageEvent } from '../../domain/usage-event.js';
+import type { UsageEvent } from '../../domain/usage-event.js';
+import type { NumberLike } from '../../domain/normalization.js';
+import type { SourceAdapter } from '../source-adapter.js';
 import { discoverJsonlFiles } from '../../utils/discover-jsonl-files.js';
 
 const defaultSessionsDir = path.join(os.homedir(), '.pi', 'agent', 'sessions');
@@ -53,6 +55,19 @@ function asText(value: unknown): string | undefined {
   return normalized || undefined;
 }
 
+function asNumberLike(value: unknown): NumberLike {
+  if (
+    value === null ||
+    value === undefined ||
+    typeof value === 'number' ||
+    typeof value === 'string'
+  ) {
+    return value;
+  }
+
+  return undefined;
+}
+
 function resolveTimestamp(
   line: Record<string, unknown>,
   message: Record<string, unknown> | undefined,
@@ -83,17 +98,26 @@ function extractUsage(line: Record<string, unknown>, message: Record<string, unk
   const cost = asRecord(usage.cost);
 
   const extracted: PiUsageExtract = {
-    inputTokens: usage.input,
-    outputTokens: usage.output,
-    reasoningTokens:
+    inputTokens: asNumberLike(usage.input),
+    outputTokens: asNumberLike(usage.output),
+    reasoningTokens: asNumberLike(
       usage.reasoning ?? usage.reasoningTokens ?? usage.reasoningOutput ?? usage.outputReasoning,
-    cacheReadTokens: usage.cacheRead,
-    cacheWriteTokens: usage.cacheWrite,
-    totalTokens: usage.totalTokens,
-    costUsd: cost?.total,
+    ),
+    cacheReadTokens: asNumberLike(usage.cacheRead),
+    cacheWriteTokens: asNumberLike(usage.cacheWrite),
+    totalTokens: asNumberLike(usage.totalTokens),
+    costUsd: asNumberLike(cost?.total),
   };
 
-  const hasKnownUsageField = Object.values(extracted).some((value) => value !== undefined);
+  const hasKnownUsageField =
+    extracted.inputTokens !== undefined ||
+    extracted.outputTokens !== undefined ||
+    extracted.reasoningTokens !== undefined ||
+    extracted.cacheReadTokens !== undefined ||
+    extracted.cacheWriteTokens !== undefined ||
+    extracted.totalTokens !== undefined ||
+    extracted.costUsd !== undefined;
+
   return hasKnownUsageField ? extracted : undefined;
 }
 

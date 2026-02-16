@@ -9,14 +9,14 @@ describe('SourceAdapter contract', () => {
     class MockPiAdapter implements SourceAdapter {
       public readonly id = 'pi' as const;
 
-      public async discoverFiles(): Promise<string[]> {
-        return ['/tmp/session.jsonl'];
+      public discoverFiles(): Promise<string[]> {
+        return Promise.resolve(['/tmp/session.jsonl']);
       }
 
-      public async parseFile(filePath: string): Promise<UsageEvent[]> {
+      public parseFile(filePath: string): Promise<UsageEvent[]> {
         void filePath;
 
-        return [
+        return Promise.resolve([
           createUsageEvent({
             source: 'pi',
             sessionId: 'session-id',
@@ -24,7 +24,7 @@ describe('SourceAdapter contract', () => {
             inputTokens: 10,
             outputTokens: 5,
           }),
-        ];
+        ]);
       }
     }
 
@@ -42,13 +42,17 @@ describe('SourceAdapter contract', () => {
   it('can validate adapter shape at runtime', () => {
     const candidate = {
       id: 'codex',
-      discoverFiles: async () => ['/tmp/codex.jsonl'],
-      parseFile: async () => [] as UsageEvent[],
+      discoverFiles: () => Promise.resolve(['/tmp/codex.jsonl']),
+      parseFile: () => Promise.resolve([] as UsageEvent[]),
     };
 
     expect(isSourceAdapter(candidate)).toBe(true);
     expect(
-      isSourceAdapter({ id: '', discoverFiles: async () => [], parseFile: async () => [] }),
+      isSourceAdapter({
+        id: '',
+        discoverFiles: () => Promise.resolve([]),
+        parseFile: () => Promise.resolve([]),
+      }),
     ).toBe(false);
     expect(isSourceAdapter({ id: 'pi' })).toBe(false);
   });

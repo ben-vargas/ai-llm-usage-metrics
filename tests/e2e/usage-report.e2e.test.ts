@@ -46,7 +46,7 @@ describe('usage report e2e', () => {
       json: true,
     });
 
-    const rows = JSON.parse(report) as Array<{ periodKey: string; rowType: string }>;
+    const rows = JSON.parse(report) as { periodKey: string; rowType: string }[];
 
     expect(rows.some((row) => row.periodKey === '2026-01')).toBe(true);
     expect(rows.some((row) => row.periodKey === '2026-02')).toBe(true);

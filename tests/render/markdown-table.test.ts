@@ -50,11 +50,11 @@ describe('renderMarkdownTable', () => {
     const rendered = renderMarkdownTable(rows);
 
     expect(rendered).toMatchInlineSnapshot(`
-      "| Period | Source | Models | Input | Output | Reasoning | Cache Read | Cache Write | Total Tokens | Cost (USD) |
-      | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-      | 2026-02-10 | pi | gpt-4.1 | 1,234 | 321 | 0 | 30 | 0 | 1,585 | 1.2500 |
-      | 2026-02-10 | combined | gpt-4.1, gpt-5-codex | 2,000 | 500 | 120 | 100 | 0 | 2,720 | 2.7500 |
-      | ALL | TOTAL | gpt-4.1, gpt-5-codex | 2,000 | 500 | 120 | 100 | 0 | 2,720 | 2.7500 |"
+      "| Period     | Source   | Models               | Input | Output | Reasoning | Cache Read | Cache Write | Total Tokens | Cost (USD) |
+      | :--------- | :------- | :------------------- | ----: | -----: | --------: | ---------: | ----------: | -----------: | ---------: |
+      | 2026-02-10 | pi       | gpt-4.1              | 1,234 |    321 |         0 |         30 |           0 |        1,585 |     1.2500 |
+      | 2026-02-10 | combined | gpt-4.1, gpt-5-codex | 2,000 |    500 |       120 |        100 |           0 |        2,720 |     2.7500 |
+      | ALL        | TOTAL    | gpt-4.1, gpt-5-codex | 2,000 |    500 |       120 |        100 |           0 |        2,720 |     2.7500 |"
     `);
   });
 });

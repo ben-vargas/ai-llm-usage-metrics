@@ -109,9 +109,9 @@ describe('cost engine', () => {
       costMode: 'estimated',
     });
 
-    const pricedEvent = applyPricingToEvents([event], source)[0];
+    const [pricedEvent] = applyPricingToEvents([event], source);
 
-    expect(pricedEvent?.costMode).toBe('estimated');
-    expect(pricedEvent?.costUsd).toBeUndefined();
+    expect(pricedEvent.costMode).toBe('estimated');
+    expect(pricedEvent.costUsd).toBeUndefined();
   });
 });

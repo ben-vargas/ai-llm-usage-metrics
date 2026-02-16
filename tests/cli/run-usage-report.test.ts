@@ -13,11 +13,13 @@ describe('buildUsageReport', () => {
       markdown: true,
     });
 
-    expect(report).toContain('| Period | Source | Models |');
-    expect(report).toContain('| pi |');
-    expect(report).toContain('| codex |');
-    expect(report).toContain('| combined |');
-    expect(report).toContain('| ALL | TOTAL |');
+    expect(report).toContain('| Period');
+    expect(report).toContain('| Source');
+    expect(report).toContain('| Models');
+    expect(report).toMatch(/\|\s+\d{4}-\d{2}-\d{2}\s+\|\s+pi\s+\|/u);
+    expect(report).toMatch(/\|\s+\d{4}-\d{2}-\d{2}\s+\|\s+codex\s+\|/u);
+    expect(report).toMatch(/\|\s+\d{4}-\d{2}-\d{2}\s+\|\s+combined\s+\|/u);
+    expect(report).toMatch(/\|\s+ALL\s+\|\s+TOTAL\s+\|/u);
   });
 
   it('builds json report when --json semantics are requested', async () => {
@@ -28,7 +30,7 @@ describe('buildUsageReport', () => {
       json: true,
     });
 
-    const parsed = JSON.parse(report) as Array<{ rowType: string; periodKey: string }>;
+    const parsed = JSON.parse(report) as { rowType: string; periodKey: string }[];
 
     expect(parsed.length).toBeGreaterThan(0);
     expect(parsed.at(-1)).toMatchObject({ rowType: 'grand_total', periodKey: 'ALL' });

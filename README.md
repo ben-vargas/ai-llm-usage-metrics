@@ -83,6 +83,7 @@ Columns:
 ```bash
 bun install
 bun run lint
+bun run typecheck
 bun run test
 bun run format:check
 ```

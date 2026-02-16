@@ -2,8 +2,10 @@ import { readFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import { createUsageEvent, type UsageEvent } from '../../domain/usage-event.js';
+import { createUsageEvent } from '../../domain/usage-event.js';
+import type { UsageEvent } from '../../domain/usage-event.js';
 import { normalizeNonNegativeInteger } from '../../domain/normalization.js';
+import type { NumberLike } from '../../domain/normalization.js';
 import { discoverJsonlFiles } from '../../utils/discover-jsonl-files.js';
 import type { SourceAdapter } from '../source-adapter.js';
 
@@ -55,11 +57,11 @@ function toUsage(value: unknown): CodexUsage | undefined {
   }
 
   return {
-    inputTokens: normalizeNonNegativeInteger(usage.input_tokens),
-    cacheReadTokens: normalizeNonNegativeInteger(usage.cached_input_tokens),
-    outputTokens: normalizeNonNegativeInteger(usage.output_tokens),
-    reasoningTokens: normalizeNonNegativeInteger(usage.reasoning_output_tokens),
-    totalTokens: normalizeNonNegativeInteger(usage.total_tokens),
+    inputTokens: normalizeNonNegativeInteger(usage.input_tokens as NumberLike),
+    cacheReadTokens: normalizeNonNegativeInteger(usage.cached_input_tokens as NumberLike),
+    outputTokens: normalizeNonNegativeInteger(usage.output_tokens as NumberLike),
+    reasoningTokens: normalizeNonNegativeInteger(usage.reasoning_output_tokens as NumberLike),
+    totalTokens: normalizeNonNegativeInteger(usage.total_tokens as NumberLike),
   };
 }
 
