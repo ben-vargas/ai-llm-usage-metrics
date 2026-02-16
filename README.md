@@ -74,7 +74,6 @@ Columns:
 - Output
 - Reasoning
 - Cache Read
-- Cache Write
 - Total Tokens
 - Cost (USD)
 

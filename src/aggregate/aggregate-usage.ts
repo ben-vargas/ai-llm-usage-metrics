@@ -138,15 +138,17 @@ export function aggregateUsage(
       }
     }
 
-    const combinedRow: PeriodCombinedRow = {
-      rowType: 'period_combined',
-      periodKey,
-      source: 'combined',
-      models: normalizeModelList(periodModels),
-      ...periodCombinedTotals,
-    };
+    if (sortedSources.length > 1) {
+      const combinedRow: PeriodCombinedRow = {
+        rowType: 'period_combined',
+        periodKey,
+        source: 'combined',
+        models: normalizeModelList(periodModels),
+        ...periodCombinedTotals,
+      };
 
-    rows.push(combinedRow);
+      rows.push(combinedRow);
+    }
   }
 
   const grandTotalRow: GrandTotalRow = {

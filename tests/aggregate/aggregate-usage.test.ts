@@ -44,7 +44,7 @@ describe('aggregateUsage', () => {
 
     const rows = aggregateUsage(events, { granularity: 'daily', timezone: 'UTC' });
 
-    expect(rows).toHaveLength(6);
+    expect(rows).toHaveLength(5);
     expect(rows[0]).toMatchObject({
       rowType: 'period_source',
       periodKey: '2026-02-10',
@@ -78,12 +78,6 @@ describe('aggregateUsage', () => {
       costUsd: 0,
     });
     expect(rows[4]).toMatchObject({
-      rowType: 'period_combined',
-      periodKey: '2026-02-11',
-      totalTokens: 5,
-      costUsd: 0,
-    });
-    expect(rows[5]).toMatchObject({
       rowType: 'grand_total',
       periodKey: 'ALL',
       totalTokens: 58,
@@ -118,11 +112,11 @@ describe('aggregateUsage', () => {
       rowType: 'period_source',
       totalTokens: 2,
     });
-    expect(rows[2]).toMatchObject({
+    expect(rows[1]).toMatchObject({
       periodKey: '2026-W02',
       rowType: 'period_source',
       totalTokens: 4,
     });
-    expect(rows[4]).toMatchObject({ rowType: 'grand_total', totalTokens: 6 });
+    expect(rows[2]).toMatchObject({ rowType: 'grand_total', totalTokens: 6 });
   });
 });

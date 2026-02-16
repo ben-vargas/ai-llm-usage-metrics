@@ -16,12 +16,12 @@ function shouldDrawHorizontalLine(index: number, rowCount: number, rows: string[
   const previousSource = previousRow[1];
   const nextSource = nextRow[1];
 
-  return previousSource === 'combined' || previousSource === 'TOTAL' || nextSource === 'TOTAL';
+  return previousSource === 'combined' || nextSource === 'TOTAL';
 }
 
 function createTableConfig(rows: string[][]): TableUserConfig {
   return {
-    border: getBorderCharacters('honeywell'),
+    border: getBorderCharacters('norc'),
     drawHorizontalLine: (index, rowCount) => shouldDrawHorizontalLine(index, rowCount, rows),
     columnDefault: {
       paddingLeft: 1,
@@ -42,7 +42,6 @@ function createTableConfig(rows: string[][]): TableUserConfig {
       6: { alignment: 'right' },
       7: { alignment: 'right' },
       8: { alignment: 'right' },
-      9: { alignment: 'right' },
     },
   };
 }

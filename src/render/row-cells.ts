@@ -8,7 +8,6 @@ export const usageTableHeaders = [
   'Output',
   'Reasoning',
   'Cache Read',
-  'Cache Write',
   'Total Tokens',
   'Cost (USD)',
 ] as const;
@@ -48,7 +47,6 @@ export function toUsageTableCells(rows: UsageReportRow[]): string[][] {
     formatTokenCount(row.outputTokens),
     formatTokenCount(row.reasoningTokens),
     formatTokenCount(row.cacheReadTokens),
-    formatTokenCount(row.cacheWriteTokens),
     formatTokenCount(row.totalTokens),
     formatUsd(row.costUsd),
   ]);

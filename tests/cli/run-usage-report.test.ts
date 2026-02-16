@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { buildUsageReport } from '../../src/cli/run-usage-report.js';
 
 describe('buildUsageReport', () => {
-  it('builds markdown report with source-separated and combined rows', async () => {
+  it('builds markdown report with source-separated rows', async () => {
     const report = await buildUsageReport('daily', {
       piDir: path.resolve('tests/fixtures/pi'),
       codexDir: path.resolve('tests/fixtures/codex'),
@@ -18,7 +18,7 @@ describe('buildUsageReport', () => {
     expect(report).toContain('| Models');
     expect(report).toMatch(/\|\s+\d{4}-\d{2}-\d{2}\s+\|\s+pi\s+\|/u);
     expect(report).toMatch(/\|\s+\d{4}-\d{2}-\d{2}\s+\|\s+codex\s+\|/u);
-    expect(report).toMatch(/\|\s+\d{4}-\d{2}-\d{2}\s+\|\s+combined\s+\|/u);
+    expect(report).not.toMatch(/\|\s+\d{4}-\d{2}-\d{2}\s+\|\s+combined\s+\|/u);
     expect(report).toMatch(/\|\s+ALL\s+\|\s+TOTAL\s+\|/u);
   });
 
@@ -33,6 +33,7 @@ describe('buildUsageReport', () => {
     const parsed = JSON.parse(report) as { rowType: string; periodKey: string }[];
 
     expect(parsed.length).toBeGreaterThan(0);
+    expect(parsed.some((row) => row.rowType === 'period_combined')).toBe(true);
     expect(parsed.at(-1)).toMatchObject({ rowType: 'grand_total', periodKey: 'ALL' });
   });
 

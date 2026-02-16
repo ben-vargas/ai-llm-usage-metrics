@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { createUsageEvent } from '../../src/domain/usage-event.js';
 
 describe('createUsageEvent', () => {
-  it('normalizes counters and infers total from components when needed', () => {
+  it('normalizes counters and trusts declared total tokens when provided', () => {
     const event = createUsageEvent({
       source: 'pi',
       sessionId: 'session-1',
@@ -25,10 +25,24 @@ describe('createUsageEvent', () => {
       reasoningTokens: 5,
       cacheReadTokens: 0,
       cacheWriteTokens: 0,
-      totalTokens: 40,
+      totalTokens: 20,
       costUsd: 0.15,
       costMode: 'explicit',
     });
+  });
+
+  it('falls back to component total when declared total is missing', () => {
+    const event = createUsageEvent({
+      source: 'pi',
+      sessionId: 'session-component-total',
+      timestamp: '2026-02-12T10:00:00Z',
+      inputTokens: 10,
+      outputTokens: 25,
+      reasoningTokens: 5,
+      cacheReadTokens: 2,
+    });
+
+    expect(event.totalTokens).toBe(42);
   });
 
   it('defaults to estimated mode when cost is missing', () => {

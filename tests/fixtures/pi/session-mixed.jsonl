@@ -6,4 +6,4 @@ this-is-not-json
 {"type":"model_change","provider":"anthropic","modelId":"claude-3.7-sonnet"}
 {"type":"message","timestamp":"2026-02-12T20:02:00.000Z","provider":"anthropic","model":"claude-3.7-sonnet","usage":{"input":10,"output":10,"totalTokens":20,"cost":{"total":0.02}}}
 {"type":"model_change","provider":"openai","modelId":"gpt-4.1"}
-{"type":"message","message":{"role":"assistant","timestamp":1770926460000},"usage":{"input":2,"output":3,"totalTokens":2}}
+{"type":"message","message":{"role":"assistant","timestamp":1770926460000},"usage":{"input":2,"output":3}}

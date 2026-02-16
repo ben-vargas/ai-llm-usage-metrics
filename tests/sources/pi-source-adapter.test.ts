@@ -54,7 +54,7 @@ describe('PiSourceAdapter', () => {
       reasoningTokens: 5,
       cacheReadTokens: 10,
       cacheWriteTokens: 3,
-      totalTokens: 138,
+      totalTokens: 120,
       costUsd: 0.01,
       costMode: 'explicit',
     });
