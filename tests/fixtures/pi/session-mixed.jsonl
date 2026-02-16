@@ -1,0 +1,9 @@
+{"type":"session","id":"session-pi-1","timestamp":"2026-02-12T20:00:00.000Z"}
+{"type":"model_change","provider":"openai-codex","modelId":"gpt-5.3-codex"}
+{"type":"message","timestamp":"2026-02-12T20:01:00.000Z","provider":"openai-codex","model":"gpt-5.3-codex","usage":{"input":100,"output":20,"reasoningTokens":5,"cacheRead":10,"cacheWrite":3,"totalTokens":120,"cost":{"total":0.01}}}
+this-is-not-json
+{"type":"message","timestamp":"2026-02-12T20:01:30.000Z","message":{"role":"user","content":[]}}
+{"type":"model_change","provider":"anthropic","modelId":"claude-3.7-sonnet"}
+{"type":"message","timestamp":"2026-02-12T20:02:00.000Z","provider":"anthropic","model":"claude-3.7-sonnet","usage":{"input":10,"output":10,"totalTokens":20,"cost":{"total":0.02}}}
+{"type":"model_change","provider":"openai","modelId":"gpt-4.1"}
+{"type":"message","message":{"role":"assistant","timestamp":1770926460000},"usage":{"input":2,"output":3,"totalTokens":2}}
