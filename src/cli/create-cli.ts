@@ -1,5 +1,7 @@
 import { Command } from 'commander';
 
+import { runUsageReport } from './run-usage-report.js';
+
 export type UsageGranularity = 'daily' | 'weekly' | 'monthly';
 
 type SharedOptions = {
@@ -38,18 +40,13 @@ function commandDescription(granularity: UsageGranularity): string {
   }
 }
 
-function notImplementedMessage(granularity: UsageGranularity): string {
-  return `${granularity[0].toUpperCase()}${granularity.slice(1)} usage report is not implemented yet.`;
-}
-
 function createCommand(granularity: UsageGranularity): Command {
   const command = new Command(granularity);
 
   addSharedOptions(command)
     .description(commandDescription(granularity))
-    .action((options: SharedOptions) => {
-      void options;
-      console.log(notImplementedMessage(granularity));
+    .action(async (options: SharedOptions) => {
+      await runUsageReport(granularity, options);
     });
 
   return command;
