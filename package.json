@@ -1,0 +1,35 @@
+{
+  "name": "llm-usage-metrics",
+  "version": "0.1.0",
+  "description": "CLI for aggregating local LLM usage metrics from pi and codex sessions",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "usage": "dist/cli/index.js"
+  },
+  "scripts": {
+    "build": "tsup src/cli/index.ts --format esm --dts --clean --sourcemap",
+    "cli": "bun run src/cli/index.ts",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "format:check": "prettier --check .",
+    "format:write": "prettier --write ."
+  },
+  "dependencies": {
+    "commander": "^13.1.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.20.0",
+    "@types/node": "^22.13.10",
+    "eslint": "^9.20.0",
+    "eslint-config-prettier": "^10.0.1",
+    "prettier": "^3.5.2",
+    "tsup": "^8.3.6",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.24.1",
+    "vitest": "^3.0.5"
+  }
+}
