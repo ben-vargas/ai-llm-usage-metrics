@@ -50,7 +50,7 @@ describe('CodexSourceAdapter', () => {
       sessionId: 'codex-session-1',
       provider: 'openai',
       model: 'gpt-5.2-codex',
-      inputTokens: 100,
+      inputTokens: 80,
       cacheReadTokens: 20,
       outputTokens: 50,
       reasoningTokens: 10,
@@ -63,7 +63,7 @@ describe('CodexSourceAdapter', () => {
       sessionId: 'codex-session-1',
       provider: 'openai',
       model: 'gpt-5.1-codex',
-      inputTokens: 50,
+      inputTokens: 45,
       cacheReadTokens: 5,
       outputTokens: 15,
       reasoningTokens: 5,
@@ -83,6 +83,8 @@ describe('CodexSourceAdapter', () => {
 
     expect(events).toHaveLength(1);
     expect(events[0]?.model).toBe(LEGACY_CODEX_MODEL_FALLBACK);
+    expect(events[0]?.inputTokens).toBe(9);
+    expect(events[0]?.cacheReadTokens).toBe(3);
   });
 });
 
