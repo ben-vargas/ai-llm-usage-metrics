@@ -14,7 +14,7 @@ The reporting pipeline is linear and intentionally simple:
 ```mermaid
 flowchart LR
     A[CLI command] --> B[Source adapters]
-    B --> C[Normalized UsageEvent[]]
+    B --> C[Normalized usage event list]
     C --> D[Pricing engine]
     D --> E[Aggregated rows]
     E --> F[Renderer]
@@ -36,8 +36,8 @@ sequenceDiagram
     User->>CLI: usage daily --markdown
     CLI->>PI: discoverFiles + parseFile
     CLI->>CX: discoverFiles + parseFile
-    PI-->>CLI: UsageEvent[]
-    CX-->>CLI: UsageEvent[]
+    PI-->>CLI: UsageEvent list
+    CX-->>CLI: UsageEvent list
     CLI->>PR: load + getPricing(model)
     CLI->>AG: aggregateUsage(events)
     AG-->>CLI: UsageReportRow[]
