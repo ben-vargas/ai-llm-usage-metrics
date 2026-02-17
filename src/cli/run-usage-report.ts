@@ -158,11 +158,12 @@ export async function buildUsageReport(
   validateTimezone(timezone);
 
   const providerFilter = normalizeProviderFilter(options.provider);
+  const effectiveProviderFilter = providerFilter ?? 'openai';
   const pricingSource = await resolvePricingSource(options);
 
   const piAdapter = new PiSourceAdapter({
     sessionsDir: options.piDir,
-    providerFilter: (provider) => matchesProvider(provider, providerFilter ?? 'openai'),
+    providerFilter: (provider) => matchesProvider(provider, effectiveProviderFilter),
   });
   const codexAdapter = new CodexSourceAdapter({
     sessionsDir: options.codexDir,
@@ -174,7 +175,7 @@ export async function buildUsageReport(
   ]);
 
   const providerFilteredEvents = [...piEvents, ...codexEvents].filter((event) =>
-    matchesProvider(event.provider, providerFilter),
+    matchesProvider(event.provider, effectiveProviderFilter),
   );
 
   const dateFilteredEvents = filterEventsByDateRange(

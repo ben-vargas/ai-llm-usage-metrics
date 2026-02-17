@@ -1,8 +1,17 @@
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import { buildUsageReport } from '../../src/cli/run-usage-report.js';
+
+const tempDirs: string[] = [];
+
+afterEach(async () => {
+  await Promise.all(tempDirs.map((tempDir) => rm(tempDir, { recursive: true, force: true })));
+  tempDirs.length = 0;
+});
 
 describe('buildUsageReport', () => {
   it('builds markdown report with source-separated rows', async () => {
@@ -35,6 +44,68 @@ describe('buildUsageReport', () => {
     expect(parsed.length).toBeGreaterThan(0);
     expect(parsed.some((row) => row.rowType === 'period_combined')).toBe(true);
     expect(parsed.at(-1)).toMatchObject({ rowType: 'grand_total', periodKey: 'ALL' });
+  });
+
+  it('defaults provider filtering to openai for both pi and codex sources', async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), 'usage-provider-filter-'));
+    tempDirs.push(tempDir);
+
+    const codexSessionPath = path.join(tempDir, 'session.jsonl');
+
+    await writeFile(
+      codexSessionPath,
+      [
+        JSON.stringify({
+          timestamp: '2026-02-14T10:00:00.000Z',
+          type: 'session_meta',
+          payload: { id: 'codex-provider-test', model_provider: 'anthropic' },
+        }),
+        JSON.stringify({
+          timestamp: '2026-02-14T10:00:01.000Z',
+          type: 'turn_context',
+          payload: { model: 'claude-3.7-sonnet' },
+        }),
+        JSON.stringify({
+          timestamp: '2026-02-14T10:00:02.000Z',
+          type: 'event_msg',
+          payload: {
+            type: 'token_count',
+            info: {
+              last_token_usage: {
+                input_tokens: 10,
+                cached_input_tokens: 0,
+                output_tokens: 5,
+                reasoning_output_tokens: 0,
+                total_tokens: 15,
+              },
+            },
+          },
+        }),
+      ].join('\n'),
+      'utf8',
+    );
+
+    const report = await buildUsageReport('daily', {
+      piDir: tempDir,
+      codexDir: tempDir,
+      timezone: 'UTC',
+      json: true,
+    });
+
+    const parsed = JSON.parse(report) as {
+      rowType: string;
+      source: string;
+      totalTokens: number;
+      costUsd: number;
+    }[];
+
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0]).toMatchObject({
+      rowType: 'grand_total',
+      source: 'combined',
+      totalTokens: 0,
+      costUsd: 0,
+    });
   });
 
   it('validates date flags, range ordering and pricing URL', async () => {
