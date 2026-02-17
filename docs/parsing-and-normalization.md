@@ -58,6 +58,18 @@ Rules:
 - otherwise compute delta as `current_total - previous_total`
 - negative deltas are clamped to zero
 
+```mermaid
+flowchart TD
+    A[token_count line] --> B{last_token_usage present?}
+    B -- yes --> C[Use last_token_usage as delta]
+    B -- no --> D{total_token_usage present?}
+    D -- no --> E[Skip line]
+    D -- yes --> F[delta = current_total - previous_total]
+    F --> G[Clamp negatives to zero]
+    C --> H[Create UsageEvent]
+    G --> H
+```
+
 ### Codex input semantics
 
 Codex `input_tokens` includes cached input. The adapter stores:

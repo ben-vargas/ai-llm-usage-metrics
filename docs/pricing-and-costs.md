@@ -11,6 +11,24 @@ Explicit cost is never overwritten.
 
 ## Pricing sources
 
+```mermaid
+flowchart TD
+    A[Need pricing data] --> B{Fresh cache available?}
+    B -- yes --> C[Use cache]
+    B -- no --> D{Offline mode?}
+    D -- yes --> E{Stale cache available?}
+    E -- yes --> C
+    E -- no --> F[Fail: no pricing data]
+    D -- no --> G[Fetch from remote source]
+    G --> H{Fetch succeeded?}
+    H -- no --> I{Stale cache available?}
+    I -- yes --> C
+    I -- no --> F
+    H -- yes --> J[Normalize + keep in memory]
+    J --> K[Best-effort cache write]
+    K --> L[Use fetched pricing]
+```
+
 ### 1) LiteLLM pricing fetcher
 
 Source file: `src/pricing/litellm-pricing-fetcher.ts`

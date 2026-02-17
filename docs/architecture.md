@@ -11,8 +11,38 @@ The reporting pipeline is linear and intentionally simple:
 5. **Aggregation by period/source** (`src/aggregate`)
 6. **Rendering** (`src/render`)
 
-```text
-CLI -> adapters -> usage events -> pricing -> aggregated rows -> renderer
+```mermaid
+flowchart LR
+    A[CLI command] --> B[Source adapters]
+    B --> C[Normalized UsageEvent[]]
+    C --> D[Pricing engine]
+    D --> E[Aggregated rows]
+    E --> F[Renderer]
+    F --> G[Terminal / Markdown / JSON]
+```
+
+## Runtime sequence
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant CLI as CLI (run-usage-report)
+    participant PI as PiSourceAdapter
+    participant CX as CodexSourceAdapter
+    participant PR as PricingSource
+    participant AG as Aggregator
+    participant RD as Renderer
+
+    User->>CLI: usage daily --markdown
+    CLI->>PI: discoverFiles + parseFile
+    CLI->>CX: discoverFiles + parseFile
+    PI-->>CLI: UsageEvent[]
+    CX-->>CLI: UsageEvent[]
+    CLI->>PR: load + getPricing(model)
+    CLI->>AG: aggregateUsage(events)
+    AG-->>CLI: UsageReportRow[]
+    CLI->>RD: renderMarkdownTable(rows)
+    RD-->>User: markdown output
 ```
 
 ## Module layout
