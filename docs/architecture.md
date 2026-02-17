@@ -118,6 +118,8 @@ Each source implements the same contract:
 
 This keeps format-specific logic isolated and makes new sources straightforward to add.
 
+Built-in adapters are `pi` and `codex`, but the contract already supports other source ids. Adding Claude/Gemini (or any other source) mainly requires a new adapter plus wiring it into the report pipeline.
+
 ### Pricing as a separate stage
 
 Parsing does not depend on pricing. Parsing produces usage events first; pricing is applied later. This separation keeps parsing deterministic and easier to test.

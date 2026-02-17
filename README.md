@@ -9,6 +9,8 @@ Reports are available for daily, weekly (Monday-start), and monthly periods.
 
 Project documentation is available in [`docs/`](./docs/README.md).
 
+Built-in adapters currently support `.pi` and `.codex`. The codebase is structured to add more sources (for example Claude/Gemini exports) through the `SourceAdapter` pattern. See [`CONTRIBUTING.md`](./CONTRIBUTING.md).
+
 ## Install
 
 ```bash
@@ -69,6 +71,27 @@ llm-usage monthly --pricing-url https://raw.githubusercontent.com/BerriAI/litell
 
 ```bash
 llm-usage daily --pi-dir /path/to/pi/sessions --codex-dir /path/to/codex/sessions
+```
+
+### Filter by source
+
+Only codex rows:
+
+```bash
+llm-usage monthly --source codex
+```
+
+Only pi rows:
+
+```bash
+llm-usage monthly --source pi
+```
+
+Multiple sources (repeat or comma-separated):
+
+```bash
+llm-usage monthly --source pi --source codex
+llm-usage monthly --source pi,codex
 ```
 
 ## Output semantics
