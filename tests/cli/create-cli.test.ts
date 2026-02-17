@@ -21,13 +21,14 @@ describe('createCli', () => {
     expect(cli.commands.map((command) => command.name())).toEqual(['daily', 'weekly', 'monthly']);
   });
 
-  it('includes markdown and pricing flags on each command', () => {
+  it('includes output, pricing, and source filter flags on each command', () => {
     const cli = createCli();
 
     for (const command of cli.commands) {
       expect(command.options.some((option) => option.long === '--markdown')).toBe(true);
       expect(command.options.some((option) => option.long === '--pricing-url')).toBe(true);
       expect(command.options.some((option) => option.long === '--pricing-offline')).toBe(true);
+      expect(command.options.some((option) => option.long === '--source')).toBe(true);
     }
   });
 

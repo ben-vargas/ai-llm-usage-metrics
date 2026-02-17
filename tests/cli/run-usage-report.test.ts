@@ -46,6 +46,43 @@ describe('buildUsageReport', () => {
     expect(parsed.at(-1)).toMatchObject({ rowType: 'grand_total', periodKey: 'ALL' });
   });
 
+  it('filters rows to a single source when --source is provided', async () => {
+    const report = await buildUsageReport('daily', {
+      piDir: path.resolve('tests/fixtures/pi'),
+      codexDir: path.resolve('tests/fixtures/codex'),
+      timezone: 'UTC',
+      source: 'codex',
+      json: true,
+    });
+
+    const parsed = JSON.parse(report) as { rowType: string; source: string }[];
+
+    expect(parsed.some((row) => row.rowType === 'period_source' && row.source === 'codex')).toBe(
+      true,
+    );
+    expect(parsed.some((row) => row.rowType === 'period_source' && row.source === 'pi')).toBe(
+      false,
+    );
+    expect(parsed.some((row) => row.rowType === 'period_combined')).toBe(false);
+  });
+
+  it('supports comma-separated source filters', async () => {
+    const report = await buildUsageReport('daily', {
+      piDir: path.resolve('tests/fixtures/pi'),
+      codexDir: path.resolve('tests/fixtures/codex'),
+      timezone: 'UTC',
+      source: 'pi,codex',
+      json: true,
+    });
+
+    const parsed = JSON.parse(report) as { rowType: string; source: string }[];
+
+    expect(parsed.some((row) => row.rowType === 'period_source' && row.source === 'pi')).toBe(true);
+    expect(parsed.some((row) => row.rowType === 'period_source' && row.source === 'codex')).toBe(
+      true,
+    );
+  });
+
   it('defaults provider filtering to openai for both pi and codex sources', async () => {
     const tempDir = await mkdtemp(path.join(os.tmpdir(), 'usage-provider-filter-'));
     tempDirs.push(tempDir);
@@ -133,6 +170,14 @@ describe('buildUsageReport', () => {
         pricingUrl: 'http://127.0.0.1:1/pricing.json',
       }),
     ).rejects.toThrow('Could not load pricing from --pricing-url');
+  });
+
+  it('validates source filter input', async () => {
+    await expect(
+      buildUsageReport('daily', {
+        source: '   ',
+      }),
+    ).rejects.toThrow('--source must contain at least one non-empty source id');
   });
 
   it('validates conflicting output flags', async () => {

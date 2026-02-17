@@ -7,6 +7,7 @@ export type UsageGranularity = 'daily' | 'weekly' | 'monthly';
 type SharedOptions = {
   piDir?: string;
   codexDir?: string;
+  source?: string[];
   since?: string;
   until?: string;
   timezone?: string;
@@ -19,10 +20,20 @@ type SharedOptions = {
 
 const defaultTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 
+function collectSourceOption(value: string, previous: string[]): string[] {
+  return [...previous, ...value.split(',')];
+}
+
 function addSharedOptions(command: Command): Command {
   return command
     .option('--pi-dir <path>', 'Path to .pi sessions directory')
     .option('--codex-dir <path>', 'Path to .codex sessions directory')
+    .option(
+      '--source <name>',
+      'Filter by source id (repeatable or comma-separated, e.g. --source codex or --source pi,codex)',
+      collectSourceOption,
+      [],
+    )
     .option('--since <YYYY-MM-DD>', 'Inclusive start date filter')
     .option('--until <YYYY-MM-DD>', 'Inclusive end date filter')
     .option('--timezone <iana>', 'Timezone for bucketing', defaultTimezone)

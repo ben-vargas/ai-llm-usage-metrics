@@ -14,6 +14,7 @@ import { getPeriodKey, type ReportGranularity } from '../utils/time-buckets.js';
 export type ReportCommandOptions = {
   piDir?: string;
   codexDir?: string;
+  source?: string | string[];
   since?: string;
   until?: string;
   timezone?: string;
@@ -53,6 +54,24 @@ function normalizeProviderFilter(provider: string | undefined): string | undefin
   return normalized || undefined;
 }
 
+function normalizeSourceFilter(source: string | string[] | undefined): Set<string> | undefined {
+  if (!source || (Array.isArray(source) && source.length === 0)) {
+    return undefined;
+  }
+
+  const sourceCandidates = Array.isArray(source) ? source : [source];
+  const normalizedSources = sourceCandidates
+    .flatMap((candidate) => candidate.split(','))
+    .map((candidate) => candidate.trim().toLowerCase())
+    .filter((candidate) => candidate.length > 0);
+
+  if (normalizedSources.length === 0) {
+    throw new Error('--source must contain at least one non-empty source id');
+  }
+
+  return new Set(normalizedSources);
+}
+
 function matchesProvider(
   provider: string | undefined,
   providerFilter: string | undefined,
@@ -62,6 +81,14 @@ function matchesProvider(
   }
 
   return provider?.toLowerCase().includes(providerFilter) ?? false;
+}
+
+function matchesSource(source: string, sourceFilter: Set<string> | undefined): boolean {
+  if (!sourceFilter) {
+    return true;
+  }
+
+  return sourceFilter.has(source.toLowerCase());
 }
 
 async function parseAdapterEvents(adapter: SourceAdapter): Promise<UsageEvent[]> {
@@ -158,6 +185,7 @@ export async function buildUsageReport(
   validateTimezone(timezone);
 
   const providerFilter = normalizeProviderFilter(options.provider);
+  const sourceFilter = normalizeSourceFilter(options.source);
   const effectiveProviderFilter = providerFilter ?? 'openai';
   const pricingSource = await resolvePricingSource(options);
 
@@ -174,12 +202,14 @@ export async function buildUsageReport(
     parseAdapterEvents(codexAdapter),
   ]);
 
-  const providerFilteredEvents = [...piEvents, ...codexEvents].filter((event) =>
-    matchesProvider(event.provider, effectiveProviderFilter),
+  const providerAndSourceFilteredEvents = [...piEvents, ...codexEvents].filter(
+    (event) =>
+      matchesProvider(event.provider, effectiveProviderFilter) &&
+      matchesSource(event.source, sourceFilter),
   );
 
   const dateFilteredEvents = filterEventsByDateRange(
-    providerFilteredEvents,
+    providerAndSourceFilteredEvents,
     timezone,
     options.since,
     options.until,
