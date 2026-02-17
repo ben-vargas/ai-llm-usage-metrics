@@ -7,6 +7,8 @@ CLI to aggregate local LLM usage from:
 
 Reports are available for daily, weekly (Monday-start), and monthly periods.
 
+Project documentation is available in [`docs/`](./docs/README.md).
+
 ## Install
 
 ```bash
