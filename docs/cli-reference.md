@@ -3,7 +3,7 @@
 ## Command structure
 
 ```bash
-usage <command> [options]
+llm-usage <command> [options]
 ```
 
 Commands:
@@ -36,43 +36,43 @@ Commands:
 Daily report:
 
 ```bash
-usage daily
+llm-usage daily
 ```
 
 Weekly report in Paris time:
 
 ```bash
-usage weekly --timezone Europe/Paris
+llm-usage weekly --timezone Europe/Paris
 ```
 
 Monthly report for a range:
 
 ```bash
-usage monthly --since 2026-01-01 --until 2026-01-31
+llm-usage monthly --since 2026-01-01 --until 2026-01-31
 ```
 
 JSON output for automation:
 
 ```bash
-usage daily --json
+llm-usage daily --json
 ```
 
 Markdown output for docs:
 
 ```bash
-usage daily --markdown
+llm-usage daily --markdown
 ```
 
 Custom directories:
 
 ```bash
-usage daily --pi-dir /path/to/pi --codex-dir /path/to/codex
+llm-usage daily --pi-dir /path/to/pi --codex-dir /path/to/codex
 ```
 
 Offline pricing mode:
 
 ```bash
-usage monthly --pricing-offline
+llm-usage monthly --pricing-offline
 ```
 
 ## Validation rules

@@ -33,7 +33,7 @@ sequenceDiagram
     participant AG as Aggregator
     participant RD as Renderer
 
-    User->>CLI: usage daily --markdown
+    User->>CLI: llm-usage daily --markdown
     CLI->>PI: discoverFiles + parseFile
     CLI->>CX: discoverFiles + parseFile
     PI-->>CLI: UsageEvent list

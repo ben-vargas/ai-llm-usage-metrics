@@ -17,6 +17,7 @@ describe('createCli', () => {
   it('registers daily, weekly, and monthly commands', () => {
     const cli = createCli();
 
+    expect(cli.name()).toBe('llm-usage');
     expect(cli.commands.map((command) => command.name())).toEqual(['daily', 'weekly', 'monthly']);
   });
 

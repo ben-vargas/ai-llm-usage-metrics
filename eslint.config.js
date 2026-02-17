@@ -9,7 +9,7 @@ const tsconfigRootDir = path.dirname(fileURLToPath(import.meta.url));
 
 export default tseslint.config(
   {
-    ignores: ['dist/**', 'coverage/**', '*.tgz', 'eslint.config.js'],
+    ignores: ['dist/**', 'coverage/**', '.github/scripts/**', '*.tgz', 'eslint.config.js'],
   },
   js.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,

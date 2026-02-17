@@ -26,49 +26,49 @@ npx llm-usage-metrics daily
 ### Daily report (default terminal table)
 
 ```bash
-usage daily
+llm-usage daily
 ```
 
 ### Weekly report with custom timezone
 
 ```bash
-usage weekly --timezone Europe/Paris
+llm-usage weekly --timezone Europe/Paris
 ```
 
 ### Monthly report with date range
 
 ```bash
-usage monthly --since 2026-01-01 --until 2026-01-31
+llm-usage monthly --since 2026-01-01 --until 2026-01-31
 ```
 
 ### Markdown output
 
 ```bash
-usage daily --markdown
+llm-usage daily --markdown
 ```
 
 ### JSON output
 
 ```bash
-usage daily --json
+llm-usage daily --json
 ```
 
 ### Offline pricing (use cached LiteLLM pricing only)
 
 ```bash
-usage monthly --pricing-offline
+llm-usage monthly --pricing-offline
 ```
 
 ### Override pricing URL
 
 ```bash
-usage monthly --pricing-url https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json
+llm-usage monthly --pricing-url https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json
 ```
 
 ### Custom session directories
 
 ```bash
-usage daily --pi-dir /path/to/pi/sessions --codex-dir /path/to/codex/sessions
+llm-usage daily --pi-dir /path/to/pi/sessions --codex-dir /path/to/codex/sessions
 ```
 
 ## Output semantics

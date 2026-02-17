@@ -7,7 +7,7 @@
     "node": ">=20"
   },
   "bin": {
-    "usage": "dist/index.js"
+    "llm-usage": "dist/index.js"
   },
   "files": [
     "dist",
@@ -19,10 +19,13 @@
     "cli": "bun run src/cli/index.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --coverage",
     "format:check": "prettier --check .",
     "format:write": "prettier --write .",
-    "pack:check": "npm pack"
+    "pack:check": "npm pack",
+    "release": "release-it",
+    "release:dry": "release-it --dry-run",
+    "release:ci": "release-it --ci"
   },
   "keywords": [
     "llm",
@@ -40,10 +43,13 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.20.0",
+    "@release-it/conventional-changelog": "^10.0.5",
     "@types/node": "^22.13.10",
+    "@vitest/coverage-v8": "3.2.4",
     "eslint": "^9.20.0",
     "eslint-config-prettier": "^10.0.1",
     "prettier": "^3.5.2",
+    "release-it": "^19.2.4",
     "tsup": "^8.3.6",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.24.1",

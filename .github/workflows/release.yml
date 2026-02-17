@@ -1,0 +1,71 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      increment:
+        description: Version bump type
+        required: true
+        default: patch
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      dry_run:
+        description: Run release-it in dry-run mode
+        required: true
+        default: true
+        type: boolean
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.14.0
+          registry-url: https://registry.npmjs.org
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Ensure npm version for trusted publishing
+        run: npm install -g npm@^11.5.1
+
+      - name: Show tool versions
+        run: |
+          node --version
+          npm --version
+          bun --version
+
+      - name: Dry run release
+        if: ${{ inputs.dry_run }}
+        run: bun run release:ci -- --dry-run --increment ${{ inputs.increment }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish release
+        if: ${{ !inputs.dry_run }}
+        run: bun run release:ci -- --increment ${{ inputs.increment }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

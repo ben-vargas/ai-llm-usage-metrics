@@ -60,7 +60,7 @@ export function createCli(): Command {
   const program = new Command();
 
   program
-    .name('usage')
+    .name('llm-usage')
     .description('Aggregate local LLM usage metrics from pi and codex sessions')
     .showHelpAfterError()
     .addCommand(createCommand('daily'))
