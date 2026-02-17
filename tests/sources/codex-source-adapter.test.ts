@@ -75,6 +75,86 @@ describe('CodexSourceAdapter', () => {
     expect(events.every((event) => event.totalTokens >= 0)).toBe(true);
   });
 
+  it('accumulates previous totals when consecutive events only include last_token_usage', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'codex-source-last-usage-'));
+    tempDirs.push(root);
+
+    const filePath = path.join(root, 'session.jsonl');
+
+    await writeFile(
+      filePath,
+      [
+        JSON.stringify({
+          timestamp: '2026-02-14T10:00:00.000Z',
+          type: 'session_meta',
+          payload: { id: 'codex-last-usage', model_provider: 'openai' },
+        }),
+        JSON.stringify({
+          timestamp: '2026-02-14T10:00:01.000Z',
+          type: 'turn_context',
+          payload: { model: 'gpt-5.2-codex' },
+        }),
+        JSON.stringify({
+          timestamp: '2026-02-14T10:00:02.000Z',
+          type: 'event_msg',
+          payload: {
+            type: 'token_count',
+            info: {
+              last_token_usage: {
+                input_tokens: 10,
+                cached_input_tokens: 2,
+                output_tokens: 5,
+                reasoning_output_tokens: 1,
+                total_tokens: 15,
+              },
+            },
+          },
+        }),
+        JSON.stringify({
+          timestamp: '2026-02-14T10:00:03.000Z',
+          type: 'event_msg',
+          payload: {
+            type: 'token_count',
+            info: {
+              last_token_usage: {
+                input_tokens: 20,
+                cached_input_tokens: 5,
+                output_tokens: 5,
+                reasoning_output_tokens: 2,
+                total_tokens: 25,
+              },
+            },
+          },
+        }),
+        JSON.stringify({
+          timestamp: '2026-02-14T10:00:04.000Z',
+          type: 'event_msg',
+          payload: {
+            type: 'token_count',
+            info: {
+              total_token_usage: {
+                input_tokens: 40,
+                cached_input_tokens: 10,
+                output_tokens: 20,
+                reasoning_output_tokens: 4,
+                total_tokens: 60,
+              },
+            },
+          },
+        }),
+      ].join('\n'),
+      'utf8',
+    );
+
+    const adapter = new CodexSourceAdapter({ sessionsDir: root });
+    const events = await adapter.parseFile(filePath);
+
+    expect(events).toHaveLength(3);
+    expect(events[0]?.totalTokens).toBe(15);
+    expect(events[1]?.totalTokens).toBe(25);
+    expect(events[2]?.totalTokens).toBe(20);
+  });
+
   it('uses legacy model fallback when no model metadata exists', async () => {
     const fixturePath = path.resolve('tests/fixtures/codex/session-legacy-model.jsonl');
     const adapter = new CodexSourceAdapter();

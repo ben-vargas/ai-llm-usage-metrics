@@ -89,7 +89,7 @@ function resolveTimestamp(
 }
 
 function extractUsage(line: Record<string, unknown>, message: Record<string, unknown> | undefined) {
-  const usage = asRecord(line.usage ?? message?.usage);
+  const usage = asRecord(line.usage) ?? asRecord(message?.usage);
 
   if (!usage) {
     return undefined;

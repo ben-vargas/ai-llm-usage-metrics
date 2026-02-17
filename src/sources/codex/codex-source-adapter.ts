@@ -112,7 +112,7 @@ function deriveDeltaUsage(
   const lastUsage = toUsage(info.last_token_usage);
 
   if (lastUsage) {
-    return { deltaUsage: lastUsage, latestTotalUsage: totalUsage ?? previousTotalUsage };
+    return { deltaUsage: lastUsage, latestTotalUsage: totalUsage };
   }
 
   if (!totalUsage) {

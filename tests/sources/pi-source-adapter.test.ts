@@ -82,6 +82,48 @@ describe('PiSourceAdapter', () => {
     expect(events).toHaveLength(3);
     expect(events.some((event) => event.provider === 'anthropic')).toBe(true);
   });
+
+  it('falls back to message.usage when line-level usage is malformed', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'pi-source-message-usage-'));
+    tempDirs.push(root);
+
+    const filePath = path.join(root, 'session.jsonl');
+
+    await writeFile(
+      filePath,
+      [
+        JSON.stringify({
+          type: 'session',
+          id: 'pi-message-usage',
+          timestamp: '2026-02-12T20:00:00.000Z',
+        }),
+        JSON.stringify({
+          type: 'message',
+          timestamp: '2026-02-12T20:01:00.000Z',
+          provider: 'openai',
+          usage: 'unexpected-string',
+          message: {
+            usage: {
+              input: 4,
+              output: 6,
+              totalTokens: 10,
+            },
+          },
+        }),
+      ].join('\n'),
+      'utf8',
+    );
+
+    const adapter = new PiSourceAdapter({ sessionsDir: root });
+    const events = await adapter.parseFile(filePath);
+
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      inputTokens: 4,
+      outputTokens: 6,
+      totalTokens: 10,
+    });
+  });
 });
 
 describe('pi source helpers', () => {
