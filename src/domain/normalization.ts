@@ -15,7 +15,11 @@ export function normalizeNonNegativeInteger(value: NumberLike): number {
 }
 
 export function normalizeUsdCost(value: NumberLike): number | undefined {
-  if (value === null || value === undefined || value === '') {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+
+  if (typeof value === 'string' && value.trim() === '') {
     return undefined;
   }
 

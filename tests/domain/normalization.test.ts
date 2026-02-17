@@ -25,6 +25,7 @@ describe('normalizeUsdCost', () => {
   it('returns undefined for absent or invalid values', () => {
     expect(normalizeUsdCost(undefined)).toBeUndefined();
     expect(normalizeUsdCost('')).toBeUndefined();
+    expect(normalizeUsdCost('   ')).toBeUndefined();
     expect(normalizeUsdCost('N/A')).toBeUndefined();
   });
 
