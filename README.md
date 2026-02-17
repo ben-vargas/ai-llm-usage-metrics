@@ -74,7 +74,7 @@ usage daily --pi-dir /path/to/pi/sessions --codex-dir /path/to/codex/sessions
 Each report includes:
 
 - source rows (`pi`, `codex`) for each period
-- a per-period combined subtotal row
+- a per-period combined subtotal row (only when multiple sources exist in that period)
 - a final grand total row across all periods
 
 Columns:

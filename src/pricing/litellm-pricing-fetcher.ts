@@ -40,23 +40,44 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
 }
 
 function toNonNegativeNumber(value: unknown): number | undefined {
-  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
-    return undefined;
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value) || value < 0) {
+      return undefined;
+    }
+
+    return value;
   }
 
-  return value;
+  if (typeof value === 'string') {
+    const parsedValue = Number(value);
+
+    if (!Number.isFinite(parsedValue) || parsedValue < 0) {
+      return undefined;
+    }
+
+    return parsedValue;
+  }
+
+  return undefined;
 }
 
 function normalizeModelPricing(rawModelPricing: Record<string, unknown>): ModelPricing | undefined {
-  const inputPerToken = toNonNegativeNumber(rawModelPricing.input_cost_per_token);
-  const outputPerToken = toNonNegativeNumber(rawModelPricing.output_cost_per_token);
+  const inputPerToken =
+    toNonNegativeNumber(rawModelPricing.input_cost_per_token) ??
+    toNonNegativeNumber(rawModelPricing.input_cost_per_token_priority);
+  const outputPerToken =
+    toNonNegativeNumber(rawModelPricing.output_cost_per_token) ??
+    toNonNegativeNumber(rawModelPricing.output_cost_per_token_priority);
 
   if (inputPerToken === undefined || outputPerToken === undefined) {
     return undefined;
   }
 
-  const cacheReadPerToken = toNonNegativeNumber(rawModelPricing.cache_read_input_token_cost);
+  const cacheReadPerToken =
+    toNonNegativeNumber(rawModelPricing.cache_read_input_token_cost) ??
+    toNonNegativeNumber(rawModelPricing.cache_read_input_token_cost_priority);
   const cacheWritePerToken = toNonNegativeNumber(rawModelPricing.cache_creation_input_token_cost);
+  const reasoningPerToken = toNonNegativeNumber(rawModelPricing.output_cost_per_reasoning_token);
 
   const modelPricing: ModelPricing = {
     inputPer1MUsd: inputPerToken * ONE_MILLION,
@@ -69,6 +90,11 @@ function normalizeModelPricing(rawModelPricing: Record<string, unknown>): ModelP
 
   if (cacheWritePerToken !== undefined) {
     modelPricing.cacheWritePer1MUsd = cacheWritePerToken * ONE_MILLION;
+  }
+
+  if (reasoningPerToken !== undefined) {
+    modelPricing.reasoningPer1MUsd = reasoningPerToken * ONE_MILLION;
+    modelPricing.reasoningBilling = 'separate';
   }
 
   return modelPricing;
@@ -185,6 +211,7 @@ export class LiteLLMPricingFetcher implements PricingSource {
   private readonly now: () => number;
 
   private pricingByModel = new Map<string, ModelPricing>();
+  private resolvedAliasCache = new Map<string, string>();
 
   public constructor(options: LiteLLMPricingFetcherOptions = {}) {
     this.sourceUrl = options.sourceUrl ?? DEFAULT_LITELLM_PRICING_URL;
@@ -226,21 +253,31 @@ export class LiteLLMPricingFetcher implements PricingSource {
 
   public resolveModelAlias(model: string): string {
     const normalizedModel = normalizeKey(model);
+    const cachedAlias = this.resolvedAliasCache.get(normalizedModel);
+
+    if (cachedAlias) {
+      return cachedAlias;
+    }
+
     const directMatch = this.resolveDirectModelMatch(normalizedModel);
 
     if (directMatch) {
+      this.resolvedAliasCache.set(normalizedModel, directMatch);
       return directMatch;
     }
 
     const prefixMatch = this.resolvePrefixModelMatch(normalizedModel);
 
     if (prefixMatch) {
+      this.resolvedAliasCache.set(normalizedModel, prefixMatch);
       return prefixMatch;
     }
 
     const fuzzyMatch = this.resolveFuzzyModelMatch(normalizedModel);
+    const resolvedAlias = fuzzyMatch ?? normalizedModel;
+    this.resolvedAliasCache.set(normalizedModel, resolvedAlias);
 
-    return fuzzyMatch ?? normalizedModel;
+    return resolvedAlias;
   }
 
   public getPricing(model: string): ModelPricing | undefined {
@@ -268,7 +305,7 @@ export class LiteLLMPricingFetcher implements PricingSource {
 
     for (const candidate of candidates) {
       const prefixMatches = modelNames.filter((modelName) => {
-        return candidate.startsWith(modelName) || modelName.startsWith(candidate);
+        return candidate.startsWith(modelName);
       });
 
       if (prefixMatches.length > 0) {
@@ -330,6 +367,7 @@ export class LiteLLMPricingFetcher implements PricingSource {
     const normalizedPricing = normalizeLitellmPricingPayload(payload);
 
     this.pricingByModel = normalizedPricing;
+    this.resolvedAliasCache.clear();
     await this.writeCache();
   }
 
@@ -337,6 +375,10 @@ export class LiteLLMPricingFetcher implements PricingSource {
     const cacheFileContent = await this.readCachePayload();
 
     if (!cacheFileContent) {
+      return false;
+    }
+
+    if (cacheFileContent.sourceUrl !== this.sourceUrl) {
       return false;
     }
 
@@ -352,6 +394,7 @@ export class LiteLLMPricingFetcher implements PricingSource {
         pricing,
       ]),
     );
+    this.resolvedAliasCache.clear();
 
     return this.pricingByModel.size > 0;
   }
@@ -385,6 +428,13 @@ export class LiteLLMPricingFetcher implements PricingSource {
 
     if (cacheWritePer1MUsd !== undefined) {
       modelPricing.cacheWritePer1MUsd = cacheWritePer1MUsd;
+    }
+
+    const reasoningPer1MUsd = toNonNegativeNumber(pricingRecord.reasoningPer1MUsd);
+
+    if (reasoningPer1MUsd !== undefined) {
+      modelPricing.reasoningPer1MUsd = reasoningPer1MUsd;
+      modelPricing.reasoningBilling = 'separate';
     }
 
     return modelPricing;

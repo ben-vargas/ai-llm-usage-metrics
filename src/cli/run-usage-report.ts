@@ -118,9 +118,14 @@ async function resolvePricingSource(options: ReportCommandOptions): Promise<Pric
   try {
     await litellmPricingFetcher.load();
     return litellmPricingFetcher;
-  } catch {
+  } catch (error) {
     if (options.pricingOffline) {
       throw new Error('Offline pricing mode enabled but cached pricing is unavailable');
+    }
+
+    if (options.pricingUrl) {
+      const reason = error instanceof Error ? error.message : String(error);
+      throw new Error(`Could not load pricing from --pricing-url: ${reason}`);
     }
 
     return fallbackPricingSource;
@@ -153,6 +158,7 @@ export async function buildUsageReport(
   validateTimezone(timezone);
 
   const providerFilter = normalizeProviderFilter(options.provider);
+  const pricingSource = await resolvePricingSource(options);
 
   const piAdapter = new PiSourceAdapter({
     sessionsDir: options.piDir,
@@ -178,7 +184,6 @@ export async function buildUsageReport(
     options.until,
   );
 
-  const pricingSource = await resolvePricingSource(options);
   const pricedEvents = applyPricingToEvents(dateFilteredEvents, pricingSource);
   const rows = aggregateUsage(pricedEvents, {
     granularity,

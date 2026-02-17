@@ -56,6 +56,12 @@ describe('buildUsageReport', () => {
         pricingUrl: 'not-a-url',
       }),
     ).rejects.toThrow('--pricing-url must be a valid http(s) URL');
+
+    await expect(
+      buildUsageReport('daily', {
+        pricingUrl: 'http://127.0.0.1:1/pricing.json',
+      }),
+    ).rejects.toThrow('Could not load pricing from --pricing-url');
   });
 
   it('validates conflicting output flags', async () => {
