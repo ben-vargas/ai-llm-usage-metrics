@@ -20,7 +20,7 @@ npm install -g llm-usage-metrics
 Or run without global install:
 
 ```bash
-npx llm-usage-metrics daily
+npx llm-usage daily
 ```
 
 ## Usage
