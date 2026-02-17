@@ -54,6 +54,13 @@ describe('SourceAdapter contract', () => {
         parseFile: () => Promise.resolve([]),
       }),
     ).toBe(false);
+    expect(
+      isSourceAdapter({
+        id: '   ',
+        discoverFiles: () => Promise.resolve([]),
+        parseFile: () => Promise.resolve([]),
+      }),
+    ).toBe(false);
     expect(isSourceAdapter({ id: 'pi' })).toBe(false);
   });
 });

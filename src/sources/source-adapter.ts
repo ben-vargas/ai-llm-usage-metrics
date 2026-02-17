@@ -15,7 +15,7 @@ export function isSourceAdapter(candidate: unknown): candidate is SourceAdapter 
 
   return (
     typeof adapter.id === 'string' &&
-    adapter.id.length > 0 &&
+    adapter.id.trim().length > 0 &&
     typeof adapter.discoverFiles === 'function' &&
     typeof adapter.parseFile === 'function'
   );
