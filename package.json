@@ -35,6 +35,14 @@
     "codex"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ayagmar/llm-usage-metrics"
+  },
+  "bugs": {
+    "url": "https://github.com/ayagmar/llm-usage-metrics/issues"
+  },
+  "homepage": "https://github.com/ayagmar/llm-usage-metrics",
   "dependencies": {
     "commander": "^13.1.0",
     "markdown-table": "^3.0.4",
