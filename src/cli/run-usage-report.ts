@@ -1,7 +1,9 @@
 import { aggregateUsage } from '../aggregate/aggregate-usage.js';
 import type { UsageEvent } from '../domain/usage-event.js';
 import { applyPricingToEvents } from '../pricing/cost-engine.js';
+import { LiteLLMPricingFetcher } from '../pricing/litellm-pricing-fetcher.js';
 import { createDefaultOpenAiPricingSource } from '../pricing/static-pricing-source.js';
+import type { PricingSource } from '../pricing/types.js';
 import { renderMarkdownTable } from '../render/markdown-table.js';
 import { renderTerminalTable } from '../render/terminal-table.js';
 import { CodexSourceAdapter } from '../sources/codex/codex-source-adapter.js';
@@ -18,6 +20,8 @@ export type ReportCommandOptions = {
   provider?: string;
   markdown?: boolean;
   json?: boolean;
+  pricingUrl?: string;
+  pricingOffline?: boolean;
 };
 
 function validateDateInput(value: string, flagName: '--since' | '--until'): void {
@@ -88,6 +92,41 @@ function filterEventsByDateRange(
   });
 }
 
+function validatePricingUrl(pricingUrl: string | undefined): void {
+  if (!pricingUrl) {
+    return;
+  }
+
+  try {
+    const parsedUrl = new URL(pricingUrl);
+
+    if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+      throw new Error('Unsupported protocol');
+    }
+  } catch {
+    throw new Error('--pricing-url must be a valid http(s) URL');
+  }
+}
+
+async function resolvePricingSource(options: ReportCommandOptions): Promise<PricingSource> {
+  const fallbackPricingSource = createDefaultOpenAiPricingSource();
+  const litellmPricingFetcher = new LiteLLMPricingFetcher({
+    sourceUrl: options.pricingUrl,
+    offline: options.pricingOffline,
+  });
+
+  try {
+    await litellmPricingFetcher.load();
+    return litellmPricingFetcher;
+  } catch {
+    if (options.pricingOffline) {
+      throw new Error('Offline pricing mode enabled but cached pricing is unavailable');
+    }
+
+    return fallbackPricingSource;
+  }
+}
+
 export async function buildUsageReport(
   granularity: ReportGranularity,
   options: ReportCommandOptions,
@@ -107,6 +146,8 @@ export async function buildUsageReport(
   if (options.since && options.until && options.since > options.until) {
     throw new Error('--since must be less than or equal to --until');
   }
+
+  validatePricingUrl(options.pricingUrl);
 
   const timezone = options.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
   validateTimezone(timezone);
@@ -137,7 +178,8 @@ export async function buildUsageReport(
     options.until,
   );
 
-  const pricedEvents = applyPricingToEvents(dateFilteredEvents, createDefaultOpenAiPricingSource());
+  const pricingSource = await resolvePricingSource(options);
+  const pricedEvents = applyPricingToEvents(dateFilteredEvents, pricingSource);
   const rows = aggregateUsage(pricedEvents, {
     granularity,
     timezone,

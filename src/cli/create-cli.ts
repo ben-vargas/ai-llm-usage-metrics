@@ -13,6 +13,8 @@ type SharedOptions = {
   provider?: string;
   markdown?: boolean;
   json?: boolean;
+  pricingUrl?: string;
+  pricingOffline?: boolean;
 };
 
 const defaultTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
@@ -25,6 +27,8 @@ function addSharedOptions(command: Command): Command {
     .option('--until <YYYY-MM-DD>', 'Inclusive end date filter')
     .option('--timezone <iana>', 'Timezone for bucketing', defaultTimezone)
     .option('--provider <name>', 'Provider filter (defaults to openai behavior)')
+    .option('--pricing-url <url>', 'Override LiteLLM pricing source URL')
+    .option('--pricing-offline', 'Use cached LiteLLM pricing only (no network fetch)')
     .option('--markdown', 'Render output as markdown table')
     .option('--json', 'Render output as JSON');
 }

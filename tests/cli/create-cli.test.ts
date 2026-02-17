@@ -20,11 +20,13 @@ describe('createCli', () => {
     expect(cli.commands.map((command) => command.name())).toEqual(['daily', 'weekly', 'monthly']);
   });
 
-  it('includes the markdown flag on each command', () => {
+  it('includes markdown and pricing flags on each command', () => {
     const cli = createCli();
 
     for (const command of cli.commands) {
       expect(command.options.some((option) => option.long === '--markdown')).toBe(true);
+      expect(command.options.some((option) => option.long === '--pricing-url')).toBe(true);
+      expect(command.options.some((option) => option.long === '--pricing-offline')).toBe(true);
     }
   });
 

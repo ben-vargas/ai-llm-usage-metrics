@@ -51,6 +51,18 @@ usage daily --markdown
 usage daily --json
 ```
 
+### Offline pricing (use cached LiteLLM pricing only)
+
+```bash
+usage monthly --pricing-offline
+```
+
+### Override pricing URL
+
+```bash
+usage monthly --pricing-url https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json
+```
+
 ### Custom session directories
 
 ```bash

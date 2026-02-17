@@ -37,7 +37,7 @@ describe('buildUsageReport', () => {
     expect(parsed.at(-1)).toMatchObject({ rowType: 'grand_total', periodKey: 'ALL' });
   });
 
-  it('validates date flags and range ordering', async () => {
+  it('validates date flags, range ordering and pricing URL', async () => {
     await expect(
       buildUsageReport('daily', {
         since: '2026-2-10',
@@ -50,6 +50,12 @@ describe('buildUsageReport', () => {
         until: '2026-02-10',
       }),
     ).rejects.toThrow('--since must be less than or equal to --until');
+
+    await expect(
+      buildUsageReport('daily', {
+        pricingUrl: 'not-a-url',
+      }),
+    ).rejects.toThrow('--pricing-url must be a valid http(s) URL');
   });
 
   it('validates conflicting output flags', async () => {
