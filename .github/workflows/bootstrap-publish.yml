@@ -43,7 +43,7 @@ jobs:
         run: |
           bun run lint
           bun run typecheck
-          bun run test:quick
+          bun run test
           bun run build
           bun run pack:check
 
