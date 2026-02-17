@@ -49,6 +49,7 @@ function createTableConfig(rows: string[][]): TableUserConfig {
       6: { alignment: 'right' },
       7: { alignment: 'right' },
       8: { alignment: 'right' },
+      9: { alignment: 'right' },
     },
   };
 }
