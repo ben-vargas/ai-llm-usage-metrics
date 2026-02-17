@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -74,6 +74,35 @@ describe('LiteLLMPricingFetcher', () => {
     expect(fuzzyPricing?.outputPer1MUsd).toBeCloseTo(10, 10);
   });
 
+  it('ignores pricing entries with blank numeric string values', async () => {
+    const rootDir = await mkdtemp(path.join(os.tmpdir(), 'litellm-pricing-blank-values-'));
+    tempDirs.push(rootDir);
+
+    const fetcher = createFetcher({
+      cacheFilePath: path.join(rootDir, 'cache.json'),
+      fetchImpl: vi.fn(async () => {
+        return new Response(
+          JSON.stringify({
+            'broken-model': {
+              input_cost_per_token: '   ',
+              output_cost_per_token: 0.00001,
+            },
+            'gpt-5.2-codex': {
+              input_cost_per_token: 0.0000015,
+              output_cost_per_token: 0.00001,
+            },
+          }),
+          { status: 200 },
+        );
+      }),
+    });
+
+    await fetcher.load();
+
+    expect(fetcher.getPricing('broken-model')).toBeUndefined();
+    expect(fetcher.getPricing('gpt-5.2-codex')).toBeDefined();
+  });
+
   it('uses cached pricing in offline mode', async () => {
     const rootDir = await mkdtemp(path.join(os.tmpdir(), 'litellm-pricing-offline-'));
     tempDirs.push(rootDir);
@@ -145,6 +174,33 @@ describe('LiteLLMPricingFetcher', () => {
     await expect(offlineFetcherWithDifferentSource.load()).rejects.toThrow(
       'Offline pricing mode enabled',
     );
+  });
+
+  it('keeps remote pricing when cache write fails', async () => {
+    const rootDir = await mkdtemp(path.join(os.tmpdir(), 'litellm-pricing-cache-write-fail-'));
+    tempDirs.push(rootDir);
+
+    const blockingPath = path.join(rootDir, 'not-a-directory');
+    await rm(blockingPath, { force: true });
+    await writeFile(blockingPath, 'blocked', 'utf8');
+
+    const fetcher = createFetcher({
+      cacheFilePath: path.join(blockingPath, 'cache.json'),
+      fetchImpl: vi.fn(async () => {
+        return new Response(
+          JSON.stringify({
+            'gpt-5.2-codex': {
+              input_cost_per_token: 0.0000015,
+              output_cost_per_token: 0.00001,
+            },
+          }),
+          { status: 200 },
+        );
+      }),
+    });
+
+    await expect(fetcher.load()).resolves.toBeUndefined();
+    expect(fetcher.getPricing('gpt-5.2-codex')).toBeDefined();
   });
 
   it('throws in offline mode when cache is unavailable', async () => {

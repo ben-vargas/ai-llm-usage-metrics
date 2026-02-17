@@ -49,6 +49,10 @@ function toNonNegativeNumber(value: unknown): number | undefined {
   }
 
   if (typeof value === 'string') {
+    if (value.trim() === '') {
+      return undefined;
+    }
+
     const parsedValue = Number(value);
 
     if (!Number.isFinite(parsedValue) || parsedValue < 0) {
@@ -368,7 +372,12 @@ export class LiteLLMPricingFetcher implements PricingSource {
 
     this.pricingByModel = normalizedPricing;
     this.resolvedAliasCache.clear();
-    await this.writeCache();
+
+    try {
+      await this.writeCache();
+    } catch {
+      // Cache writes are best-effort. A successful remote fetch must still be usable.
+    }
   }
 
   private async loadFromCache(options: { allowStale: boolean }): Promise<boolean> {
