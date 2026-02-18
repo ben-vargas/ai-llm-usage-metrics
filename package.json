@@ -4,7 +4,7 @@
   "description": "CLI for aggregating local LLM usage metrics from pi and codex sessions",
   "type": "module",
   "engines": {
-    "node": ">=20"
+    "node": ">=24"
   },
   "bin": {
     "llm-usage": "dist/index.js"
@@ -53,7 +53,7 @@
   "devDependencies": {
     "@eslint/js": "^9.20.0",
     "@release-it/conventional-changelog": "^10.0.5",
-    "@types/node": "^22.13.10",
+    "@types/node": "^24.0.0",
     "@vitest/coverage-v8": "3.2.4",
     "eslint": "^9.20.0",
     "eslint-config-prettier": "^10.0.1",
