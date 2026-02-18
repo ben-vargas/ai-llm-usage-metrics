@@ -305,17 +305,26 @@ export class LiteLLMPricingFetcher implements PricingSource {
 
   private resolvePrefixModelMatch(normalizedModel: string): string | undefined {
     const candidates = [normalizedModel, stripProviderPrefix(normalizedModel)];
-    const modelNames = [...this.pricingByModel.keys()];
 
     for (const candidate of candidates) {
-      const prefixMatches = modelNames.filter((modelName) => {
-        return candidate.startsWith(modelName);
-      });
+      let bestMatch: string | undefined;
 
-      if (prefixMatches.length > 0) {
-        return prefixMatches.sort(
-          (left, right) => right.length - left.length || left.localeCompare(right),
-        )[0];
+      for (const modelName of this.pricingByModel.keys()) {
+        if (!candidate.startsWith(modelName)) {
+          continue;
+        }
+
+        if (
+          !bestMatch ||
+          modelName.length > bestMatch.length ||
+          (modelName.length === bestMatch.length && modelName.localeCompare(bestMatch) < 0)
+        ) {
+          bestMatch = modelName;
+        }
+      }
+
+      if (bestMatch) {
+        return bestMatch;
       }
     }
 
