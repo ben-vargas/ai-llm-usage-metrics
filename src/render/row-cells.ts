@@ -34,9 +34,8 @@ function formatModels(models: string[]): string {
     return '-';
   }
 
-  // Sort models alphabetically for consistent display
-  const sortedModels = [...models].sort((a, b) => a.localeCompare(b));
-  return sortedModels.map((model) => `• ${model}`).join('\n');
+  // Models are already sorted by normalizeModelList
+  return models.map((model) => `• ${model}`).join('\n');
 }
 
 function formatTokenCount(value: number): string {

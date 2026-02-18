@@ -16,7 +16,7 @@ import { renderTerminalTable } from '../render/terminal-table.js';
 import { CodexSourceAdapter } from '../sources/codex/codex-source-adapter.js';
 import { PiSourceAdapter } from '../sources/pi/pi-source-adapter.js';
 import type { SourceAdapter } from '../sources/source-adapter.js';
-import { logger, type SessionInfo } from '../utils/logger.js';
+import { logger } from '../utils/logger.js';
 import { getPeriodKey, type ReportGranularity } from '../utils/time-buckets.js';
 
 export type ReportCommandOptions = {
@@ -111,6 +111,12 @@ function matchesProvider(
 
   return provider?.toLowerCase().includes(providerFilter) ?? false;
 }
+
+type SessionInfo = {
+  source: string;
+  sessionsFound: number;
+  eventsParsed: number;
+};
 
 type AdapterParseResult = {
   events: UsageEvent[];

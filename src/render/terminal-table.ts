@@ -106,12 +106,7 @@ function colorSource(source: string): (text: string) => string {
   }
 }
 
-function colorPeriod(period: string): string {
-  // Colorize month names for better readability
-  if (period.includes(' ')) {
-    const [month, year] = period.split(' ');
-    return `${pc.cyan(month)} ${pc.white(year)}`;
-  }
+function colorizePeriod(period: string): string {
   return pc.white(period);
 }
 
@@ -125,13 +120,13 @@ function colorizeBodyRows(
   }
 
   return rows.map((row, index) => {
-    const styledCells = [...(bodyRows[index] ?? [])];
-    const sourceStyler = colorSource(styledCells[1] ?? row.source);
+    const styledCells = [...bodyRows[index]];
+    const sourceStyler = colorSource(styledCells[1]);
 
     // Colorize period
-    styledCells[0] = colorPeriod(styledCells[0] ?? row.periodKey);
+    styledCells[0] = colorizePeriod(styledCells[0]);
     // Colorize source
-    styledCells[1] = sourceStyler(styledCells[1] ?? row.source);
+    styledCells[1] = sourceStyler(styledCells[1]);
 
     if (row.rowType === 'grand_total') {
       return styledCells.map((cell, cellIndex) => {

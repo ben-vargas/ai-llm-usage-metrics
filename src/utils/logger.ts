@@ -25,34 +25,6 @@ export const logger = {
     console.error(formatMessage('success', message));
   },
   dim: (message: string): void => {
-    console.error(formatMessage('dim', pc.gray(message)));
-  },
-  group: (title: string): void => {
-    console.error(pc.bold(title));
+    console.error(formatMessage('dim', message));
   },
 };
-
-export type SessionInfo = {
-  source: string;
-  sessionsFound: number;
-  eventsParsed: number;
-};
-
-export function logSessionSummary(sessions: SessionInfo[]): void {
-  if (sessions.length === 0) {
-    logger.warn('No sessions found');
-    return;
-  }
-
-  const totalSessions = sessions.reduce((sum, s) => sum + s.sessionsFound, 0);
-  const totalEvents = sessions.reduce((sum, s) => sum + s.eventsParsed, 0);
-
-  logger.info(`Found ${totalSessions} session file(s) with ${totalEvents} event(s)`);
-
-  for (const session of sessions) {
-    const eventsLabel = session.eventsParsed === 1 ? 'event' : 'events';
-    logger.dim(
-      `  ${session.source}: ${session.sessionsFound} file(s), ${session.eventsParsed} ${eventsLabel}`,
-    );
-  }
-}

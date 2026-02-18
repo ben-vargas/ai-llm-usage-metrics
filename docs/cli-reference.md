@@ -77,6 +77,7 @@ When outputting to terminal (default), the CLI displays:
 5. **Data table**: Usage statistics with rounded borders and color-coded rows
 
 Row styling:
+
 - Source names are color-coded (`pi` = cyan, `codex` = magenta, `combined` = yellow)
 - Grand total row is bold green
 - Combined subtotal rows are dimmed (except the source name)

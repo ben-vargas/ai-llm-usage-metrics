@@ -2,14 +2,12 @@ import pc from 'picocolors';
 
 export type ReportHeaderOptions = {
   title: string;
-  subtitle?: string;
   timezone: string;
   useColor?: boolean;
 };
 
-function getBoxWidth(title: string, subtitle: string | undefined): number {
-  const contentWidth = Math.max(title.length, subtitle?.length ?? 0);
-  return contentWidth + 4; // 2 spaces padding on each side
+function getBoxWidth(content: string): number {
+  return content.length + 4; // 2 spaces padding on each side
 }
 
 function drawBoxLine(width: number, left: string, middle: string, right: string): string {
@@ -24,10 +22,10 @@ function padLine(content: string, width: number): string {
 }
 
 export function renderReportHeader(options: ReportHeaderOptions): string {
-  const { title, subtitle, timezone, useColor = true } = options;
+  const { title, timezone, useColor = true } = options;
 
   const fullTitle = `${title} (Timezone: ${timezone})`;
-  const boxWidth = getBoxWidth(fullTitle, subtitle);
+  const boxWidth = getBoxWidth(fullTitle);
 
   const lines: string[] = [];
 
@@ -38,12 +36,6 @@ export function renderReportHeader(options: ReportHeaderOptions): string {
   // Title line
   const titleLine = padLine(fullTitle, boxWidth);
   lines.push(useColor ? pc.white(titleLine) : titleLine);
-
-  // Subtitle line (if provided)
-  if (subtitle) {
-    const subtitleLine = padLine(subtitle, boxWidth);
-    lines.push(useColor ? pc.dim(subtitleLine) : subtitleLine);
-  }
 
   // Bottom border
   const bottomBorder = drawBoxLine(boxWidth, '└', '─', '┘');
