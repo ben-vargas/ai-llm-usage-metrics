@@ -1,4 +1,5 @@
 import { aggregateUsage } from '../aggregate/aggregate-usage.js';
+import { formatEnvVarOverrides, getActiveEnvVarOverrides } from '../config/env-var-display.js';
 import {
   getParsingRuntimeConfig,
   getPricingFetcherRuntimeConfig,
@@ -10,10 +11,12 @@ import { LiteLLMPricingFetcher } from '../pricing/litellm-pricing-fetcher.js';
 import { createDefaultOpenAiPricingSource } from '../pricing/static-pricing-source.js';
 import type { PricingSource } from '../pricing/types.js';
 import { renderMarkdownTable } from '../render/markdown-table.js';
+import { renderReportHeader } from '../render/report-header.js';
 import { renderTerminalTable } from '../render/terminal-table.js';
 import { CodexSourceAdapter } from '../sources/codex/codex-source-adapter.js';
 import { PiSourceAdapter } from '../sources/pi/pi-source-adapter.js';
 import type { SourceAdapter } from '../sources/source-adapter.js';
+import { logger, type SessionInfo } from '../utils/logger.js';
 import { getPeriodKey, type ReportGranularity } from '../utils/time-buckets.js';
 
 export type ReportCommandOptions = {
@@ -109,14 +112,19 @@ function matchesProvider(
   return provider?.toLowerCase().includes(providerFilter) ?? false;
 }
 
+type AdapterParseResult = {
+  events: UsageEvent[];
+  filesFound: number;
+};
+
 async function parseAdapterEvents(
   adapter: SourceAdapter,
   maxParallelFileParsing: number,
-): Promise<UsageEvent[]> {
+): Promise<AdapterParseResult> {
   const files = await adapter.discoverFiles();
 
   if (files.length === 0) {
-    return [];
+    return { events: [], filesFound: 0 };
   }
 
   const parsedByFile: UsageEvent[][] = Array.from({ length: files.length }, () => []);
@@ -134,7 +142,10 @@ async function parseAdapterEvents(
 
   await Promise.all(workers);
 
-  return parsedByFile.flat();
+  return {
+    events: parsedByFile.flat(),
+    filesFound: files.length,
+  };
 }
 
 function filterEventsByDateRange(
@@ -174,10 +185,15 @@ function validatePricingUrl(pricingUrl: string | undefined): void {
   }
 }
 
+type PricingLoadResult = {
+  source: PricingSource;
+  fromCache: boolean;
+};
+
 async function resolvePricingSource(
   options: ReportCommandOptions,
   runtimeConfig: PricingFetcherRuntimeConfig,
-): Promise<PricingSource> {
+): Promise<PricingLoadResult> {
   const fallbackPricingSource = createDefaultOpenAiPricingSource();
   const litellmPricingFetcher = new LiteLLMPricingFetcher({
     sourceUrl: options.pricingUrl,
@@ -187,8 +203,8 @@ async function resolvePricingSource(
   });
 
   try {
-    await litellmPricingFetcher.load();
-    return litellmPricingFetcher;
+    const fromCache = await litellmPricingFetcher.load();
+    return { source: litellmPricingFetcher, fromCache };
   } catch (error) {
     if (options.pricingOffline) {
       throw new Error('Offline pricing mode enabled but cached pricing is unavailable');
@@ -199,7 +215,7 @@ async function resolvePricingSource(
       throw new Error(`Could not load pricing from --pricing-url: ${reason}`);
     }
 
-    return fallbackPricingSource;
+    return { source: fallbackPricingSource, fromCache: false };
   }
 }
 
@@ -217,6 +233,17 @@ function shouldLoadPricingSource(options: ReportCommandOptions, events: UsageEve
   }
 
   return events.some((event) => eventNeedsPricingLookup(event));
+}
+
+function getReportTitle(granularity: ReportGranularity): string {
+  switch (granularity) {
+    case 'daily':
+      return 'Daily Token Usage Report';
+    case 'weekly':
+      return 'Weekly Token Usage Report';
+    case 'monthly':
+      return 'Monthly Token Usage Report';
+  }
 }
 
 export async function buildUsageReport(
@@ -268,11 +295,20 @@ export async function buildUsageReport(
     ? adapters.filter((adapter) => sourceFilter.has(adapter.id.toLowerCase()))
     : adapters;
 
-  const parsedEventsByAdapter = await Promise.all(
+  // Parse events and track session info
+  const parseResults = await Promise.all(
     adaptersToParse.map((adapter) =>
       parseAdapterEvents(adapter, parsingRuntimeConfig.maxParallelFileParsing),
     ),
   );
+
+  const sessionInfos: SessionInfo[] = parseResults.map((result, index) => ({
+    source: adaptersToParse[index].id,
+    sessionsFound: result.filesFound,
+    eventsParsed: result.events.length,
+  }));
+
+  const parsedEventsByAdapter = parseResults.map((result) => result.events);
   const providerFilteredEvents = parsedEventsByAdapter
     .flat()
     .filter((event) => matchesProvider(event.provider, effectiveProviderFilter));
@@ -284,11 +320,18 @@ export async function buildUsageReport(
     options.until,
   );
 
-  const pricedEvents = shouldLoadPricingSource(options, dateFilteredEvents)
-    ? applyPricingToEvents(
-        dateFilteredEvents,
-        await resolvePricingSource(options, pricingRuntimeConfig),
-      )
+  // Load pricing with cache status
+  let pricingFromCache = false;
+  let pricingSource: PricingSource | undefined;
+
+  if (shouldLoadPricingSource(options, dateFilteredEvents)) {
+    const pricingResult = await resolvePricingSource(options, pricingRuntimeConfig);
+    pricingSource = pricingResult.source;
+    pricingFromCache = pricingResult.fromCache;
+  }
+
+  const pricedEvents = pricingSource
+    ? applyPricingToEvents(dateFilteredEvents, pricingSource)
     : dateFilteredEvents;
 
   const rows = aggregateUsage(pricedEvents, {
@@ -304,7 +347,59 @@ export async function buildUsageReport(
     return renderMarkdownTable(rows);
   }
 
-  return renderTerminalTable(rows);
+  // Build terminal output with header and logging
+  const outputLines: string[] = [];
+
+  // Add env var overrides info
+  const envVarOverrides = getActiveEnvVarOverrides();
+  if (envVarOverrides.length > 0) {
+    outputLines.push(...formatEnvVarOverrides(envVarOverrides));
+    outputLines.push('');
+  }
+
+  // Log session info
+  const totalSessions = sessionInfos.reduce((sum, s) => sum + s.sessionsFound, 0);
+  const totalEvents = sessionInfos.reduce((sum, s) => sum + s.eventsParsed, 0);
+
+  if (totalSessions > 0) {
+    logger.info(`Found ${totalSessions} session file(s) with ${totalEvents} event(s)`);
+    for (const session of sessionInfos) {
+      const eventsLabel = session.eventsParsed === 1 ? 'event' : 'events';
+      logger.dim(
+        `  ${session.source}: ${session.sessionsFound} file(s), ${session.eventsParsed} ${eventsLabel}`,
+      );
+    }
+  } else {
+    logger.warn('No sessions found');
+  }
+
+  // Log pricing source
+  if (pricingSource) {
+    if (options.pricingOffline) {
+      logger.info('Using cached pricing (offline mode)');
+    } else if (pricingFromCache) {
+      logger.info('Loaded pricing from cache');
+    } else {
+      logger.info('Fetched pricing from LiteLLM');
+    }
+  }
+
+  outputLines.push('');
+
+  // Add report header
+  outputLines.push(
+    renderReportHeader({
+      title: getReportTitle(granularity),
+      timezone,
+    }),
+  );
+
+  outputLines.push('');
+
+  // Add the table
+  outputLines.push(renderTerminalTable(rows));
+
+  return outputLines.join('\n');
 }
 
 export async function runUsageReport(
