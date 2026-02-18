@@ -119,4 +119,35 @@ describe('aggregateUsage', () => {
     });
     expect(rows[2]).toMatchObject({ rowType: 'grand_total', totalTokens: 6 });
   });
+
+  it('keeps usd totals numerically stable for many small costs', () => {
+    const events = Array.from({ length: 10_000 }, (_, index) => {
+      const second = index % 60;
+      const minute = Math.floor(index / 60) % 60;
+      const hour = Math.floor(index / 3600) % 24;
+      const timestamp = `2026-03-01T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:${String(second).padStart(2, '0')}Z`;
+
+      return createUsageEvent({
+        source: 'pi',
+        sessionId: `stable-cost-${index}`,
+        timestamp,
+        model: 'gpt-4.1',
+        inputTokens: 1,
+        outputTokens: 1,
+        totalTokens: 2,
+        costUsd: 0.001,
+        costMode: 'explicit',
+      });
+    });
+
+    const rows = aggregateUsage(events, { granularity: 'daily', timezone: 'UTC' });
+    const grandTotalRow = rows.at(-1);
+
+    expect(grandTotalRow).toMatchObject({
+      rowType: 'grand_total',
+      periodKey: 'ALL',
+      totalTokens: 20_000,
+      costUsd: 10,
+    });
+  });
 });

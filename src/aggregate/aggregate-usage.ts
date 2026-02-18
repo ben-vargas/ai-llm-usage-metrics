@@ -19,6 +19,12 @@ type RowAccumulator = {
   modelSet: Set<string>;
 };
 
+const USD_PRECISION_SCALE = 1_000_000_000_000;
+
+function addUsd(left: number, right: number): number {
+  return Math.round((left + right) * USD_PRECISION_SCALE) / USD_PRECISION_SCALE;
+}
+
 function createEmptyTotals(): UsageTotals {
   return {
     inputTokens: 0,
@@ -45,7 +51,7 @@ function addEventToAccumulator(accumulator: RowAccumulator, event: UsageEvent): 
   accumulator.totals.cacheReadTokens += event.cacheReadTokens;
   accumulator.totals.cacheWriteTokens += event.cacheWriteTokens;
   accumulator.totals.totalTokens += event.totalTokens;
-  accumulator.totals.costUsd += event.costUsd ?? 0;
+  accumulator.totals.costUsd = addUsd(accumulator.totals.costUsd, event.costUsd ?? 0);
 
   if (event.model) {
     accumulator.modelSet.add(event.model);
@@ -59,7 +65,7 @@ function addTotals(target: UsageTotals, source: UsageTotals): void {
   target.cacheReadTokens += source.cacheReadTokens;
   target.cacheWriteTokens += source.cacheWriteTokens;
   target.totalTokens += source.totalTokens;
-  target.costUsd += source.costUsd;
+  target.costUsd = addUsd(target.costUsd, source.costUsd);
 }
 
 function sourceSortComparator(left: string, right: string): number {
