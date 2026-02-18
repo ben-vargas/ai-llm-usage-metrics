@@ -28,7 +28,10 @@ export function calculateEstimatedCostUsd(event: UsageEvent, pricing: ModelPrici
 }
 
 export function applyPricingToEvent(event: UsageEvent, pricingSource: PricingSource): UsageEvent {
-  if (event.costMode === 'explicit' && event.costUsd !== undefined) {
+  const shouldRepriceExplicitZero =
+    event.costMode === 'explicit' && event.costUsd === 0 && event.model !== undefined;
+
+  if (event.costMode === 'explicit' && event.costUsd !== undefined && !shouldRepriceExplicitZero) {
     return event;
   }
 
@@ -39,6 +42,10 @@ export function applyPricingToEvent(event: UsageEvent, pricingSource: PricingSou
   const pricing = pricingSource.getPricing(event.model);
 
   if (!pricing) {
+    if (shouldRepriceExplicitZero) {
+      return event;
+    }
+
     return { ...event, costMode: 'estimated' };
   }
 

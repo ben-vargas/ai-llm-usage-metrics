@@ -1,4 +1,6 @@
-import type { UsageReportRow } from '../domain/usage-report-row.js';
+import type { ModelUsageBreakdown, UsageReportRow } from '../domain/usage-report-row.js';
+
+export type UsageTableLayout = 'compact' | 'per_model_columns';
 
 export const usageTableHeaders = [
   'Period',
@@ -29,14 +31,6 @@ function formatSource(row: UsageReportRow): string {
   return row.source;
 }
 
-function formatModels(models: string[]): string {
-  if (models.length === 0) {
-    return '-';
-  }
-
-  return models.map((model) => `• ${model}`).join('\n');
-}
-
 function formatTokenCount(value: number): string {
   return integerFormatter.format(value);
 }
@@ -45,17 +39,71 @@ function formatUsd(value: number): string {
   return usdFormatter.format(value);
 }
 
-export function toUsageTableCells(rows: UsageReportRow[]): string[][] {
+function formatCompactModels(row: UsageReportRow): string {
+  if (row.modelBreakdown.length === 0) {
+    return row.models.length === 0 ? '-' : row.models.map((model) => `• ${model}`).join('\n');
+  }
+
+  return row.modelBreakdown.map((modelUsage) => `• ${modelUsage.model}`).join('\n');
+}
+
+function formatPerModelColumnModels(row: UsageReportRow): string {
+  if (row.modelBreakdown.length === 0) {
+    return row.models.length === 0 ? '-' : row.models.map((model) => `• ${model}`).join('\n');
+  }
+
+  const modelLines = row.modelBreakdown.map((modelUsage) => `• ${modelUsage.model}`);
+
+  if (row.modelBreakdown.length > 1) {
+    modelLines.push('Σ TOTAL');
+  }
+
+  return modelLines.join('\n');
+}
+
+function formatModels(row: UsageReportRow, layout: UsageTableLayout): string {
+  if (layout === 'per_model_columns') {
+    return formatPerModelColumnModels(row);
+  }
+
+  return formatCompactModels(row);
+}
+
+function formatModelMetric(
+  row: UsageReportRow,
+  selector: (value: ModelUsageBreakdown | UsageReportRow) => number,
+  formatter: (value: number) => string,
+  layout: UsageTableLayout,
+): string {
+  if (layout !== 'per_model_columns' || row.modelBreakdown.length === 0) {
+    return formatter(selector(row));
+  }
+
+  const lines = row.modelBreakdown.map((modelUsage) => formatter(selector(modelUsage)));
+
+  if (row.modelBreakdown.length > 1) {
+    lines.push(formatter(selector(row)));
+  }
+
+  return lines.join('\n');
+}
+
+export function toUsageTableCells(
+  rows: UsageReportRow[],
+  options: { layout?: UsageTableLayout } = {},
+): string[][] {
+  const layout = options.layout ?? 'compact';
+
   return rows.map((row) => [
     row.periodKey,
     formatSource(row),
-    formatModels(row.models),
-    formatTokenCount(row.inputTokens),
-    formatTokenCount(row.outputTokens),
-    formatTokenCount(row.reasoningTokens),
-    formatTokenCount(row.cacheReadTokens),
-    formatTokenCount(row.cacheWriteTokens),
-    formatTokenCount(row.totalTokens),
-    formatUsd(row.costUsd),
+    formatModels(row, layout),
+    formatModelMetric(row, (value) => value.inputTokens, formatTokenCount, layout),
+    formatModelMetric(row, (value) => value.outputTokens, formatTokenCount, layout),
+    formatModelMetric(row, (value) => value.reasoningTokens, formatTokenCount, layout),
+    formatModelMetric(row, (value) => value.cacheReadTokens, formatTokenCount, layout),
+    formatModelMetric(row, (value) => value.cacheWriteTokens, formatTokenCount, layout),
+    formatModelMetric(row, (value) => value.totalTokens, formatTokenCount, layout),
+    formatModelMetric(row, (value) => value.costUsd, formatUsd, layout),
   ]);
 }

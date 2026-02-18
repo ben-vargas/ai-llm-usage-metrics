@@ -16,8 +16,10 @@ export type ReportCommandOptions = {
   until?: string;
   timezone?: string;
   provider?: string;
+  model?: string | string[];
   markdown?: boolean;
   json?: boolean;
+  perModelColumns?: boolean;
   pricingUrl?: string;
   pricingOffline?: boolean;
 };
@@ -28,7 +30,7 @@ export type UsageSessionStats = {
   eventsParsed: number;
 };
 
-export type UsagePricingOrigin = 'cache' | 'network' | 'fallback' | 'offline-cache' | 'none';
+export type UsagePricingOrigin = 'cache' | 'network' | 'offline-cache' | 'none';
 
 export type UsageDiagnostics = {
   sessionStats: UsageSessionStats[];

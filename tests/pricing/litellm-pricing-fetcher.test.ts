@@ -260,6 +260,123 @@ describe('LiteLLMPricingFetcher', () => {
     expect(fetcher.getPricing('gpt-5.2-codex')).toBeDefined();
   });
 
+  it('resolves configured canonical aliases to preferred LiteLLM pricing keys', async () => {
+    const rootDir = await mkdtemp(path.join(os.tmpdir(), 'litellm-pricing-canonical-map-'));
+    tempDirs.push(rootDir);
+
+    const fetcher = createFetcher({
+      cacheFilePath: path.join(rootDir, 'cache.json'),
+      fetchImpl: vi.fn(async () => {
+        return new Response(
+          JSON.stringify({
+            'moonshot/kimi-k2.5': {
+              input_cost_per_token: 0.0000006,
+              output_cost_per_token: 0.000003,
+            },
+            'anthropic.claude-sonnet-4-6': {
+              input_cost_per_token: 0.000003,
+              output_cost_per_token: 0.000015,
+            },
+          }),
+          { status: 200 },
+        );
+      }),
+    });
+
+    await fetcher.load();
+
+    expect(fetcher.resolveModelAlias('k2p5')).toBe('moonshot/kimi-k2.5');
+    expect(fetcher.resolveModelAlias('moonshotai.kimi-k2.5')).toBe('moonshot/kimi-k2.5');
+    expect(fetcher.resolveModelAlias('claude-sonnet-4.6')).toBe('anthropic.claude-sonnet-4-6');
+
+    expect(fetcher.getPricing('k2p5')?.inputPer1MUsd).toBeCloseTo(0.6, 10);
+    expect(fetcher.getPricing('kimi-k2.5')?.outputPer1MUsd).toBeCloseTo(3, 10);
+    expect(fetcher.getPricing('claude sonnet 4.6')?.outputPer1MUsd).toBeCloseTo(15, 10);
+  });
+
+  it('does not incorrectly map gpt-5.3-codex to gpt-5.2-codex pricing', async () => {
+    const rootDir = await mkdtemp(path.join(os.tmpdir(), 'litellm-pricing-no-cross-version-'));
+    tempDirs.push(rootDir);
+
+    const fetcher = createFetcher({
+      cacheFilePath: path.join(rootDir, 'cache.json'),
+      fetchImpl: vi.fn(async () => {
+        return new Response(
+          JSON.stringify({
+            'gpt-5': {
+              input_cost_per_token: 0.00000125,
+              output_cost_per_token: 0.00001,
+            },
+            'gpt-5.2-codex': {
+              input_cost_per_token: 0.0000015,
+              output_cost_per_token: 0.00001,
+            },
+          }),
+          { status: 200 },
+        );
+      }),
+    });
+
+    await fetcher.load();
+
+    expect(fetcher.getPricing('gpt-5.3-codex')).toBeUndefined();
+  });
+
+  it('matches provider-prefixed LiteLLM keys from bare model names', async () => {
+    const rootDir = await mkdtemp(path.join(os.tmpdir(), 'litellm-pricing-provider-prefix-'));
+    tempDirs.push(rootDir);
+
+    const fetcher = createFetcher({
+      cacheFilePath: path.join(rootDir, 'cache.json'),
+      fetchImpl: vi.fn(async () => {
+        return new Response(
+          JSON.stringify({
+            'openrouter/anthropic/claude-sonnet-4.5': {
+              input_cost_per_token: 0.000003,
+              output_cost_per_token: 0.000015,
+            },
+          }),
+          { status: 200 },
+        );
+      }),
+    });
+
+    await fetcher.load();
+
+    expect(fetcher.resolveModelAlias('claude-sonnet-4.5')).toBe(
+      'openrouter/anthropic/claude-sonnet-4.5',
+    );
+    expect(fetcher.getPricing('claude-sonnet-4.5')?.outputPer1MUsd).toBeCloseTo(15, 10);
+  });
+
+  it('falls back to normal matching when preferred mapped key is unavailable', async () => {
+    const rootDir = await mkdtemp(path.join(os.tmpdir(), 'litellm-pricing-map-fallback-'));
+    tempDirs.push(rootDir);
+
+    const fetcher = createFetcher({
+      cacheFilePath: path.join(rootDir, 'cache.json'),
+      fetchImpl: vi.fn(async () => {
+        return new Response(
+          JSON.stringify({
+            'moonshotai.kimi-k2.5': {
+              input_cost_per_token: 0.0000006,
+              output_cost_per_token: 0.000003,
+            },
+          }),
+          { status: 200 },
+        );
+      }),
+    });
+
+    await fetcher.load();
+
+    const pricing = fetcher.getPricing('k2p5');
+
+    expect(pricing).toBeDefined();
+    expect(pricing?.inputPer1MUsd).toBeCloseTo(0.6, 10);
+    expect(fetcher.resolveModelAlias('k2p5')).toBe('moonshotai.kimi-k2.5');
+  });
+
   it('throws in offline mode when cache is unavailable', async () => {
     const rootDir = await mkdtemp(path.join(os.tmpdir(), 'litellm-pricing-missing-cache-'));
     tempDirs.push(rootDir);

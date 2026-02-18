@@ -44,10 +44,20 @@ function addSharedOptions(command: Command): Command {
     .option('--until <YYYY-MM-DD>', 'Inclusive end date filter')
     .option('--timezone <iana>', 'Timezone for bucketing', defaultTimezone)
     .option('--provider <name>', 'Provider filter (substring match, optional)')
+    .option(
+      '--model <name>',
+      'Filter by model (repeatable or comma-separated, exact when exact match exists; otherwise substring)',
+      collectSourceOption,
+      [],
+    )
     .option('--pricing-url <url>', 'Override LiteLLM pricing source URL')
     .option('--pricing-offline', 'Use cached LiteLLM pricing only (no network fetch)')
     .option('--markdown', 'Render output as markdown table')
-    .option('--json', 'Render output as JSON');
+    .option('--json', 'Render output as JSON')
+    .option(
+      '--per-model-columns',
+      'Render per-model metrics as multiline aligned table columns (terminal/markdown)',
+    );
 }
 
 function commandDescription(granularity: UsageGranularity): string {
@@ -86,6 +96,7 @@ function rootDescription(): string {
     '  $ llm-usage daily --help',
     '  $ llm-usage weekly --timezone Europe/Paris',
     `  $ llm-usage monthly --since 2026-01-01 --until 2026-01-31 --source ${allowedSourcesLabel} --json`,
+    '  $ llm-usage monthly --model claude --per-model-columns',
     '  $ llm-usage daily --source-dir pi=/tmp/pi-sessions',
     '  $ npx --yes llm-usage-metrics daily',
   ].join('\n');

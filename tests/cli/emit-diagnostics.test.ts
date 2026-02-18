@@ -67,11 +67,10 @@ describe('emitDiagnostics', () => {
   });
 
   it.each([
-    ['cache', 'Loaded pricing from cache', 'info'],
-    ['network', 'Fetched pricing from LiteLLM', 'info'],
-    ['offline-cache', 'Using cached pricing (offline mode)', 'info'],
-    ['fallback', 'Using built-in pricing source', 'warn'],
-  ] as const)('emits pricing message for "%s" origin', (origin, message, level) => {
+    ['cache', 'Loaded pricing from cache'],
+    ['network', 'Fetched pricing from LiteLLM'],
+    ['offline-cache', 'Using cached pricing (offline mode)'],
+  ] as const)('emits pricing message for "%s" origin', (origin, message) => {
     const diagnosticsLogger = createLoggerSpy();
 
     emitDiagnostics(
@@ -82,11 +81,6 @@ describe('emitDiagnostics', () => {
       diagnosticsLogger,
     );
 
-    if (level === 'info') {
-      expect(diagnosticsLogger.info).toHaveBeenCalledWith(message);
-      return;
-    }
-
-    expect(diagnosticsLogger.warn).toHaveBeenCalledWith(message);
+    expect(diagnosticsLogger.info).toHaveBeenCalledWith(message);
   });
 });

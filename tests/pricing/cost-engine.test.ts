@@ -9,7 +9,7 @@ import {
 import { StaticPricingSource } from '../../src/pricing/static-pricing-source.js';
 
 describe('cost engine', () => {
-  it('keeps explicit costs unchanged', () => {
+  it('keeps non-zero explicit costs unchanged', () => {
     const source = new StaticPricingSource({
       pricingByModel: {
         'gpt-5-codex': { inputPer1MUsd: 1, outputPer1MUsd: 2 },
@@ -31,6 +31,30 @@ describe('cost engine', () => {
 
     expect(pricedEvent.costMode).toBe('explicit');
     expect(pricedEvent.costUsd).toBe(1.23);
+  });
+
+  it('re-prices explicit zero cost when model pricing is available', () => {
+    const source = new StaticPricingSource({
+      pricingByModel: {
+        'gpt-5-codex': { inputPer1MUsd: 1, outputPer1MUsd: 2 },
+      },
+    });
+
+    const explicitZeroEvent = createUsageEvent({
+      source: 'pi',
+      sessionId: 'session-1',
+      timestamp: '2026-02-16T10:00:00Z',
+      model: 'gpt-5-codex',
+      inputTokens: 100,
+      outputTokens: 50,
+      costUsd: 0,
+      costMode: 'explicit',
+    });
+
+    const pricedEvent = applyPricingToEvent(explicitZeroEvent, source);
+
+    expect(pricedEvent.costMode).toBe('estimated');
+    expect(pricedEvent.costUsd).toBeCloseTo(0.0002, 10);
   });
 
   it('estimates cost using alias mapping without double charging reasoning by default', () => {

@@ -10,6 +10,18 @@ const sampleUsageData: UsageDataResult = {
       periodKey: '2026-02-10',
       source: 'pi',
       models: ['gpt-4.1'],
+      modelBreakdown: [
+        {
+          model: 'gpt-4.1',
+          inputTokens: 1234,
+          outputTokens: 321,
+          reasoningTokens: 0,
+          cacheReadTokens: 30,
+          cacheWriteTokens: 0,
+          totalTokens: 1585,
+          costUsd: 1.25,
+        },
+      ],
       inputTokens: 1234,
       outputTokens: 321,
       reasoningTokens: 0,
@@ -23,6 +35,28 @@ const sampleUsageData: UsageDataResult = {
       periodKey: '2026-02-10',
       source: 'combined',
       models: ['gpt-4.1', 'gpt-5-codex'],
+      modelBreakdown: [
+        {
+          model: 'gpt-4.1',
+          inputTokens: 1234,
+          outputTokens: 321,
+          reasoningTokens: 0,
+          cacheReadTokens: 30,
+          cacheWriteTokens: 0,
+          totalTokens: 1585,
+          costUsd: 1.25,
+        },
+        {
+          model: 'gpt-5-codex',
+          inputTokens: 766,
+          outputTokens: 179,
+          reasoningTokens: 120,
+          cacheReadTokens: 70,
+          cacheWriteTokens: 0,
+          totalTokens: 1135,
+          costUsd: 1.5,
+        },
+      ],
       inputTokens: 2000,
       outputTokens: 500,
       reasoningTokens: 120,
@@ -36,6 +70,28 @@ const sampleUsageData: UsageDataResult = {
       periodKey: 'ALL',
       source: 'combined',
       models: ['gpt-4.1', 'gpt-5-codex'],
+      modelBreakdown: [
+        {
+          model: 'gpt-4.1',
+          inputTokens: 1234,
+          outputTokens: 321,
+          reasoningTokens: 0,
+          cacheReadTokens: 30,
+          cacheWriteTokens: 0,
+          totalTokens: 1585,
+          costUsd: 1.25,
+        },
+        {
+          model: 'gpt-5-codex',
+          inputTokens: 766,
+          outputTokens: 179,
+          reasoningTokens: 120,
+          cacheReadTokens: 70,
+          cacheWriteTokens: 0,
+          totalTokens: 1135,
+          costUsd: 1.5,
+        },
+      ],
       inputTokens: 2000,
       outputTokens: 500,
       reasoningTokens: 120,
@@ -84,11 +140,24 @@ describe('renderUsageReport', () => {
     expect(tableIndex).toBeGreaterThan(headerIndex);
   });
 
-  it('renders markdown output with multiline model cells using <br>', () => {
+  it('renders markdown output in compact mode by default', () => {
     const rendered = renderUsageReport(sampleUsageData, 'markdown', { granularity: 'daily' });
 
     expect(rendered).toContain('| Period');
     expect(rendered).toContain('• gpt-4.1<br>• gpt-5-codex');
+    expect(rendered).not.toContain('tok, $');
+    expect(rendered).not.toContain('Σ TOTAL');
+  });
+
+  it('renders markdown output with per-model column layout when requested', () => {
+    const rendered = renderUsageReport(sampleUsageData, 'markdown', {
+      granularity: 'daily',
+      tableLayout: 'per_model_columns',
+    });
+
+    expect(rendered).toContain('• gpt-4.1<br>• gpt-5-codex<br>Σ TOTAL');
+    expect(rendered).toContain('1,234<br>766<br>2,000');
+    expect(rendered).toContain('$1.25<br>$1.50<br>$2.75');
   });
 
   it('renders JSON output as pretty-printed row payload only', () => {

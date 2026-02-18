@@ -1,6 +1,7 @@
 import type { UsageEvent } from '../domain/usage-event.js';
 import type {
   GrandTotalRow,
+  ModelUsageBreakdown,
   PeriodCombinedRow,
   PeriodSourceRow,
   UsageReportRow,
@@ -17,7 +18,7 @@ export type AggregateUsageOptions = {
 
 type RowAccumulator = {
   totals: UsageTotals;
-  modelSet: Set<string>;
+  modelTotals: Map<string, UsageTotals>;
 };
 
 const USD_PRECISION_SCALE = 1_000_000_000_000;
@@ -41,22 +42,41 @@ function createEmptyTotals(): UsageTotals {
 function createRowAccumulator(): RowAccumulator {
   return {
     totals: createEmptyTotals(),
-    modelSet: new Set<string>(),
+    modelTotals: new Map<string, UsageTotals>(),
   };
 }
 
-function addEventToAccumulator(accumulator: RowAccumulator, event: UsageEvent): void {
-  accumulator.totals.inputTokens += event.inputTokens;
-  accumulator.totals.outputTokens += event.outputTokens;
-  accumulator.totals.reasoningTokens += event.reasoningTokens;
-  accumulator.totals.cacheReadTokens += event.cacheReadTokens;
-  accumulator.totals.cacheWriteTokens += event.cacheWriteTokens;
-  accumulator.totals.totalTokens += event.totalTokens;
-  accumulator.totals.costUsd = addUsd(accumulator.totals.costUsd, event.costUsd ?? 0);
+function addEventToTotals(target: UsageTotals, event: UsageEvent): void {
+  target.inputTokens += event.inputTokens;
+  target.outputTokens += event.outputTokens;
+  target.reasoningTokens += event.reasoningTokens;
+  target.cacheReadTokens += event.cacheReadTokens;
+  target.cacheWriteTokens += event.cacheWriteTokens;
+  target.totalTokens += event.totalTokens;
+  target.costUsd = addUsd(target.costUsd, event.costUsd ?? 0);
+}
 
-  if (event.model) {
-    accumulator.modelSet.add(event.model);
+function normalizeModelKey(model: string | undefined): string | undefined {
+  if (!model) {
+    return undefined;
   }
+
+  const normalized = model.trim();
+  return normalized || undefined;
+}
+
+function addEventToAccumulator(accumulator: RowAccumulator, event: UsageEvent): void {
+  addEventToTotals(accumulator.totals, event);
+
+  const normalizedModel = normalizeModelKey(event.model);
+
+  if (!normalizedModel) {
+    return;
+  }
+
+  const existingTotals = accumulator.modelTotals.get(normalizedModel) ?? createEmptyTotals();
+  addEventToTotals(existingTotals, event);
+  accumulator.modelTotals.set(normalizedModel, existingTotals);
 }
 
 function addTotals(target: UsageTotals, source: UsageTotals): void {
@@ -67,6 +87,32 @@ function addTotals(target: UsageTotals, source: UsageTotals): void {
   target.cacheWriteTokens += source.cacheWriteTokens;
   target.totalTokens += source.totalTokens;
   target.costUsd = addUsd(target.costUsd, source.costUsd);
+}
+
+function mergeModelTotals(
+  targetModelTotals: Map<string, UsageTotals>,
+  sourceModelTotals: ReadonlyMap<string, UsageTotals>,
+): void {
+  for (const [model, sourceTotals] of sourceModelTotals) {
+    const targetTotals = targetModelTotals.get(model) ?? createEmptyTotals();
+    addTotals(targetTotals, sourceTotals);
+    targetModelTotals.set(model, targetTotals);
+  }
+}
+
+function toModelUsageBreakdown(
+  modelTotals: ReadonlyMap<string, UsageTotals>,
+): ModelUsageBreakdown[] {
+  const sortedModels = normalizeModelList(modelTotals.keys());
+
+  return sortedModels.map((model) => {
+    const totals = modelTotals.get(model) ?? createEmptyTotals();
+
+    return {
+      model,
+      ...totals,
+    };
+  });
 }
 
 function sourceSortComparator(
@@ -110,7 +156,7 @@ export function aggregateUsage(
   const sortedPeriodKeys = [...periodMap.keys()].sort((left, right) => left.localeCompare(right));
   const rows: UsageReportRow[] = [];
   const grandTotals = createEmptyTotals();
-  const grandModels = new Set<string>();
+  const grandModelTotals = new Map<string, UsageTotals>();
 
   for (const periodKey of sortedPeriodKeys) {
     const sourceMap = periodMap.get(periodKey);
@@ -120,7 +166,7 @@ export function aggregateUsage(
     }
 
     const periodCombinedTotals = createEmptyTotals();
-    const periodModels = new Set<string>();
+    const periodCombinedModelTotals = new Map<string, UsageTotals>();
 
     const sortedSources = [...sourceMap.keys()].sort((left, right) =>
       sourceSortComparator(left, right, sourceWeightMap),
@@ -137,7 +183,8 @@ export function aggregateUsage(
         rowType: 'period_source',
         periodKey,
         source,
-        models: normalizeModelList(accumulator.modelSet),
+        models: normalizeModelList(accumulator.modelTotals.keys()),
+        modelBreakdown: toModelUsageBreakdown(accumulator.modelTotals),
         ...accumulator.totals,
       };
 
@@ -145,11 +192,8 @@ export function aggregateUsage(
 
       addTotals(periodCombinedTotals, accumulator.totals);
       addTotals(grandTotals, accumulator.totals);
-
-      for (const model of accumulator.modelSet) {
-        periodModels.add(model);
-        grandModels.add(model);
-      }
+      mergeModelTotals(periodCombinedModelTotals, accumulator.modelTotals);
+      mergeModelTotals(grandModelTotals, accumulator.modelTotals);
     }
 
     if (sortedSources.length > 1) {
@@ -157,7 +201,8 @@ export function aggregateUsage(
         rowType: 'period_combined',
         periodKey,
         source: 'combined',
-        models: normalizeModelList(periodModels),
+        models: normalizeModelList(periodCombinedModelTotals.keys()),
+        modelBreakdown: toModelUsageBreakdown(periodCombinedModelTotals),
         ...periodCombinedTotals,
       };
 
@@ -169,7 +214,8 @@ export function aggregateUsage(
     rowType: 'grand_total',
     periodKey: 'ALL',
     source: 'combined',
-    models: normalizeModelList(grandModels),
+    models: normalizeModelList(grandModelTotals.keys()),
+    modelBreakdown: toModelUsageBreakdown(grandModelTotals),
     ...grandTotals,
   };
 
