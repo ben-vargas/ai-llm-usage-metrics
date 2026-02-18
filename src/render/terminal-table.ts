@@ -1,13 +1,37 @@
 import pc from 'picocolors';
-import { getBorderCharacters, table, type TableUserConfig } from 'table';
+import { table, type TableUserConfig } from 'table';
 
 import type { UsageReportRow } from '../domain/usage-report-row.js';
+import { colorizeUsageBodyRows } from './terminal-style-policy.js';
 import { toUsageTableCells, usageTableHeaders } from './row-cells.js';
 
 const modelsColumnIndex = 2;
 
 type TerminalRenderOptions = {
   useColor?: boolean;
+};
+
+const roundedBorders = {
+  topBody: '─',
+  topJoin: '┬',
+  topLeft: '╭',
+  topRight: '╮',
+  bottomBody: '─',
+  bottomJoin: '┴',
+  bottomLeft: '╰',
+  bottomRight: '╯',
+  bodyLeft: '│',
+  bodyRight: '│',
+  bodyJoin: '│',
+  headerJoin: '┬',
+  joinBody: '─',
+  joinLeft: '├',
+  joinRight: '┤',
+  joinJoin: '┼',
+  joinMiddleDown: '┬',
+  joinMiddleUp: '┴',
+  joinMiddleLeft: '┤',
+  joinMiddleRight: '├',
 };
 
 function shouldDrawHorizontalLine(index: number, rowCount: number, rows: string[][]): boolean {
@@ -26,35 +50,36 @@ function shouldDrawHorizontalLine(index: number, rowCount: number, rows: string[
   return previousSource === 'combined' || nextSource === 'TOTAL' || previousPeriod !== nextPeriod;
 }
 
-function createTableConfig(rows: string[][]): TableUserConfig {
+function createTableConfig(uncoloredRows: string[][]): TableUserConfig {
   return {
-    border: getBorderCharacters('norc'),
-    drawHorizontalLine: (index, rowCount) => shouldDrawHorizontalLine(index, rowCount, rows),
+    border: roundedBorders,
+    drawHorizontalLine: (index, rowCount) =>
+      shouldDrawHorizontalLine(index, rowCount, uncoloredRows),
     columnDefault: {
       paddingLeft: 1,
       paddingRight: 1,
-      verticalAlignment: 'middle',
+      verticalAlignment: 'top',
     },
     columns: {
-      0: { alignment: 'left' },
-      1: { alignment: 'left' },
+      0: { alignment: 'left', verticalAlignment: 'middle' },
+      1: { alignment: 'left', verticalAlignment: 'middle' },
       [modelsColumnIndex]: {
         alignment: 'left',
-        width: 34,
+        width: 32,
         wrapWord: true,
       },
-      3: { alignment: 'right' },
-      4: { alignment: 'right' },
-      5: { alignment: 'right' },
-      6: { alignment: 'right' },
-      7: { alignment: 'right' },
-      8: { alignment: 'right' },
-      9: { alignment: 'right' },
+      3: { alignment: 'right', verticalAlignment: 'middle' },
+      4: { alignment: 'right', verticalAlignment: 'middle' },
+      5: { alignment: 'right', verticalAlignment: 'middle' },
+      6: { alignment: 'right', verticalAlignment: 'middle' },
+      7: { alignment: 'right', verticalAlignment: 'middle' },
+      8: { alignment: 'right', verticalAlignment: 'middle' },
+      9: { alignment: 'right', verticalAlignment: 'middle' },
     },
   };
 }
 
-function shouldUseColorByDefault(): boolean {
+export function shouldUseColorByDefault(): boolean {
   if (process.env.NO_COLOR !== undefined) {
     return false;
   }
@@ -64,48 +89,6 @@ function shouldUseColorByDefault(): boolean {
   }
 
   return process.stdout.isTTY;
-}
-
-function colorSource(source: string): (text: string) => string {
-  switch (source) {
-    case 'pi':
-      return pc.cyan;
-    case 'codex':
-      return pc.magenta;
-    case 'combined':
-      return pc.yellow;
-    case 'TOTAL':
-      return (text) => pc.bold(pc.green(text));
-    default:
-      return (text) => text;
-  }
-}
-
-function colorizeBodyRows(
-  bodyRows: string[][],
-  rows: UsageReportRow[],
-  useColor: boolean,
-): string[][] {
-  if (!useColor) {
-    return bodyRows;
-  }
-
-  return rows.map((row, index) => {
-    const styledCells = [...(bodyRows[index] ?? [])];
-    const sourceStyler = colorSource(styledCells[1] ?? row.source);
-
-    styledCells[1] = sourceStyler(styledCells[1] ?? row.source);
-
-    if (row.rowType === 'grand_total') {
-      return styledCells.map((cell) => pc.bold(cell));
-    }
-
-    if (row.rowType === 'period_combined') {
-      return styledCells.map((cell, cellIndex) => (cellIndex === 1 ? pc.bold(cell) : pc.dim(cell)));
-    }
-
-    return styledCells;
-  });
 }
 
 function colorizeHeader(useColor: boolean): string[] {
@@ -123,8 +106,10 @@ export function renderTerminalTable(
   options: TerminalRenderOptions = {},
 ): string {
   const useColor = options.useColor ?? shouldUseColorByDefault();
-  const bodyRows = colorizeBodyRows(toUsageTableCells(rows), rows, useColor);
+  const uncoloredBodyRows = toUsageTableCells(rows);
+  const bodyRows = colorizeUsageBodyRows(uncoloredBodyRows, rows, { useColor });
   const displayRows = [colorizeHeader(useColor), ...bodyRows];
+  const uncoloredDisplayRows = [Array.from(usageTableHeaders), ...uncoloredBodyRows];
 
-  return table(displayRows, createTableConfig(displayRows));
+  return table(displayRows, createTableConfig(uncoloredDisplayRows));
 }

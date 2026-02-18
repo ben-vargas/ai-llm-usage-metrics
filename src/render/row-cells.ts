@@ -9,8 +9,8 @@ export const usageTableHeaders = [
   'Reasoning',
   'Cache Read',
   'Cache Write',
-  'Total Tokens',
-  'Cost (USD)',
+  'Total',
+  'Cost',
 ] as const;
 
 const integerFormatter = new Intl.NumberFormat('en-US');
@@ -30,7 +30,11 @@ function formatSource(row: UsageReportRow): string {
 }
 
 function formatModels(models: string[]): string {
-  return models.length > 0 ? models.join(', ') : '-';
+  if (models.length === 0) {
+    return '-';
+  }
+
+  return models.map((model) => `• ${model}`).join('\n');
 }
 
 function formatTokenCount(value: number): string {

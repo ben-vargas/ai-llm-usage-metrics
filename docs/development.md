@@ -24,6 +24,17 @@ bun run format:check
 
 `bun run test` includes coverage by default.
 
+## Reporting pipeline performance baseline
+
+Capture local timing snapshots for daily/weekly/monthly report generation on representative fixtures:
+
+```bash
+bun run perf:report-baseline
+```
+
+The command runs a warmup + sampled timings and prints min/avg/p95/max per scenario.
+Use it to track report runtime over time while iterating locally.
+
 ## Runtime configuration in development
 
 The CLI reads runtime knobs directly from environment variables (no `.env` auto-loading in runtime).

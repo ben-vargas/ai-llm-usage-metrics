@@ -56,7 +56,9 @@ describe('LiteLLMPricingFetcher', () => {
       }),
     });
 
-    await fetcher.load();
+    const loadedFromCache = await fetcher.load();
+
+    expect(loadedFromCache).toBe(false);
 
     const codexPrefixPricing = fetcher.getPricing('openai/gpt-5.2-codex-2026-01-01');
     const genericPrefixPricing = fetcher.getPricing('gpt-5.2-2026-01-01');
@@ -97,8 +99,9 @@ describe('LiteLLMPricingFetcher', () => {
       }),
     });
 
-    await fetcher.load();
+    const loadedFromCache = await fetcher.load();
 
+    expect(loadedFromCache).toBe(false);
     expect(fetcher.getPricing('broken-model')).toBeUndefined();
     expect(fetcher.getPricing('gpt-5.2-codex')).toBeDefined();
   });
@@ -144,8 +147,9 @@ describe('LiteLLMPricingFetcher', () => {
       fetchImpl: fetchSpy,
     });
 
-    await fetcher.load();
+    const loadedFromCache = await fetcher.load();
 
+    expect(loadedFromCache).toBe(false);
     expect(fetchSpy).toHaveBeenCalledOnce();
     expect(fetcher.getPricing('gpt-5.2-codex')?.inputPer1MUsd).toBeCloseTo(3, 10);
   });
@@ -171,7 +175,9 @@ describe('LiteLLMPricingFetcher', () => {
       }),
     });
 
-    await onlineFetcher.load();
+    const onlineLoadedFromCache = await onlineFetcher.load();
+
+    expect(onlineLoadedFromCache).toBe(false);
 
     const offlineFetcher = createFetcher({
       cacheFilePath,
@@ -183,8 +189,9 @@ describe('LiteLLMPricingFetcher', () => {
       }),
     });
 
-    await offlineFetcher.load();
+    const offlineLoadedFromCache = await offlineFetcher.load();
 
+    expect(offlineLoadedFromCache).toBe(true);
     expect(offlineFetcher.getPricing('gpt-5.2-codex')).toBeDefined();
   });
 
@@ -210,7 +217,9 @@ describe('LiteLLMPricingFetcher', () => {
       }),
     });
 
-    await onlineFetcher.load();
+    const onlineLoadedFromCache = await onlineFetcher.load();
+
+    expect(onlineLoadedFromCache).toBe(false);
 
     const offlineFetcherWithDifferentSource = createFetcher({
       cacheFilePath,
@@ -246,7 +255,8 @@ describe('LiteLLMPricingFetcher', () => {
       }),
     });
 
-    await expect(fetcher.load()).resolves.toBeUndefined();
+    const fromCache = await fetcher.load();
+    expect(fromCache).toBe(false);
     expect(fetcher.getPricing('gpt-5.2-codex')).toBeDefined();
   });
 

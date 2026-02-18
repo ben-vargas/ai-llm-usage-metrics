@@ -2,15 +2,31 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { buildUsageReport } from '../../src/cli/run-usage-report.js';
+import { buildUsageReport, runUsageReport } from '../../src/cli/run-usage-report.js';
 
 const tempDirs: string[] = [];
+const originalParseMaxParallel = process.env.LLM_USAGE_PARSE_MAX_PARALLEL;
+
+function restoreParseMaxParallel(): void {
+  if (originalParseMaxParallel === undefined) {
+    delete process.env.LLM_USAGE_PARSE_MAX_PARALLEL;
+    return;
+  }
+
+  process.env.LLM_USAGE_PARSE_MAX_PARALLEL = originalParseMaxParallel;
+}
+
+beforeEach(() => {
+  restoreParseMaxParallel();
+});
 
 afterEach(async () => {
   await Promise.all(tempDirs.map((tempDir) => rm(tempDir, { recursive: true, force: true })));
   tempDirs.length = 0;
+
+  restoreParseMaxParallel();
 });
 
 describe('buildUsageReport', () => {
@@ -184,6 +200,44 @@ describe('buildUsageReport', () => {
     }
   });
 
+  it('renders terminal output with env override section and report header', async () => {
+    const emptyDir = await mkdtemp(path.join(os.tmpdir(), 'usage-terminal-output-'));
+    tempDirs.push(emptyDir);
+
+    process.env.LLM_USAGE_PARSE_MAX_PARALLEL = '8';
+
+    const report = await buildUsageReport('monthly', {
+      piDir: emptyDir,
+      codexDir: emptyDir,
+      timezone: 'UTC',
+    });
+
+    expect(report).toContain('Active environment overrides:');
+    expect(report).toContain('LLM_USAGE_PARSE_MAX_PARALLEL=8');
+    expect(report).toContain('Monthly Token Usage Report (Timezone: UTC)');
+    expect(report).toContain('│ Period');
+    expect(report).toContain('│ ALL');
+    expect(report.startsWith('\n')).toBe(false);
+
+    const headerIndex = report.indexOf('┌');
+    const envSectionIndex = report.indexOf('Active environment overrides:');
+    expect(headerIndex).toBeGreaterThan(envSectionIndex);
+  });
+
+  it('does not prepend a blank line in terminal output when no overrides are active', async () => {
+    const emptyDir = await mkdtemp(path.join(os.tmpdir(), 'usage-terminal-no-overrides-'));
+    tempDirs.push(emptyDir);
+
+    const report = await buildUsageReport('daily', {
+      piDir: emptyDir,
+      codexDir: emptyDir,
+      timezone: 'UTC',
+    });
+
+    expect(report.startsWith('\n')).toBe(false);
+    expect(report).toContain('Daily Token Usage Report (Timezone: UTC)');
+  });
+
   it('validates date flags, range ordering and pricing URL', async () => {
     await expect(
       buildUsageReport('daily', {
@@ -193,10 +247,22 @@ describe('buildUsageReport', () => {
 
     await expect(
       buildUsageReport('daily', {
+        until: '2026-02-30',
+      }),
+    ).rejects.toThrow('--until has an invalid calendar date');
+
+    await expect(
+      buildUsageReport('daily', {
         since: '2026-02-20',
         until: '2026-02-10',
       }),
     ).rejects.toThrow('--since must be less than or equal to --until');
+
+    await expect(
+      buildUsageReport('daily', {
+        timezone: 'Invalid/Timezone',
+      }),
+    ).rejects.toThrow('Invalid timezone: Invalid/Timezone');
 
     await expect(
       buildUsageReport('daily', {
@@ -232,5 +298,72 @@ describe('buildUsageReport', () => {
         json: true,
       }),
     ).rejects.toThrow('Choose either --markdown or --json, not both');
+  });
+
+  it('keeps buildUsageReport side-effect free for terminal output', async () => {
+    const emptyDir = await mkdtemp(path.join(os.tmpdir(), 'usage-build-no-stderr-'));
+    tempDirs.push(emptyDir);
+
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    try {
+      const report = await buildUsageReport('daily', {
+        piDir: emptyDir,
+        codexDir: emptyDir,
+        timezone: 'UTC',
+      });
+
+      expect(report).toContain('Daily Token Usage Report (Timezone: UTC)');
+      expect(errorSpy).not.toHaveBeenCalled();
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
+
+  it('emits diagnostics to stderr before writing terminal output in runUsageReport', async () => {
+    const emptyDir = await mkdtemp(path.join(os.tmpdir(), 'usage-run-diagnostics-'));
+    tempDirs.push(emptyDir);
+
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+
+    try {
+      await runUsageReport('daily', {
+        piDir: emptyDir,
+        codexDir: emptyDir,
+        timezone: 'UTC',
+      });
+
+      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('No sessions found'));
+      expect(logSpy).toHaveBeenCalledTimes(1);
+      expect(errorSpy.mock.invocationCallOrder[0]).toBeLessThan(logSpy.mock.invocationCallOrder[0]);
+    } finally {
+      errorSpy.mockRestore();
+      logSpy.mockRestore();
+    }
+  });
+
+  it('keeps runUsageReport JSON output data-only (no diagnostics on stderr)', async () => {
+    const emptyDir = await mkdtemp(path.join(os.tmpdir(), 'usage-run-json-no-logs-'));
+    tempDirs.push(emptyDir);
+
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+
+    try {
+      await runUsageReport('daily', {
+        piDir: emptyDir,
+        codexDir: emptyDir,
+        timezone: 'UTC',
+        json: true,
+      });
+
+      expect(errorSpy).not.toHaveBeenCalled();
+      expect(logSpy).toHaveBeenCalledTimes(1);
+      expect(String(logSpy.mock.calls[0]?.[0])).toContain('"rowType": "grand_total"');
+    } finally {
+      errorSpy.mockRestore();
+      logSpy.mockRestore();
+    }
   });
 });

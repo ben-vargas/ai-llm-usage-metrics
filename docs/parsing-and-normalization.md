@@ -10,7 +10,7 @@ Source file: `src/sources/pi/pi-source-adapter.ts`
 
 ### Recognized line types
 
-- `session`: captures session id and fallback timestamp
+- `session`: captures session id and backup timestamp
 - `model_change`: updates provider/model state
 - `message`: potential usage record
 
@@ -19,7 +19,7 @@ Source file: `src/sources/pi/pi-source-adapter.ts`
 Usage is read from:
 
 1. `line.usage` when valid
-2. `line.message.usage` as fallback
+2. `line.message.usage` as alternate source
 
 Recognized fields:
 
@@ -79,7 +79,7 @@ Codex `input_tokens` includes cached input. The adapter stores:
 
 This avoids double counting input + cache read later.
 
-### Legacy model fallback
+### Legacy model default
 
 When model metadata is missing, model is set to:
 `legacy-codex-unknown`
@@ -101,6 +101,6 @@ When model metadata is missing, model is set to:
 - valid timestamp
 - consistent `costMode`
   - explicit mode requires a cost
-- total token fallback:
+- total token defaulting rule:
   - use declared `totalTokens` when positive
   - otherwise compute from components
