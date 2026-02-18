@@ -11,6 +11,8 @@ import { PiSourceAdapter } from '../sources/pi/pi-source-adapter.js';
 import type { SourceAdapter } from '../sources/source-adapter.js';
 import { getPeriodKey, type ReportGranularity } from '../utils/time-buckets.js';
 
+const MAX_PARALLEL_FILE_PARSING = 8;
+
 export type ReportCommandOptions = {
   piDir?: string;
   codexDir?: string;
@@ -72,6 +74,27 @@ function normalizeSourceFilter(source: string | string[] | undefined): Set<strin
   return new Set(normalizedSources);
 }
 
+function validateSourceFilterValues(
+  sourceFilter: Set<string> | undefined,
+  availableSourceIds: ReadonlySet<string>,
+): void {
+  if (!sourceFilter) {
+    return;
+  }
+
+  const unknownSources = [...sourceFilter].filter((source) => !availableSourceIds.has(source));
+
+  if (unknownSources.length === 0) {
+    return;
+  }
+
+  const allowedSources = [...availableSourceIds].sort((left, right) => left.localeCompare(right));
+
+  throw new Error(
+    `Unknown --source value(s): ${unknownSources.join(', ')}. Allowed values: ${allowedSources.join(', ')}`,
+  );
+}
+
 function matchesProvider(
   provider: string | undefined,
   providerFilter: string | undefined,
@@ -83,17 +106,33 @@ function matchesProvider(
   return provider?.toLowerCase().includes(providerFilter) ?? false;
 }
 
-function matchesSource(source: string, sourceFilter: Set<string> | undefined): boolean {
-  if (!sourceFilter) {
-    return true;
-  }
-
-  return sourceFilter.has(source.toLowerCase());
-}
-
 async function parseAdapterEvents(adapter: SourceAdapter): Promise<UsageEvent[]> {
   const files = await adapter.discoverFiles();
-  const parsedByFile = await Promise.all(files.map((filePath) => adapter.parseFile(filePath)));
+
+  if (files.length === 0) {
+    return [];
+  }
+
+  const parsedByFile: UsageEvent[][] = Array.from({ length: files.length }, () => []);
+  const workerCount = Math.min(MAX_PARALLEL_FILE_PARSING, files.length);
+  let nextFileIndex = 0;
+
+  const workers = Array.from({ length: workerCount }, async () => {
+    while (nextFileIndex < files.length) {
+      const fileIndex = nextFileIndex;
+      nextFileIndex += 1;
+
+      const filePath = files[fileIndex];
+
+      if (!filePath) {
+        break;
+      }
+
+      parsedByFile[fileIndex] = await adapter.parseFile(filePath);
+    }
+  });
+
+  await Promise.all(workers);
 
   return parsedByFile.flat();
 }
@@ -159,6 +198,22 @@ async function resolvePricingSource(options: ReportCommandOptions): Promise<Pric
   }
 }
 
+function eventNeedsPricingLookup(event: UsageEvent): boolean {
+  if (!event.model) {
+    return false;
+  }
+
+  return event.costMode !== 'explicit' || event.costUsd === undefined;
+}
+
+function shouldLoadPricingSource(options: ReportCommandOptions, events: UsageEvent[]): boolean {
+  if (options.pricingUrl || options.pricingOffline) {
+    return true;
+  }
+
+  return events.some((event) => eventNeedsPricingLookup(event));
+}
+
 export async function buildUsageReport(
   granularity: ReportGranularity,
   options: ReportCommandOptions,
@@ -187,35 +242,40 @@ export async function buildUsageReport(
   const providerFilter = normalizeProviderFilter(options.provider);
   const sourceFilter = normalizeSourceFilter(options.source);
   const effectiveProviderFilter = providerFilter ?? 'openai';
-  const pricingSource = await resolvePricingSource(options);
 
-  const piAdapter = new PiSourceAdapter({
-    sessionsDir: options.piDir,
-    providerFilter: (provider) => matchesProvider(provider, effectiveProviderFilter),
-  });
-  const codexAdapter = new CodexSourceAdapter({
-    sessionsDir: options.codexDir,
-  });
+  const adapters: SourceAdapter[] = [
+    new PiSourceAdapter({
+      sessionsDir: options.piDir,
+      providerFilter: (provider) => matchesProvider(provider, effectiveProviderFilter),
+    }),
+    new CodexSourceAdapter({
+      sessionsDir: options.codexDir,
+    }),
+  ];
 
-  const [piEvents, codexEvents] = await Promise.all([
-    parseAdapterEvents(piAdapter),
-    parseAdapterEvents(codexAdapter),
-  ]);
+  const availableSourceIds = new Set(adapters.map((adapter) => adapter.id.toLowerCase()));
+  validateSourceFilterValues(sourceFilter, availableSourceIds);
 
-  const providerAndSourceFilteredEvents = [...piEvents, ...codexEvents].filter(
-    (event) =>
-      matchesProvider(event.provider, effectiveProviderFilter) &&
-      matchesSource(event.source, sourceFilter),
-  );
+  const adaptersToParse = sourceFilter
+    ? adapters.filter((adapter) => sourceFilter.has(adapter.id.toLowerCase()))
+    : adapters;
+
+  const parsedEventsByAdapter = await Promise.all(adaptersToParse.map((adapter) => parseAdapterEvents(adapter)));
+  const providerFilteredEvents = parsedEventsByAdapter
+    .flat()
+    .filter((event) => matchesProvider(event.provider, effectiveProviderFilter));
 
   const dateFilteredEvents = filterEventsByDateRange(
-    providerAndSourceFilteredEvents,
+    providerFilteredEvents,
     timezone,
     options.since,
     options.until,
   );
 
-  const pricedEvents = applyPricingToEvents(dateFilteredEvents, pricingSource);
+  const pricedEvents = shouldLoadPricingSource(options, dateFilteredEvents)
+    ? applyPricingToEvents(dateFilteredEvents, await resolvePricingSource(options))
+    : dateFilteredEvents;
+
   const rows = aggregateUsage(pricedEvents, {
     granularity,
     timezone,

@@ -2,7 +2,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { buildUsageReport } from '../../src/cli/run-usage-report.js';
 
@@ -145,6 +145,45 @@ describe('buildUsageReport', () => {
     });
   });
 
+  it('does not require pricing fetch when there are no events', async () => {
+    const emptyDir = await mkdtemp(path.join(os.tmpdir(), 'usage-no-events-'));
+    tempDirs.push(emptyDir);
+
+    const fetchSpy = vi.fn(async () => {
+      throw new Error('fetch should not be called when there are no events');
+    });
+
+    vi.stubGlobal('fetch', fetchSpy);
+
+    try {
+      const report = await buildUsageReport('daily', {
+        piDir: emptyDir,
+        codexDir: emptyDir,
+        timezone: 'UTC',
+        json: true,
+      });
+
+      expect(fetchSpy).not.toHaveBeenCalled();
+      expect(JSON.parse(report)).toEqual([
+        {
+          rowType: 'grand_total',
+          periodKey: 'ALL',
+          source: 'combined',
+          models: [],
+          inputTokens: 0,
+          outputTokens: 0,
+          reasoningTokens: 0,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          totalTokens: 0,
+          costUsd: 0,
+        },
+      ]);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('validates date flags, range ordering and pricing URL', async () => {
     await expect(
       buildUsageReport('daily', {
@@ -178,6 +217,12 @@ describe('buildUsageReport', () => {
         source: '   ',
       }),
     ).rejects.toThrow('--source must contain at least one non-empty source id');
+
+    await expect(
+      buildUsageReport('daily', {
+        source: 'claude',
+      }),
+    ).rejects.toThrow('Unknown --source value(s): claude. Allowed values: codex, pi');
   });
 
   it('validates conflicting output flags', async () => {
