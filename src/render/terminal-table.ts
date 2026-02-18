@@ -50,10 +50,11 @@ function shouldDrawHorizontalLine(index: number, rowCount: number, rows: string[
   return previousSource === 'combined' || nextSource === 'TOTAL' || previousPeriod !== nextPeriod;
 }
 
-function createTableConfig(rows: string[][]): TableUserConfig {
+function createTableConfig(uncoloredRows: string[][]): TableUserConfig {
   return {
     border: roundedBorders,
-    drawHorizontalLine: (index, rowCount) => shouldDrawHorizontalLine(index, rowCount, rows),
+    drawHorizontalLine: (index, rowCount) =>
+      shouldDrawHorizontalLine(index, rowCount, uncoloredRows),
     columnDefault: {
       paddingLeft: 1,
       paddingRight: 1,
@@ -105,8 +106,10 @@ export function renderTerminalTable(
   options: TerminalRenderOptions = {},
 ): string {
   const useColor = options.useColor ?? shouldUseColorByDefault();
-  const bodyRows = colorizeUsageBodyRows(toUsageTableCells(rows), rows, { useColor });
+  const uncoloredBodyRows = toUsageTableCells(rows);
+  const bodyRows = colorizeUsageBodyRows(uncoloredBodyRows, rows, { useColor });
   const displayRows = [colorizeHeader(useColor), ...bodyRows];
+  const uncoloredDisplayRows = [Array.from(usageTableHeaders), ...uncoloredBodyRows];
 
-  return table(displayRows, createTableConfig(displayRows));
+  return table(displayRows, createTableConfig(uncoloredDisplayRows));
 }

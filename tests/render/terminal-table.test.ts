@@ -65,6 +65,16 @@ describe('renderTerminalTable', () => {
     expect(rendered.includes(`${String.fromCharCode(27)}[`)).toBe(false);
   });
 
+  it('keeps structural separators stable when color is enabled', () => {
+    const ansiPattern = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, 'gu');
+    const stripAnsi = (value: string) => value.replaceAll(ansiPattern, '');
+
+    const uncolored = renderTerminalTable(sampleRows, { useColor: false });
+    const colored = renderTerminalTable(sampleRows, { useColor: true });
+
+    expect(stripAnsi(colored)).toBe(uncolored);
+  });
+
   it('keeps unknown sources unchanged and still renders output', () => {
     const rendered = renderTerminalTable(
       [

@@ -70,7 +70,7 @@ describe('emitDiagnostics', () => {
     ['cache', 'Loaded pricing from cache', 'info'],
     ['network', 'Fetched pricing from LiteLLM', 'info'],
     ['offline-cache', 'Using cached pricing (offline mode)', 'info'],
-    ['fallback', 'Using bundled fallback pricing', 'warn'],
+    ['fallback', 'Using built-in pricing source', 'warn'],
   ] as const)('emits pricing message for "%s" origin', (origin, message, level) => {
     const diagnosticsLogger = createLoggerSpy();
 

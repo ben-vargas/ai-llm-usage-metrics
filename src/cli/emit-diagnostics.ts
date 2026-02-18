@@ -40,7 +40,7 @@ export function emitDiagnostics(
       diagnosticsLogger.info('Fetched pricing from LiteLLM');
       return;
     case 'fallback':
-      diagnosticsLogger.warn('Using bundled fallback pricing');
+      diagnosticsLogger.warn('Using built-in pricing source');
       return;
     case 'none':
       return;
