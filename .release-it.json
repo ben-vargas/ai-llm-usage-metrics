@@ -28,6 +28,7 @@
       "bun run build",
       "bun run pack:check"
     ],
-    "after:bump": "bunx prettier --write CHANGELOG.md"
+    "after:bump": "bunx prettier --write CHANGELOG.md",
+    "before:git:release": "bunx prettier --write CHANGELOG.md"
   }
 }
