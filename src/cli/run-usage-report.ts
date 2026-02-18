@@ -18,6 +18,12 @@ export type ReportCommandOptions = {
   pricingOffline?: boolean;
 };
 
+type PreparedUsageReport = {
+  format: UsageReportFormat;
+  output: string;
+  diagnostics: Awaited<ReturnType<typeof buildUsageData>>['diagnostics'];
+};
+
 function resolveReportFormat(options: ReportCommandOptions): UsageReportFormat {
   if (options.json) {
     return 'json';
@@ -30,27 +36,37 @@ function resolveReportFormat(options: ReportCommandOptions): UsageReportFormat {
   return 'terminal';
 }
 
+async function prepareUsageReport(
+  granularity: ReportGranularity,
+  options: ReportCommandOptions,
+): Promise<PreparedUsageReport> {
+  const usageData = await buildUsageData(granularity, options);
+  const format = resolveReportFormat(options);
+
+  return {
+    format,
+    diagnostics: usageData.diagnostics,
+    output: renderUsageReport(usageData, format, { granularity }),
+  };
+}
+
 export async function buildUsageReport(
   granularity: ReportGranularity,
   options: ReportCommandOptions,
 ): Promise<string> {
-  const usageData = await buildUsageData(granularity, options);
-  const format = resolveReportFormat(options);
-
-  return renderUsageReport(usageData, format, { granularity });
+  const preparedReport = await prepareUsageReport(granularity, options);
+  return preparedReport.output;
 }
 
 export async function runUsageReport(
   granularity: ReportGranularity,
   options: ReportCommandOptions,
 ): Promise<void> {
-  const usageData = await buildUsageData(granularity, options);
-  const format = resolveReportFormat(options);
+  const preparedReport = await prepareUsageReport(granularity, options);
 
-  if (format === 'terminal') {
-    emitDiagnostics(usageData.diagnostics, logger);
+  if (preparedReport.format === 'terminal') {
+    emitDiagnostics(preparedReport.diagnostics, logger);
   }
 
-  const output = renderUsageReport(usageData, format, { granularity });
-  console.log(output);
+  console.log(preparedReport.output);
 }
