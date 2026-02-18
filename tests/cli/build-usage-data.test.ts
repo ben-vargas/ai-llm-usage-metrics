@@ -1,10 +1,30 @@
-import { describe, expect, it, vi } from 'vitest';
+import { mkdtemp, rm } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import { buildUsageData } from '../../src/cli/build-usage-data.js';
+import type { PricingLoadResult } from '../../src/cli/usage-data-contracts.js';
 import { createUsageEvent } from '../../src/domain/usage-event.js';
 import { createDefaultOpenAiPricingSource } from '../../src/pricing/static-pricing-source.js';
 import type { SourceAdapter } from '../../src/sources/source-adapter.js';
-import { buildUsageData } from '../../src/cli/build-usage-data.js';
-import type { PricingLoadResult } from '../../src/cli/usage-data-contracts.js';
+
+const tempDirs: string[] = [];
+const originalXdgCacheHome = process.env.XDG_CACHE_HOME;
+
+afterEach(async () => {
+  await Promise.all(tempDirs.map((tempDir) => rm(tempDir, { recursive: true, force: true })));
+  tempDirs.length = 0;
+
+  if (originalXdgCacheHome === undefined) {
+    delete process.env.XDG_CACHE_HOME;
+  } else {
+    process.env.XDG_CACHE_HOME = originalXdgCacheHome;
+  }
+
+  vi.unstubAllGlobals();
+});
 
 function createAdapter(
   id: SourceAdapter['id'],
@@ -225,5 +245,79 @@ describe('buildUsageData', () => {
 
     expect(pricingLoaderSpy).not.toHaveBeenCalled();
     expect(result.diagnostics.pricingOrigin).toBe('none');
+  });
+
+  it('falls back to bundled pricing when LiteLLM network and cache are unavailable', async () => {
+    const cacheRoot = await mkdtemp(path.join(os.tmpdir(), 'usage-pricing-fallback-'));
+    tempDirs.push(cacheRoot);
+    process.env.XDG_CACHE_HOME = cacheRoot;
+
+    const fetchSpy = vi.fn(async () => {
+      throw new Error('network unavailable');
+    });
+    vi.stubGlobal('fetch', fetchSpy);
+
+    const result = await buildUsageData(
+      'daily',
+      {
+        timezone: 'UTC',
+      },
+      {
+        ...withDeterministicRuntimeDeps(),
+        createAdapters: () => [
+          createAdapter('pi', {
+            '/tmp/pi-1.jsonl': [
+              createEvent({
+                source: 'pi',
+                costMode: 'estimated',
+                costUsd: undefined,
+                model: 'gpt-4.1',
+              }),
+            ],
+          }),
+        ],
+      },
+    );
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(result.diagnostics.pricingOrigin).toBe('fallback');
+    expect(result.rows[0]?.costUsd).toBeGreaterThan(0);
+  });
+
+  it('fails pricing-offline mode when cache is unavailable', async () => {
+    const cacheRoot = await mkdtemp(path.join(os.tmpdir(), 'usage-pricing-offline-no-cache-'));
+    tempDirs.push(cacheRoot);
+    process.env.XDG_CACHE_HOME = cacheRoot;
+
+    const fetchSpy = vi.fn(async () => {
+      throw new Error('network should not be called in offline mode');
+    });
+    vi.stubGlobal('fetch', fetchSpy);
+
+    await expect(
+      buildUsageData(
+        'daily',
+        {
+          timezone: 'UTC',
+          pricingOffline: true,
+        },
+        {
+          ...withDeterministicRuntimeDeps(),
+          createAdapters: () => [
+            createAdapter('pi', {
+              '/tmp/pi-1.jsonl': [
+                createEvent({
+                  source: 'pi',
+                  costMode: 'estimated',
+                  costUsd: undefined,
+                }),
+              ],
+            }),
+          ],
+        },
+      ),
+    ).rejects.toThrow('Offline pricing mode enabled but cached pricing is unavailable');
+
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 });
