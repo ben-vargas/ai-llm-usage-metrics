@@ -4,6 +4,10 @@ import { runUsageReport } from './run-usage-report.js';
 
 export type UsageGranularity = 'daily' | 'weekly' | 'monthly';
 
+export type CreateCliOptions = {
+  version?: string;
+};
+
 type SharedOptions = {
   piDir?: string;
   codexDir?: string;
@@ -21,7 +25,7 @@ type SharedOptions = {
 const defaultTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 
 function collectSourceOption(value: string, previous: string[]): string[] {
-  return [...previous, ...value.split(',')];
+  return [...previous, value];
 }
 
 function addSharedOptions(command: Command): Command {
@@ -71,20 +75,24 @@ function rootDescription(): string {
   return [
     'Aggregate local LLM usage metrics from pi and codex sessions',
     '',
+    'Run `llm-usage <command> --help` to see command options (e.g. --json, --source).',
+    '',
     'Examples:',
     '  $ llm-usage daily',
+    '  $ llm-usage daily --help',
     '  $ llm-usage weekly --timezone Europe/Paris',
     '  $ llm-usage monthly --since 2026-01-01 --until 2026-01-31 --source codex --json',
     '  $ npx --yes llm-usage-metrics daily',
   ].join('\n');
 }
 
-export function createCli(): Command {
+export function createCli(options: CreateCliOptions = {}): Command {
   const program = new Command();
 
   program
     .name('llm-usage')
     .description(rootDescription())
+    .version(options.version ?? '0.0.0')
     .showHelpAfterError()
     .addCommand(createCommand('daily'))
     .addCommand(createCommand('weekly'))

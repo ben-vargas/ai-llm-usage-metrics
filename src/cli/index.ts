@@ -1,17 +1,21 @@
 #!/usr/bin/env node
 
+import { getUpdateNotifierRuntimeConfig } from '../config/runtime-overrides.js';
 import { checkForUpdatesAndMaybeRestart } from '../update/update-notifier.js';
 import { createCli } from './create-cli.js';
 import { loadPackageMetadataFromRuntime } from './package-metadata.js';
 
 const { packageName, packageVersion } = loadPackageMetadataFromRuntime();
+const updateRuntimeConfig = getUpdateNotifierRuntimeConfig();
 
-const cli = createCli();
+const cli = createCli({ version: packageVersion });
 
 try {
   const updateResult = await checkForUpdatesAndMaybeRestart({
     packageName,
     currentVersion: packageVersion,
+    cacheTtlMs: updateRuntimeConfig.cacheTtlMs,
+    fetchTimeoutMs: updateRuntimeConfig.fetchTimeoutMs,
   });
 
   if (!updateResult.continueExecution) {

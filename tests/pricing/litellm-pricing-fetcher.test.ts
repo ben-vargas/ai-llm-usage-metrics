@@ -103,6 +103,53 @@ describe('LiteLLMPricingFetcher', () => {
     expect(fetcher.getPricing('gpt-5.2-codex')).toBeDefined();
   });
 
+  it('treats future cache timestamps as stale and refreshes from remote', async () => {
+    const rootDir = await mkdtemp(path.join(os.tmpdir(), 'litellm-pricing-future-cache-'));
+    tempDirs.push(rootDir);
+
+    const cacheFilePath = path.join(rootDir, 'cache.json');
+    const nowValue = 1_000_000;
+
+    await writeFile(
+      cacheFilePath,
+      JSON.stringify({
+        fetchedAt: nowValue + 60_000,
+        sourceUrl: 'https://example.test/litellm-pricing.json',
+        pricingByModel: {
+          'gpt-5.2-codex': {
+            inputPer1MUsd: 1,
+            outputPer1MUsd: 2,
+          },
+        },
+      }),
+      'utf8',
+    );
+
+    const fetchSpy = vi.fn(async () => {
+      return new Response(
+        JSON.stringify({
+          'gpt-5.2-codex': {
+            input_cost_per_token: 0.000003,
+            output_cost_per_token: 0.00001,
+          },
+        }),
+        { status: 200 },
+      );
+    });
+
+    const fetcher = createFetcher({
+      cacheFilePath,
+      cacheTtlMs: 24 * 60 * 60 * 1000,
+      now: () => nowValue,
+      fetchImpl: fetchSpy,
+    });
+
+    await fetcher.load();
+
+    expect(fetchSpy).toHaveBeenCalledOnce();
+    expect(fetcher.getPricing('gpt-5.2-codex')?.inputPer1MUsd).toBeCloseTo(3, 10);
+  });
+
   it('uses cached pricing in offline mode', async () => {
     const rootDir = await mkdtemp(path.join(os.tmpdir(), 'litellm-pricing-offline-'));
     tempDirs.push(rootDir);

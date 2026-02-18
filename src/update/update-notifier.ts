@@ -382,9 +382,13 @@ export function shouldSkipUpdateCheckForArgv(argv: string[]): boolean {
     return false;
   }
 
-  return executableArgs.some((arg) =>
-    ['help', '-h', '--help', 'version', '-V', '--version'].includes(arg),
-  );
+  if (executableArgs.some((arg) => ['-h', '--help', '-V', '--version'].includes(arg))) {
+    return true;
+  }
+
+  const firstPositionalArg = executableArgs.find((arg) => !arg.startsWith('-'));
+
+  return firstPositionalArg === 'help' || firstPositionalArg === 'version';
 }
 
 export function isLikelyNpxExecution(argv: string[], env: NodeJS.ProcessEnv): boolean {
