@@ -64,13 +64,17 @@ const sampleUsageData: UsageDataResult = {
 
 describe('renderUsageReport', () => {
   it('renders terminal output with override section, header and table in order', () => {
-    const rendered = renderUsageReport(sampleUsageData, 'terminal', { granularity: 'monthly' });
+    const rendered = renderUsageReport(sampleUsageData, 'terminal', {
+      granularity: 'monthly',
+      useColor: false,
+    });
 
     expect(rendered).toContain('Active environment overrides:');
     expect(rendered).toContain('LLM_USAGE_PARSE_MAX_PARALLEL=8');
     expect(rendered).toContain('Monthly Token Usage Report (Timezone: UTC)');
     expect(rendered).toContain('│ Period');
     expect(rendered.startsWith('\n')).toBe(false);
+    expect(rendered.includes(`${String.fromCharCode(27)}[`)).toBe(false);
 
     const envSectionIndex = rendered.indexOf('Active environment overrides:');
     const headerIndex = rendered.indexOf('Monthly Token Usage Report (Timezone: UTC)');

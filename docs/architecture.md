@@ -137,7 +137,7 @@ flowchart TD
 - `render-usage-report.ts`: format dispatch (`terminal`, `markdown`, `json`).
 - `terminal-style-policy.ts`: source + row-type styling policies.
 - `terminal-table.ts`: terminal table rendering.
-- `markdown-table.ts`: markdown table rendering.
+- `markdown-table.ts`: Markdown table rendering.
 - `report-header.ts`: boxed report title + timezone.
 - `row-cells.ts`: shared table cells/formatting.
 

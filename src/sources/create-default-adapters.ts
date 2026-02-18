@@ -24,7 +24,8 @@ function defaultMatchesProvider(
     return true;
   }
 
-  return provider?.toLowerCase().includes(providerFilter) ?? false;
+  const normalizedProviderFilter = providerFilter.toLowerCase();
+  return provider?.toLowerCase().includes(normalizedProviderFilter) ?? false;
 }
 
 export function createDefaultAdapters(

@@ -105,6 +105,29 @@ describe('terminal-style-policy', () => {
     ).toEqual(bodyRows);
   });
 
+  it('handles unexpectedly short cells arrays without throwing', () => {
+    const bodyRows = [['$1']];
+    const rows: UsageReportRow[] = [
+      {
+        rowType: 'period_source',
+        periodKey: 'period',
+        source: 'pi',
+        models: ['model'],
+        inputTokens: 1,
+        outputTokens: 1,
+        reasoningTokens: 0,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+        totalTokens: 2,
+        costUsd: 1,
+      },
+    ];
+
+    expect(colorizeUsageBodyRows(bodyRows, rows, { useColor: true, palette: testPalette })).toEqual(
+      [['<yellow>$1</yellow>']],
+    );
+  });
+
   it('keeps unknown source labels unchanged while still applying row-type policy', () => {
     const bodyRows = [['period', 'other', 'model', '$1']];
     const rows: UsageReportRow[] = [

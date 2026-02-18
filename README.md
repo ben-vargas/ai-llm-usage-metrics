@@ -146,16 +146,15 @@ The CLI provides an enhanced terminal output with:
 
 Example output:
 
-```
+```text
 ℹ Found 12 session file(s) with 45 event(s)
-  pi: 8 file(s), 32 events
-  codex: 4 file(s), 13 events
+•   pi: 8 file(s), 32 events
+•   codex: 4 file(s), 13 events
 ℹ Loaded pricing from cache
 
-╭──────────────────────────────────────────────────╮
-│ Monthly Token Usage Report                       │
-│ (Timezone: Africa/Casablanca)                    │
-╰──────────────────────────────────────────────────╯
+┌──────────────────────────────────────────────────────────┐
+│ Monthly Token Usage Report (Timezone: Africa/Casablanca) │
+└──────────────────────────────────────────────────────────┘
 
 ╭────────────┬──────────┬──────────────────────╮
 │ Period     │ Source   │ Models               │

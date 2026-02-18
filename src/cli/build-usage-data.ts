@@ -117,8 +117,12 @@ async function parseAdapterEvents(
     return { events: [], filesFound: 0 };
   }
 
+  const safeMaxParallelFileParsing =
+    Number.isFinite(maxParallelFileParsing) && maxParallelFileParsing > 0
+      ? Math.floor(maxParallelFileParsing)
+      : 1;
   const parsedByFile: UsageEvent[][] = Array.from({ length: files.length }, () => []);
-  const workerCount = Math.min(maxParallelFileParsing, files.length);
+  const workerCount = Math.min(safeMaxParallelFileParsing, files.length);
   let nextFileIndex = 0;
 
   const workers = Array.from({ length: workerCount }, async () => {

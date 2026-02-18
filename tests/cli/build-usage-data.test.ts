@@ -147,6 +147,33 @@ describe('buildUsageData', () => {
     expect(result.rows.some((row) => row.rowType === 'period_combined')).toBe(false);
   });
 
+  it('guards against non-positive parsing concurrency from injected deps', async () => {
+    const result = await buildUsageData(
+      'daily',
+      {
+        timezone: 'UTC',
+      },
+      {
+        ...withDeterministicRuntimeDeps(),
+        getParsingRuntimeConfig: () => ({ maxParallelFileParsing: 0 }),
+        createAdapters: () => [
+          createAdapter('pi', {
+            '/tmp/pi-1.jsonl': [createEvent({ source: 'pi', sessionId: 'pi-session' })],
+          }),
+        ],
+      },
+    );
+
+    expect(result.diagnostics.sessionStats).toEqual([
+      {
+        source: 'pi',
+        filesFound: 1,
+        eventsParsed: 1,
+      },
+    ]);
+    expect(result.rows.some((row) => row.rowType === 'period_source')).toBe(true);
+  });
+
   it('defaults provider filtering to openai when no provider filter is passed', async () => {
     const result = await buildUsageData(
       'daily',

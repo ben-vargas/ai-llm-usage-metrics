@@ -79,7 +79,7 @@ function createTableConfig(uncoloredRows: string[][]): TableUserConfig {
   };
 }
 
-function shouldUseColorByDefault(): boolean {
+export function shouldUseColorByDefault(): boolean {
   if (process.env.NO_COLOR !== undefined) {
     return false;
   }

@@ -94,6 +94,10 @@ function applyBaseCellStyle(
   palette: TerminalStylePalette,
   sourceStyler: TextStyler,
 ): string[] {
+  if (cells.length < 2) {
+    return [...cells];
+  }
+
   const styledCells = [...cells];
 
   styledCells[0] = palette.white(styledCells[0]);

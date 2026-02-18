@@ -9,23 +9,24 @@ import { buildUsageReport, runUsageReport } from '../../src/cli/run-usage-report
 const tempDirs: string[] = [];
 const originalParseMaxParallel = process.env.LLM_USAGE_PARSE_MAX_PARALLEL;
 
-beforeEach(() => {
+function restoreParseMaxParallel(): void {
   if (originalParseMaxParallel === undefined) {
     delete process.env.LLM_USAGE_PARSE_MAX_PARALLEL;
-  } else {
-    process.env.LLM_USAGE_PARSE_MAX_PARALLEL = originalParseMaxParallel;
+    return;
   }
+
+  process.env.LLM_USAGE_PARSE_MAX_PARALLEL = originalParseMaxParallel;
+}
+
+beforeEach(() => {
+  restoreParseMaxParallel();
 });
 
 afterEach(async () => {
   await Promise.all(tempDirs.map((tempDir) => rm(tempDir, { recursive: true, force: true })));
   tempDirs.length = 0;
 
-  if (originalParseMaxParallel === undefined) {
-    delete process.env.LLM_USAGE_PARSE_MAX_PARALLEL;
-  } else {
-    process.env.LLM_USAGE_PARSE_MAX_PARALLEL = originalParseMaxParallel;
-  }
+  restoreParseMaxParallel();
 });
 
 describe('buildUsageReport', () => {

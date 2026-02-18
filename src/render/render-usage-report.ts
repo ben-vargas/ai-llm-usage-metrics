@@ -3,12 +3,13 @@ import type { UsageDataResult } from '../cli/usage-data-contracts.js';
 import type { ReportGranularity } from '../utils/time-buckets.js';
 import { renderMarkdownTable } from './markdown-table.js';
 import { renderReportHeader } from './report-header.js';
-import { renderTerminalTable } from './terminal-table.js';
+import { renderTerminalTable, shouldUseColorByDefault } from './terminal-table.js';
 
 export type UsageReportFormat = 'terminal' | 'markdown' | 'json';
 
 export type RenderUsageReportOptions = {
   granularity: ReportGranularity;
+  useColor?: boolean;
 };
 
 function getReportTitle(granularity: ReportGranularity): string {
@@ -28,6 +29,7 @@ function renderTerminalUsageReport(
 ): string {
   const outputLines: string[] = [];
   const envVarOverrideLines = formatEnvVarOverrides(usageData.diagnostics.activeEnvOverrides);
+  const useColor = options.useColor ?? shouldUseColorByDefault();
 
   if (envVarOverrideLines.length > 0) {
     outputLines.push(...envVarOverrideLines);
@@ -38,11 +40,12 @@ function renderTerminalUsageReport(
     renderReportHeader({
       title: getReportTitle(options.granularity),
       timezone: usageData.diagnostics.timezone,
+      useColor,
     }),
   );
 
   outputLines.push('');
-  outputLines.push(renderTerminalTable(usageData.rows));
+  outputLines.push(renderTerminalTable(usageData.rows, { useColor }));
 
   return outputLines.join('\n');
 }
