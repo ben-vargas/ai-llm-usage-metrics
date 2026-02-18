@@ -222,7 +222,13 @@ export function isCacheFresh(
   cacheTtlMs: number,
   now: () => number,
 ): boolean {
-  return now() - payload.checkedAt <= cacheTtlMs;
+  const nowTimestamp = now();
+
+  if (payload.checkedAt > nowTimestamp) {
+    return false;
+  }
+
+  return nowTimestamp - payload.checkedAt <= cacheTtlMs;
 }
 
 async function readCachePayload(
@@ -253,7 +259,7 @@ async function readCachePayload(
   const checkedAt = toNonNegativeNumber(record.checkedAt);
   const latestVersion = typeof record.latestVersion === 'string' ? record.latestVersion.trim() : '';
 
-  if (checkedAt === undefined || !latestVersion) {
+  if (checkedAt === undefined || !latestVersion || !parseVersion(latestVersion)) {
     return undefined;
   }
 
@@ -296,7 +302,11 @@ async function fetchLatestVersion(
 
   const version = typeof payloadRecord.version === 'string' ? payloadRecord.version.trim() : '';
 
-  return version || undefined;
+  if (!version || !parseVersion(version)) {
+    return undefined;
+  }
+
+  return version;
 }
 
 async function refreshStaleCache(
@@ -365,6 +375,18 @@ function isInteractiveSession(options: {
   return options.stdinIsTTY && options.stdoutIsTTY && !options.env.CI;
 }
 
+export function shouldSkipUpdateCheckForArgv(argv: string[]): boolean {
+  const executableArgs = argv.slice(2);
+
+  if (executableArgs.length === 0) {
+    return false;
+  }
+
+  return executableArgs.some((arg) =>
+    ['help', '-h', '--help', 'version', '-V', '--version'].includes(arg),
+  );
+}
+
 export function isLikelyNpxExecution(argv: string[], env: NodeJS.ProcessEnv): boolean {
   const executablePath = argv[1] ?? '';
 
@@ -426,8 +448,17 @@ export async function checkForUpdatesAndMaybeRestart(
   options: UpdateNotifierOptions,
 ): Promise<UpdateNotifierResult> {
   const env = options.env ?? process.env;
+  const argv = options.argv ?? process.argv;
 
   if (env[UPDATE_CHECK_SKIP_ENV_VAR] === '1') {
+    return { continueExecution: true };
+  }
+
+  if (shouldSkipUpdateCheckForArgv(argv)) {
+    return { continueExecution: true };
+  }
+
+  if (isLikelyNpxExecution(argv, env)) {
     return { continueExecution: true };
   }
 
@@ -451,9 +482,8 @@ export async function checkForUpdatesAndMaybeRestart(
     const stdinIsTTY = options.stdinIsTTY ?? process.stdin.isTTY;
     const stdoutIsTTY = options.stdoutIsTTY ?? process.stdout.isTTY;
     const interactive = isInteractiveSession({ env, stdinIsTTY, stdoutIsTTY });
-    const executedViaNpx = isLikelyNpxExecution(options.argv ?? process.argv, env);
 
-    if (!interactive || executedViaNpx) {
+    if (!interactive) {
       notify(`${updateMessage} Run "npm install -g ${options.packageName}@latest" to update.`);
       return { continueExecution: true };
     }
@@ -481,7 +511,6 @@ export async function checkForUpdatesAndMaybeRestart(
       return { continueExecution: true };
     }
 
-    const argv = options.argv ?? process.argv;
     const restartArgs = argv.slice(1);
     const restartEnv: NodeJS.ProcessEnv = {
       ...env,

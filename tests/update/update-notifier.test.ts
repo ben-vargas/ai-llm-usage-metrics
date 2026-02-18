@@ -10,6 +10,7 @@ import {
   isCacheFresh,
   resolveLatestVersion,
   shouldOfferUpdate,
+  shouldSkipUpdateCheckForArgv,
   type CommandRunner,
 } from '../../src/update/update-notifier.js';
 
@@ -34,6 +35,13 @@ describe('update-notifier', () => {
 
     expect(shouldOfferUpdate('1.2.3', '1.3.0-beta.1')).toBe(false);
     expect(shouldOfferUpdate('1.2.3-beta.1', '1.2.3')).toBe(true);
+  });
+
+  it('detects argv shapes where update check should be skipped', () => {
+    expect(shouldSkipUpdateCheckForArgv(['node', '/app/dist/index.js'])).toBe(false);
+    expect(shouldSkipUpdateCheckForArgv(['node', '/app/dist/index.js', '--help'])).toBe(true);
+    expect(shouldSkipUpdateCheckForArgv(['node', '/app/dist/index.js', 'help'])).toBe(true);
+    expect(shouldSkipUpdateCheckForArgv(['node', '/app/dist/index.js', '--version'])).toBe(true);
   });
 
   it('uses a fresh cache entry and skips network calls', async () => {
@@ -64,6 +72,35 @@ describe('update-notifier', () => {
     expect(latestVersion).toBe('9.9.9');
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(isCacheFresh({ checkedAt: nowValue - 1_000 }, 5_000, () => nowValue)).toBe(true);
+    expect(isCacheFresh({ checkedAt: nowValue + 100 }, 5_000, () => nowValue)).toBe(false);
+  });
+
+  it('ignores malformed cached versions and refreshes from registry', async () => {
+    const cacheFilePath = await createTempCachePath('update-cache-invalid-version-');
+
+    await writeFile(
+      cacheFilePath,
+      JSON.stringify({
+        checkedAt: 1_000_000,
+        latestVersion: 'not-a-semver',
+      }),
+      'utf8',
+    );
+
+    const fetchSpy = vi.fn(
+      async () => new Response(JSON.stringify({ version: '0.9.0' }), { status: 200 }),
+    );
+
+    const latestVersion = await resolveLatestVersion({
+      packageName: 'llm-usage-metrics',
+      cacheFilePath,
+      cacheTtlMs: 5_000,
+      fetchImpl: fetchSpy,
+      now: () => 1_000_100,
+    });
+
+    expect(latestVersion).toBe('0.9.0');
+    expect(fetchSpy).toHaveBeenCalledOnce();
   });
 
   it('uses stale cache when network check fails and refreshes checkedAt', async () => {
@@ -127,6 +164,62 @@ describe('update-notifier', () => {
     });
 
     expect(latestVersion).toBe('0.3.0');
+  });
+
+  it('skips update checks for npx execution', async () => {
+    const fetchSpy = vi.fn(async () => {
+      throw new Error('fetch should not be called for npx execution');
+    });
+    const notify = vi.fn();
+
+    const result = await checkForUpdatesAndMaybeRestart({
+      packageName: 'llm-usage-metrics',
+      currentVersion: '0.1.0',
+      argv: ['/usr/bin/node', '/tmp/_npx/123/node_modules/llm-usage/dist/index.js', 'daily'],
+      env: {},
+      fetchImpl: fetchSpy,
+      notify,
+    });
+
+    expect(result).toEqual({ continueExecution: true });
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(notify).not.toHaveBeenCalled();
+  });
+
+  it('skips update checks for help/version invocations', async () => {
+    const fetchSpy = vi.fn(async () => {
+      throw new Error('fetch should not be called when check is skipped');
+    });
+
+    const result = await checkForUpdatesAndMaybeRestart({
+      packageName: 'llm-usage-metrics',
+      currentVersion: '0.1.0',
+      argv: ['/usr/bin/node', '/app/dist/index.js', '--help'],
+      fetchImpl: fetchSpy,
+      notify: vi.fn(),
+    });
+
+    expect(result).toEqual({ continueExecution: true });
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('skips update checks when skip env var is set', async () => {
+    const fetchSpy = vi.fn(async () => {
+      throw new Error('fetch should not be called when env skip flag is set');
+    });
+
+    const result = await checkForUpdatesAndMaybeRestart({
+      packageName: 'llm-usage-metrics',
+      currentVersion: '0.1.0',
+      env: {
+        LLM_USAGE_SKIP_UPDATE_CHECK: '1',
+      },
+      fetchImpl: fetchSpy,
+      notify: vi.fn(),
+    });
+
+    expect(result).toEqual({ continueExecution: true });
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it('prompts in interactive mode and respects the no-install branch', async () => {
