@@ -37,13 +37,13 @@ describe('PiSourceAdapter', () => {
     await expect(adapter.discoverFiles()).resolves.toEqual([first, second]);
   });
 
-  it('parses usage events and filters non-openai providers by default', async () => {
+  it('parses usage events without provider filtering by default', async () => {
     const fixturePath = path.resolve('tests/fixtures/pi/session-mixed.jsonl');
     const adapter = new PiSourceAdapter();
 
     const events = await adapter.parseFile(fixturePath);
 
-    expect(events).toHaveLength(2);
+    expect(events).toHaveLength(3);
     expect(events[0]).toMatchObject({
       source: 'pi',
       sessionId: 'session-pi-1',
@@ -62,6 +62,17 @@ describe('PiSourceAdapter', () => {
     expect(events[1]).toMatchObject({
       source: 'pi',
       sessionId: 'session-pi-1',
+      provider: 'anthropic',
+      model: 'claude-3.7-sonnet',
+      inputTokens: 10,
+      outputTokens: 10,
+      totalTokens: 20,
+      costMode: 'explicit',
+    });
+
+    expect(events[2]).toMatchObject({
+      source: 'pi',
+      sessionId: 'session-pi-1',
       provider: 'openai',
       model: 'gpt-4.1',
       inputTokens: 2,
@@ -70,17 +81,17 @@ describe('PiSourceAdapter', () => {
       costMode: 'estimated',
     });
 
-    expect(events[1]?.timestamp).toBe('2026-02-12T20:01:00.000Z');
+    expect(events[2]?.timestamp).toBe('2026-02-12T20:01:00.000Z');
   });
 
-  it('supports provider filter override for extensibility', async () => {
+  it('supports provider filter override for targeted parsing', async () => {
     const fixturePath = path.resolve('tests/fixtures/pi/session-mixed.jsonl');
-    const adapter = new PiSourceAdapter({ providerFilter: () => true });
+    const adapter = new PiSourceAdapter({ providerFilter: isOpenAiProvider });
 
     const events = await adapter.parseFile(fixturePath);
 
-    expect(events).toHaveLength(3);
-    expect(events.some((event) => event.provider === 'anthropic')).toBe(true);
+    expect(events).toHaveLength(2);
+    expect(events.some((event) => event.provider === 'anthropic')).toBe(false);
   });
 
   it('falls back to message.usage when line-level usage is malformed', async () => {

@@ -22,6 +22,7 @@ Commands:
 
 - `--pi-dir <path>`: override `.pi` sessions directory
 - `--codex-dir <path>`: override `.codex` sessions directory
+- `--source-dir <source-id=path>`: override sessions directory for any source id (repeatable)
 - `--source <name>`: source filter (repeatable or comma-separated)
 - `--since <YYYY-MM-DD>`: inclusive start date (local to selected timezone)
 - `--until <YYYY-MM-DD>`: inclusive end date (local to selected timezone)
@@ -35,7 +36,7 @@ Commands:
 ## Defaults
 
 - timezone defaults to local system timezone
-- provider filter defaults to `openai`
+- provider filter is optional (no provider filtering when omitted)
 - source filter defaults to all parsed sources
 - output defaults to terminal table
 
@@ -129,6 +130,12 @@ Custom directories:
 llm-usage daily --pi-dir /path/to/pi --codex-dir /path/to/codex
 ```
 
+Generic source directory overrides:
+
+```bash
+llm-usage daily --source-dir pi=/path/to/pi --source-dir codex=/path/to/codex
+```
+
 Offline pricing mode:
 
 ```bash
@@ -160,5 +167,6 @@ llm-usage monthly --source pi,codex
 - `--since` must be `<= --until`
 - `--timezone` must be a valid IANA timezone
 - `--source` values must be non-empty source ids and match known sources (`pi`, `codex`)
+- `--source-dir` values must use `<source-id>=<path>` with non-empty source id and path
 - `--pricing-url` must be `http` or `https`
 - `--markdown` and `--json` are mutually exclusive

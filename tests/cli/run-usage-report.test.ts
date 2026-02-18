@@ -99,7 +99,7 @@ describe('buildUsageReport', () => {
     );
   });
 
-  it('defaults provider filtering to openai for both pi and codex sources', async () => {
+  it('applies provider filtering when --provider is supplied', async () => {
     const tempDir = await mkdtemp(path.join(os.tmpdir(), 'usage-provider-filter-'));
     tempDirs.push(tempDir);
 
@@ -142,6 +142,7 @@ describe('buildUsageReport', () => {
       piDir: tempDir,
       codexDir: tempDir,
       timezone: 'UTC',
+      provider: 'openai',
       json: true,
     });
 

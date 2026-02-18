@@ -110,6 +110,12 @@ llm-usage monthly --pricing-url https://raw.githubusercontent.com/BerriAI/litell
 llm-usage daily --pi-dir /path/to/pi/sessions --codex-dir /path/to/codex/sessions
 ```
 
+Or use generic source-id mapping (repeatable):
+
+```bash
+llm-usage daily --source-dir pi=/path/to/pi/sessions --source-dir codex=/path/to/codex/sessions
+```
+
 ### Filter by source
 
 Only codex rows:
@@ -129,6 +135,13 @@ Multiple sources (repeat or comma-separated):
 ```bash
 llm-usage monthly --source pi --source codex
 llm-usage monthly --source pi,codex
+```
+
+### Filter by provider (optional)
+
+```bash
+llm-usage monthly --provider openai
+llm-usage monthly --provider anthropic
 ```
 
 ## Output features

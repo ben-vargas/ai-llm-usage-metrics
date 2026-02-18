@@ -34,6 +34,10 @@ export type PiSourceAdapterOptions = {
   providerFilter?: ProviderFilter;
 };
 
+function allowAllProviders(): boolean {
+  return true;
+}
+
 export function isOpenAiProvider(provider: string | undefined): boolean {
   return provider?.toLowerCase().includes('openai') ?? false;
 }
@@ -140,7 +144,7 @@ export class PiSourceAdapter implements SourceAdapter {
 
   public constructor(options: PiSourceAdapterOptions = {}) {
     this.sessionsDir = options.sessionsDir ?? defaultSessionsDir;
-    this.providerFilter = options.providerFilter ?? isOpenAiProvider;
+    this.providerFilter = options.providerFilter ?? allowAllProviders;
   }
 
   public async discoverFiles(): Promise<string[]> {

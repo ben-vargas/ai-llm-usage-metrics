@@ -42,7 +42,11 @@ describe('aggregateUsage', () => {
       }),
     ];
 
-    const rows = aggregateUsage(events, { granularity: 'daily', timezone: 'UTC' });
+    const rows = aggregateUsage(events, {
+      granularity: 'daily',
+      timezone: 'UTC',
+      sourceOrder: ['pi', 'codex'],
+    });
 
     expect(rows).toHaveLength(5);
     expect(rows[0]).toMatchObject({

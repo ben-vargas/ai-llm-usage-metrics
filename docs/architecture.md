@@ -198,7 +198,7 @@ Parsing does not depend on pricing. Parsing produces usage events first; pricing
 Sorting rules are explicit:
 
 - periods are sorted ascending
-- sources are sorted with `pi` then `codex` then lexical order
+- sources follow adapter registration order, then lexical order for unknown ids
 - model names are deduplicated and sorted
 
 ### Terminal styling policy maps

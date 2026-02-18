@@ -174,7 +174,7 @@ describe('buildUsageData', () => {
     expect(result.rows.some((row) => row.rowType === 'period_source')).toBe(true);
   });
 
-  it('defaults provider filtering to openai when no provider filter is passed', async () => {
+  it('does not filter providers when no provider filter is passed', async () => {
     const result = await buildUsageData(
       'daily',
       {
@@ -199,8 +199,24 @@ describe('buildUsageData', () => {
 
     const sourceRows = result.rows.filter((row) => row.rowType === 'period_source');
 
-    expect(sourceRows).toHaveLength(1);
-    expect(sourceRows[0].source).toBe('codex');
+    expect(sourceRows).toHaveLength(2);
+    expect(sourceRows.map((row) => row.source)).toEqual(['pi', 'codex']);
+    expect(result.rows.some((row) => row.rowType === 'period_combined')).toBe(true);
+  });
+
+  it('fails fast on malformed --source-dir values', async () => {
+    await expect(
+      buildUsageData(
+        'daily',
+        {
+          timezone: 'UTC',
+          sourceDir: ['missing-separator'],
+        },
+        {
+          ...withDeterministicRuntimeDeps(),
+        },
+      ),
+    ).rejects.toThrow('--source-dir must use format <source-id>=<path>');
   });
 
   it.each(['cache', 'network', 'fallback', 'offline-cache'] as const)(

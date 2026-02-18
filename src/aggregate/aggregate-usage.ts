@@ -12,6 +12,7 @@ import { getPeriodKey, type ReportGranularity } from '../utils/time-buckets.js';
 export type AggregateUsageOptions = {
   granularity: ReportGranularity;
   timezone: string;
+  sourceOrder?: string[];
 };
 
 type RowAccumulator = {
@@ -68,14 +69,13 @@ function addTotals(target: UsageTotals, source: UsageTotals): void {
   target.costUsd = addUsd(target.costUsd, source.costUsd);
 }
 
-function sourceSortComparator(left: string, right: string): number {
-  const sourceOrder: Record<string, number> = {
-    pi: 0,
-    codex: 1,
-  };
-
-  const leftWeight = sourceOrder[left] ?? Number.MAX_SAFE_INTEGER;
-  const rightWeight = sourceOrder[right] ?? Number.MAX_SAFE_INTEGER;
+function sourceSortComparator(
+  left: string,
+  right: string,
+  sourceWeightMap: ReadonlyMap<string, number>,
+): number {
+  const leftWeight = sourceWeightMap.get(left) ?? Number.MAX_SAFE_INTEGER;
+  const rightWeight = sourceWeightMap.get(right) ?? Number.MAX_SAFE_INTEGER;
 
   if (leftWeight !== rightWeight) {
     return leftWeight - rightWeight;
@@ -88,6 +88,12 @@ export function aggregateUsage(
   events: UsageEvent[],
   options: AggregateUsageOptions,
 ): UsageReportRow[] {
+  const sourceWeightMap = new Map<string, number>();
+
+  for (const [index, source] of (options.sourceOrder ?? []).entries()) {
+    sourceWeightMap.set(source, index);
+  }
+
   const periodMap = new Map<string, Map<string, RowAccumulator>>();
 
   for (const event of events) {
@@ -116,7 +122,9 @@ export function aggregateUsage(
     const periodCombinedTotals = createEmptyTotals();
     const periodModels = new Set<string>();
 
-    const sortedSources = [...sourceMap.keys()].sort(sourceSortComparator);
+    const sortedSources = [...sourceMap.keys()].sort((left, right) =>
+      sourceSortComparator(left, right, sourceWeightMap),
+    );
 
     for (const source of sortedSources) {
       const accumulator = sourceMap.get(source);
