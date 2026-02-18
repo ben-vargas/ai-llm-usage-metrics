@@ -1,14 +1,10 @@
 #!/usr/bin/env node
 
-import { createRequire } from 'node:module';
-
 import { checkForUpdatesAndMaybeRestart } from '../update/update-notifier.js';
 import { createCli } from './create-cli.js';
+import { loadPackageMetadataFromRuntime } from './package-metadata.js';
 
-const require = createRequire(import.meta.url);
-const packageJson = require('../../package.json') as { name?: string; version?: string };
-const packageName = packageJson.name ?? 'llm-usage-metrics';
-const packageVersion = packageJson.version ?? '0.0.0';
+const { packageName, packageVersion } = loadPackageMetadataFromRuntime();
 
 const cli = createCli();
 
