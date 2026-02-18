@@ -20,8 +20,10 @@ npm install -g llm-usage-metrics
 Or run without global install:
 
 ```bash
-npx llm-usage daily
+npx --yes llm-usage-metrics daily
 ```
+
+(`npx llm-usage daily` works when the project is already installed locally.)
 
 ## Usage
 

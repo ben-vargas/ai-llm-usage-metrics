@@ -6,6 +6,12 @@
 llm-usage <command> [options]
 ```
 
+Without global install, use:
+
+```bash
+npx --yes llm-usage-metrics <command> [options]
+```
+
 Commands:
 
 - `daily`
@@ -101,6 +107,6 @@ llm-usage monthly --source pi,codex
 - `--since` and `--until` must be valid calendar dates in `YYYY-MM-DD`
 - `--since` must be `<= --until`
 - `--timezone` must be a valid IANA timezone
-- `--source` values must be non-empty source ids
+- `--source` values must be non-empty source ids and match known sources (`pi`, `codex`)
 - `--pricing-url` must be `http` or `https`
 - `--markdown` and `--json` are mutually exclusive

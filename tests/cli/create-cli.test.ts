@@ -49,9 +49,11 @@ describe('createCli', () => {
     consoleSpy.mockRestore();
   });
 
-  it('renders help output', () => {
+  it('renders help output with command and npx examples', () => {
     const cli = createCli();
+    const help = cli.helpInformation();
 
-    expect(cli.helpInformation()).toContain('Show daily usage report');
+    expect(help).toContain('Show daily usage report');
+    expect(help).toContain('npx --yes llm-usage-metrics daily');
   });
 });
