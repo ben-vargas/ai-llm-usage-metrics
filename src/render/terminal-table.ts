@@ -10,8 +10,6 @@ type TerminalRenderOptions = {
   useColor?: boolean;
 };
 
-// Custom rounded border characters for cleaner aesthetics
-// Following table library's BorderCharacters schema
 const roundedBorders = {
   topBody: '─',
   topJoin: '┬',
@@ -123,33 +121,26 @@ function colorizeBodyRows(
     const styledCells = [...bodyRows[index]];
     const sourceStyler = colorSource(styledCells[1]);
 
-    // Colorize period
     styledCells[0] = colorizePeriod(styledCells[0]);
-    // Colorize source
     styledCells[1] = sourceStyler(styledCells[1]);
 
     if (row.rowType === 'grand_total') {
       return styledCells.map((cell, cellIndex) => {
         if (cellIndex === 0) return pc.bold(pc.white(cell));
-        if (cellIndex === 1) return cell; // Already styled
+        if (cellIndex === 1) return cell;
         return pc.bold(cell);
       });
     }
 
     if (row.rowType === 'period_combined') {
       return styledCells.map((cell, cellIndex) => {
-        if (cellIndex === 1) return pc.bold(cell); // Source already styled
+        if (cellIndex === 1) return pc.bold(cell);
         return pc.dim(cell);
       });
     }
 
-    // For numeric columns, use subtle coloring
-    for (let i = 3; i < styledCells.length; i++) {
-      if (i === styledCells.length - 1) {
-        // Cost column - highlight
-        styledCells[i] = pc.yellow(styledCells[i]);
-      }
-    }
+    const costColumnIndex = styledCells.length - 1;
+    styledCells[costColumnIndex] = pc.yellow(styledCells[costColumnIndex]);
 
     return styledCells;
   });

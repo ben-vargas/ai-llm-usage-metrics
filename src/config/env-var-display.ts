@@ -32,7 +32,6 @@ export function formatEnvVarOverrides(overrides: EnvVarOverride[]): string[] {
   }
 
   const lines: string[] = [];
-  lines.push('');
   lines.push('Active environment overrides:');
 
   for (const { name, value, description } of overrides) {

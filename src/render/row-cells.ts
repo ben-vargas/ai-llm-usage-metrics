@@ -34,7 +34,6 @@ function formatModels(models: string[]): string {
     return '-';
   }
 
-  // Models are already sorted by normalizeModelList
   return models.map((model) => `• ${model}`).join('\n');
 }
 

@@ -7,7 +7,7 @@ export type ReportHeaderOptions = {
 };
 
 function getBoxWidth(content: string): number {
-  return content.length + 4; // 2 spaces padding on each side
+  return content.length + 4;
 }
 
 function drawBoxLine(width: number, left: string, middle: string, right: string): string {
@@ -29,15 +29,12 @@ export function renderReportHeader(options: ReportHeaderOptions): string {
 
   const lines: string[] = [];
 
-  // Top border
   const topBorder = drawBoxLine(boxWidth, '┌', '─', '┐');
   lines.push(useColor ? pc.gray(topBorder) : topBorder);
 
-  // Title line
   const titleLine = padLine(fullTitle, boxWidth);
   lines.push(useColor ? pc.white(titleLine) : titleLine);
 
-  // Bottom border
   const bottomBorder = drawBoxLine(boxWidth, '└', '─', '┘');
   lines.push(useColor ? pc.gray(bottomBorder) : bottomBorder);
 

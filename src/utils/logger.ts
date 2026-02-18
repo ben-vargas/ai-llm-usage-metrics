@@ -1,11 +1,10 @@
 import pc from 'picocolors';
 
-type LogLevel = 'info' | 'warn' | 'success' | 'dim';
+type LogLevel = 'info' | 'warn' | 'dim';
 
 const icons: Record<LogLevel, string> = {
   info: pc.blue('ℹ'),
   warn: pc.yellow('⚠'),
-  success: pc.green('✔'),
   dim: pc.gray('•'),
 };
 
@@ -20,9 +19,6 @@ export const logger = {
   },
   warn: (message: string): void => {
     console.error(formatMessage('warn', message));
-  },
-  success: (message: string): void => {
-    console.error(formatMessage('success', message));
   },
   dim: (message: string): void => {
     console.error(formatMessage('dim', message));
