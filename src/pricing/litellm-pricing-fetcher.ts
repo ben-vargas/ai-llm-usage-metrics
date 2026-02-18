@@ -227,11 +227,15 @@ export class LiteLLMPricingFetcher implements PricingSource {
     this.now = options.now ?? Date.now;
   }
 
-  public async load(): Promise<void> {
+  /**
+   * Loads pricing data from cache or remote.
+   * @returns Promise<boolean> True if loaded from cache, false if from network
+   */
+  public async load(): Promise<boolean> {
     const cacheLoaded = await this.loadFromCache({ allowStale: false });
 
     if (cacheLoaded) {
-      return;
+      return true;
     }
 
     if (this.offline) {
@@ -241,17 +245,20 @@ export class LiteLLMPricingFetcher implements PricingSource {
         throw new Error('Offline pricing mode enabled but no cached LiteLLM pricing is available');
       }
 
-      return;
+      return true;
     }
 
     try {
       await this.loadFromRemote();
+      return false;
     } catch {
       const staleCacheLoaded = await this.loadFromCache({ allowStale: true });
 
       if (!staleCacheLoaded) {
         throw new Error('Could not load LiteLLM pricing from network or cache');
       }
+
+      return true;
     }
   }
 
