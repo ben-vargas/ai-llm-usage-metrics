@@ -27,6 +27,7 @@
       "bun run test",
       "bun run build",
       "bun run pack:check"
-    ]
+    ],
+    "after:bump": "bunx prettier --write CHANGELOG.md"
   }
 }
