@@ -4,7 +4,7 @@ import path from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { buildUsageReport } from '../../src/cli/run-usage-report.js';
+import { buildUsageReport, runUsageReport } from '../../src/cli/run-usage-report.js';
 
 const tempDirs: string[] = [];
 const originalParseMaxParallel = process.env.LLM_USAGE_PARSE_MAX_PARALLEL;
@@ -246,10 +246,22 @@ describe('buildUsageReport', () => {
 
     await expect(
       buildUsageReport('daily', {
+        until: '2026-02-30',
+      }),
+    ).rejects.toThrow('--until has an invalid calendar date');
+
+    await expect(
+      buildUsageReport('daily', {
         since: '2026-02-20',
         until: '2026-02-10',
       }),
     ).rejects.toThrow('--since must be less than or equal to --until');
+
+    await expect(
+      buildUsageReport('daily', {
+        timezone: 'Invalid/Timezone',
+      }),
+    ).rejects.toThrow('Invalid timezone: Invalid/Timezone');
 
     await expect(
       buildUsageReport('daily', {
@@ -285,5 +297,52 @@ describe('buildUsageReport', () => {
         json: true,
       }),
     ).rejects.toThrow('Choose either --markdown or --json, not both');
+  });
+
+  it('emits diagnostics to stderr before writing terminal output in runUsageReport', async () => {
+    const emptyDir = await mkdtemp(path.join(os.tmpdir(), 'usage-run-diagnostics-'));
+    tempDirs.push(emptyDir);
+
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+
+    try {
+      await runUsageReport('daily', {
+        piDir: emptyDir,
+        codexDir: emptyDir,
+        timezone: 'UTC',
+      });
+
+      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('No sessions found'));
+      expect(logSpy).toHaveBeenCalledTimes(1);
+      expect(errorSpy.mock.invocationCallOrder[0]).toBeLessThan(logSpy.mock.invocationCallOrder[0]);
+    } finally {
+      errorSpy.mockRestore();
+      logSpy.mockRestore();
+    }
+  });
+
+  it('keeps runUsageReport JSON output data-only (no diagnostics on stderr)', async () => {
+    const emptyDir = await mkdtemp(path.join(os.tmpdir(), 'usage-run-json-no-logs-'));
+    tempDirs.push(emptyDir);
+
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+
+    try {
+      await runUsageReport('daily', {
+        piDir: emptyDir,
+        codexDir: emptyDir,
+        timezone: 'UTC',
+        json: true,
+      });
+
+      expect(errorSpy).not.toHaveBeenCalled();
+      expect(logSpy).toHaveBeenCalledTimes(1);
+      expect(String(logSpy.mock.calls[0]?.[0])).toContain('"rowType": "grand_total"');
+    } finally {
+      errorSpy.mockRestore();
+      logSpy.mockRestore();
+    }
   });
 });
