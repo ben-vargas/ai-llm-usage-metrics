@@ -104,10 +104,6 @@ function colorSource(source: string): (text: string) => string {
   }
 }
 
-function colorizePeriod(period: string): string {
-  return pc.white(period);
-}
-
 function colorizeBodyRows(
   bodyRows: string[][],
   rows: UsageReportRow[],
@@ -121,7 +117,7 @@ function colorizeBodyRows(
     const styledCells = [...bodyRows[index]];
     const sourceStyler = colorSource(styledCells[1]);
 
-    styledCells[0] = colorizePeriod(styledCells[0]);
+    styledCells[0] = pc.white(styledCells[0]);
     styledCells[1] = sourceStyler(styledCells[1]);
 
     if (row.rowType === 'grand_total') {

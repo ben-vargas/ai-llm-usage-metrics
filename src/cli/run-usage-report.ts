@@ -301,7 +301,6 @@ export async function buildUsageReport(
     ? adapters.filter((adapter) => sourceFilter.has(adapter.id.toLowerCase()))
     : adapters;
 
-  // Parse events and track session info
   const parseResults = await Promise.all(
     adaptersToParse.map((adapter) =>
       parseAdapterEvents(adapter, parsingRuntimeConfig.maxParallelFileParsing),
@@ -326,7 +325,6 @@ export async function buildUsageReport(
     options.until,
   );
 
-  // Load pricing with cache status
   let pricingFromCache = false;
   let pricingSource: PricingSource | undefined;
 
@@ -353,17 +351,13 @@ export async function buildUsageReport(
     return renderMarkdownTable(rows);
   }
 
-  // Build terminal output with header and logging
   const outputLines: string[] = [];
 
-  // Add env var overrides info
   const envVarOverrides = getActiveEnvVarOverrides();
   if (envVarOverrides.length > 0) {
     outputLines.push(...formatEnvVarOverrides(envVarOverrides));
-    outputLines.push('');
   }
 
-  // Log session info
   const totalSessions = sessionInfos.reduce((sum, s) => sum + s.sessionsFound, 0);
   const totalEvents = sessionInfos.reduce((sum, s) => sum + s.eventsParsed, 0);
 
@@ -379,7 +373,6 @@ export async function buildUsageReport(
     logger.warn('No sessions found');
   }
 
-  // Log pricing source
   if (pricingSource) {
     if (options.pricingOffline) {
       logger.info('Using cached pricing (offline mode)');
@@ -390,9 +383,10 @@ export async function buildUsageReport(
     }
   }
 
-  outputLines.push('');
+  if (outputLines.length > 0) {
+    outputLines.push('');
+  }
 
-  // Add report header
   outputLines.push(
     renderReportHeader({
       title: getReportTitle(granularity),
@@ -401,8 +395,6 @@ export async function buildUsageReport(
   );
 
   outputLines.push('');
-
-  // Add the table
   outputLines.push(renderTerminalTable(rows));
 
   return outputLines.join('\n');

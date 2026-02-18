@@ -2,15 +2,30 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { buildUsageReport } from '../../src/cli/run-usage-report.js';
 
 const tempDirs: string[] = [];
+const originalParseMaxParallel = process.env.LLM_USAGE_PARSE_MAX_PARALLEL;
+
+beforeEach(() => {
+  if (originalParseMaxParallel === undefined) {
+    delete process.env.LLM_USAGE_PARSE_MAX_PARALLEL;
+  } else {
+    process.env.LLM_USAGE_PARSE_MAX_PARALLEL = originalParseMaxParallel;
+  }
+});
 
 afterEach(async () => {
   await Promise.all(tempDirs.map((tempDir) => rm(tempDir, { recursive: true, force: true })));
   tempDirs.length = 0;
+
+  if (originalParseMaxParallel === undefined) {
+    delete process.env.LLM_USAGE_PARSE_MAX_PARALLEL;
+  } else {
+    process.env.LLM_USAGE_PARSE_MAX_PARALLEL = originalParseMaxParallel;
+  }
 });
 
 describe('buildUsageReport', () => {
@@ -182,6 +197,44 @@ describe('buildUsageReport', () => {
     } finally {
       vi.unstubAllGlobals();
     }
+  });
+
+  it('renders terminal output with env override section and report header', async () => {
+    const emptyDir = await mkdtemp(path.join(os.tmpdir(), 'usage-terminal-output-'));
+    tempDirs.push(emptyDir);
+
+    process.env.LLM_USAGE_PARSE_MAX_PARALLEL = '8';
+
+    const report = await buildUsageReport('monthly', {
+      piDir: emptyDir,
+      codexDir: emptyDir,
+      timezone: 'UTC',
+    });
+
+    expect(report).toContain('Active environment overrides:');
+    expect(report).toContain('LLM_USAGE_PARSE_MAX_PARALLEL=8');
+    expect(report).toContain('Monthly Token Usage Report (Timezone: UTC)');
+    expect(report).toContain('│ Period');
+    expect(report).toContain('│ ALL');
+    expect(report.startsWith('\n')).toBe(false);
+
+    const headerIndex = report.indexOf('┌');
+    const envSectionIndex = report.indexOf('Active environment overrides:');
+    expect(headerIndex).toBeGreaterThan(envSectionIndex);
+  });
+
+  it('does not prepend a blank line in terminal output when no overrides are active', async () => {
+    const emptyDir = await mkdtemp(path.join(os.tmpdir(), 'usage-terminal-no-overrides-'));
+    tempDirs.push(emptyDir);
+
+    const report = await buildUsageReport('daily', {
+      piDir: emptyDir,
+      codexDir: emptyDir,
+      timezone: 'UTC',
+    });
+
+    expect(report.startsWith('\n')).toBe(false);
+    expect(report).toContain('Daily Token Usage Report (Timezone: UTC)');
   });
 
   it('validates date flags, range ordering and pricing URL', async () => {

@@ -12,6 +12,7 @@ afterEach(() => {
   delete process.env.LLM_USAGE_PRICING_CACHE_TTL_MS;
   delete process.env.LLM_USAGE_PRICING_FETCH_TIMEOUT_MS;
   delete process.env.LLM_USAGE_PARSE_MAX_PARALLEL;
+  delete process.env.UNRELATED_ENV;
 });
 
 describe('env-var-display', () => {
