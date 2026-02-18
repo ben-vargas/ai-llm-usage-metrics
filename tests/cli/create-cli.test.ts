@@ -54,6 +54,7 @@ describe('createCli', () => {
     const help = cli.helpInformation();
 
     expect(help).toContain('Show daily usage report');
+    expect(help).toContain('llm-usage <command> --help');
     expect(help).toContain('npx --yes llm-usage-metrics daily');
   });
 

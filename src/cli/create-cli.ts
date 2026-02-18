@@ -75,8 +75,11 @@ function rootDescription(): string {
   return [
     'Aggregate local LLM usage metrics from pi and codex sessions',
     '',
+    'Run `llm-usage <command> --help` to see command options (e.g. --json, --source).',
+    '',
     'Examples:',
     '  $ llm-usage daily',
+    '  $ llm-usage daily --help',
     '  $ llm-usage weekly --timezone Europe/Paris',
     '  $ llm-usage monthly --since 2026-01-01 --until 2026-01-31 --source codex --json',
     '  $ npx --yes llm-usage-metrics daily',
