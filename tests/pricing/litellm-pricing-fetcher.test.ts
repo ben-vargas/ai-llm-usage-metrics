@@ -246,7 +246,8 @@ describe('LiteLLMPricingFetcher', () => {
       }),
     });
 
-    await expect(fetcher.load()).resolves.toBeUndefined();
+    const fromCache = await fetcher.load();
+    expect(fromCache).toBe(false);
     expect(fetcher.getPricing('gpt-5.2-codex')).toBeDefined();
   });
 
