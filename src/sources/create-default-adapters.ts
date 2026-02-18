@@ -37,6 +37,10 @@ function parseSourceDirectoryOverrides(entries: string[] | undefined): Map<strin
       throw new Error('--source-dir must use non-empty <source-id>=<path> values');
     }
 
+    if (overrides.has(sourceId)) {
+      throw new Error(`Duplicate --source-dir source id: ${sourceId}`);
+    }
+
     overrides.set(sourceId, directoryPath);
   }
 

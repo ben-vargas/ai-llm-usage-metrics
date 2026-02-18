@@ -45,6 +45,12 @@ describe('createDefaultAdapters', () => {
     );
   });
 
+  it('throws on duplicate source ids in source directory overrides', () => {
+    expect(() => createDefaultAdapters({ sourceDir: ['pi=/tmp/a', 'pi=/tmp/b'] })).toThrow(
+      'Duplicate --source-dir source id: pi',
+    );
+  });
+
   it('throws on unknown source ids in source directory overrides', () => {
     expect(() => createDefaultAdapters({ sourceDir: ['opencode=/tmp/opencode'] })).toThrow(
       'Unknown --source-dir source id(s): opencode. Allowed values: codex, pi',

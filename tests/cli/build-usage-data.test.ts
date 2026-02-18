@@ -174,6 +174,33 @@ describe('buildUsageData', () => {
     expect(result.rows.some((row) => row.rowType === 'period_source')).toBe(true);
   });
 
+  it('guards against fractional parsing concurrency from injected deps', async () => {
+    const result = await buildUsageData(
+      'daily',
+      {
+        timezone: 'UTC',
+      },
+      {
+        ...withDeterministicRuntimeDeps(),
+        getParsingRuntimeConfig: () => ({ maxParallelFileParsing: 0.5 }),
+        createAdapters: () => [
+          createAdapter('pi', {
+            '/tmp/pi-1.jsonl': [createEvent({ source: 'pi', sessionId: 'pi-session' })],
+          }),
+        ],
+      },
+    );
+
+    expect(result.diagnostics.sessionStats).toEqual([
+      {
+        source: 'pi',
+        filesFound: 1,
+        eventsParsed: 1,
+      },
+    ]);
+    expect(result.rows.some((row) => row.rowType === 'period_source')).toBe(true);
+  });
+
   it('does not filter providers when no provider filter is passed', async () => {
     const result = await buildUsageData(
       'daily',
