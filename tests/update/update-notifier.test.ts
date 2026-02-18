@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -66,7 +66,7 @@ describe('update-notifier', () => {
     expect(isCacheFresh({ checkedAt: nowValue - 1_000 }, 5_000, () => nowValue)).toBe(true);
   });
 
-  it('falls back silently when cache is stale and network check fails', async () => {
+  it('uses stale cache when network check fails and refreshes checkedAt', async () => {
     const cacheFilePath = await createTempCachePath('update-cache-stale-');
     const nowValue = 1_000_000;
 
@@ -91,8 +91,42 @@ describe('update-notifier', () => {
       now: () => nowValue,
     });
 
-    expect(latestVersion).toBeUndefined();
+    expect(latestVersion).toBe('9.9.9');
     expect(fetchSpy).toHaveBeenCalledOnce();
+
+    const updatedCache = JSON.parse(await readFile(cacheFilePath, 'utf8')) as {
+      checkedAt: number;
+      latestVersion: string;
+    };
+
+    expect(updatedCache).toEqual({
+      checkedAt: nowValue,
+      latestVersion: '9.9.9',
+    });
+  });
+
+  it('uses stale cache when npm registry responds without version payload', async () => {
+    const cacheFilePath = await createTempCachePath('update-cache-invalid-response-');
+    const nowValue = 2_000_000;
+
+    await writeFile(
+      cacheFilePath,
+      JSON.stringify({
+        checkedAt: nowValue - 10_000,
+        latestVersion: '0.3.0',
+      }),
+      'utf8',
+    );
+
+    const latestVersion = await resolveLatestVersion({
+      packageName: 'llm-usage-metrics',
+      cacheFilePath,
+      cacheTtlMs: 5_000,
+      fetchImpl: vi.fn(async () => new Response(JSON.stringify({ foo: 'bar' }), { status: 200 })),
+      now: () => nowValue,
+    });
+
+    expect(latestVersion).toBe('0.3.0');
   });
 
   it('prompts in interactive mode and respects the no-install branch', async () => {

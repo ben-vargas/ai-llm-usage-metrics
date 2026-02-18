@@ -299,6 +299,27 @@ async function fetchLatestVersion(
   return version || undefined;
 }
 
+async function refreshStaleCache(
+  cacheFilePath: string,
+  stalePayload: UpdateCheckCachePayload | undefined,
+  now: () => number,
+): Promise<string | undefined> {
+  if (!stalePayload) {
+    return undefined;
+  }
+
+  try {
+    await writeCachePayload(cacheFilePath, {
+      checkedAt: now(),
+      latestVersion: stalePayload.latestVersion,
+    });
+  } catch {
+    // Cache writes are best-effort.
+  }
+
+  return stalePayload.latestVersion;
+}
+
 export async function resolveLatestVersion(
   options: ResolveLatestVersionOptions,
 ): Promise<string | undefined> {
@@ -318,7 +339,7 @@ export async function resolveLatestVersion(
     const latestVersion = await fetchLatestVersion(options.packageName, fetchImpl, fetchTimeoutMs);
 
     if (!latestVersion) {
-      return undefined;
+      return await refreshStaleCache(cacheFilePath, cachePayload, now);
     }
 
     try {
@@ -332,7 +353,7 @@ export async function resolveLatestVersion(
 
     return latestVersion;
   } catch {
-    return undefined;
+    return await refreshStaleCache(cacheFilePath, cachePayload, now);
   }
 }
 
