@@ -1,5 +1,5 @@
 import pc from 'picocolors';
-import { getBorderCharacters, table, type TableUserConfig } from 'table';
+import { table, type TableUserConfig } from 'table';
 
 import type { UsageReportRow } from '../domain/usage-report-row.js';
 import { toUsageTableCells, usageTableHeaders } from './row-cells.js';
@@ -8,6 +8,31 @@ const modelsColumnIndex = 2;
 
 type TerminalRenderOptions = {
   useColor?: boolean;
+};
+
+// Custom rounded border characters for cleaner aesthetics
+// Following table library's BorderCharacters schema
+const roundedBorders = {
+  topBody: '─',
+  topJoin: '┬',
+  topLeft: '╭',
+  topRight: '╮',
+  bottomBody: '─',
+  bottomJoin: '┴',
+  bottomLeft: '╰',
+  bottomRight: '╯',
+  bodyLeft: '│',
+  bodyRight: '│',
+  bodyJoin: '│',
+  headerJoin: '┬',
+  joinBody: '─',
+  joinLeft: '├',
+  joinRight: '┤',
+  joinJoin: '┼',
+  joinMiddleDown: '┬',
+  joinMiddleUp: '┴',
+  joinMiddleLeft: '┤',
+  joinMiddleRight: '├',
 };
 
 function shouldDrawHorizontalLine(index: number, rowCount: number, rows: string[][]): boolean {
@@ -28,28 +53,28 @@ function shouldDrawHorizontalLine(index: number, rowCount: number, rows: string[
 
 function createTableConfig(rows: string[][]): TableUserConfig {
   return {
-    border: getBorderCharacters('norc'),
+    border: roundedBorders,
     drawHorizontalLine: (index, rowCount) => shouldDrawHorizontalLine(index, rowCount, rows),
     columnDefault: {
       paddingLeft: 1,
       paddingRight: 1,
-      verticalAlignment: 'middle',
+      verticalAlignment: 'top',
     },
     columns: {
-      0: { alignment: 'left' },
-      1: { alignment: 'left' },
+      0: { alignment: 'left', verticalAlignment: 'middle' },
+      1: { alignment: 'left', verticalAlignment: 'middle' },
       [modelsColumnIndex]: {
         alignment: 'left',
-        width: 34,
+        width: 32,
         wrapWord: true,
       },
-      3: { alignment: 'right' },
-      4: { alignment: 'right' },
-      5: { alignment: 'right' },
-      6: { alignment: 'right' },
-      7: { alignment: 'right' },
-      8: { alignment: 'right' },
-      9: { alignment: 'right' },
+      3: { alignment: 'right', verticalAlignment: 'middle' },
+      4: { alignment: 'right', verticalAlignment: 'middle' },
+      5: { alignment: 'right', verticalAlignment: 'middle' },
+      6: { alignment: 'right', verticalAlignment: 'middle' },
+      7: { alignment: 'right', verticalAlignment: 'middle' },
+      8: { alignment: 'right', verticalAlignment: 'middle' },
+      9: { alignment: 'right', verticalAlignment: 'middle' },
     },
   };
 }
@@ -81,6 +106,15 @@ function colorSource(source: string): (text: string) => string {
   }
 }
 
+function colorPeriod(period: string): string {
+  // Colorize month names for better readability
+  if (period.includes(' ')) {
+    const [month, year] = period.split(' ');
+    return `${pc.cyan(month)} ${pc.white(year)}`;
+  }
+  return pc.white(period);
+}
+
 function colorizeBodyRows(
   bodyRows: string[][],
   rows: UsageReportRow[],
@@ -94,14 +128,32 @@ function colorizeBodyRows(
     const styledCells = [...(bodyRows[index] ?? [])];
     const sourceStyler = colorSource(styledCells[1] ?? row.source);
 
+    // Colorize period
+    styledCells[0] = colorPeriod(styledCells[0] ?? row.periodKey);
+    // Colorize source
     styledCells[1] = sourceStyler(styledCells[1] ?? row.source);
 
     if (row.rowType === 'grand_total') {
-      return styledCells.map((cell) => pc.bold(cell));
+      return styledCells.map((cell, cellIndex) => {
+        if (cellIndex === 0) return pc.bold(pc.white(cell));
+        if (cellIndex === 1) return cell; // Already styled
+        return pc.bold(cell);
+      });
     }
 
     if (row.rowType === 'period_combined') {
-      return styledCells.map((cell, cellIndex) => (cellIndex === 1 ? pc.bold(cell) : pc.dim(cell)));
+      return styledCells.map((cell, cellIndex) => {
+        if (cellIndex === 1) return pc.bold(cell); // Source already styled
+        return pc.dim(cell);
+      });
+    }
+
+    // For numeric columns, use subtle coloring
+    for (let i = 3; i < styledCells.length; i++) {
+      if (i === styledCells.length - 1) {
+        // Cost column - highlight
+        styledCells[i] = pc.yellow(styledCells[i]);
+      }
     }
 
     return styledCells;
