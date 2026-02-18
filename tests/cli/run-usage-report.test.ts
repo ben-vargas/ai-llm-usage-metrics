@@ -299,6 +299,26 @@ describe('buildUsageReport', () => {
     ).rejects.toThrow('Choose either --markdown or --json, not both');
   });
 
+  it('keeps buildUsageReport side-effect free for terminal output', async () => {
+    const emptyDir = await mkdtemp(path.join(os.tmpdir(), 'usage-build-no-stderr-'));
+    tempDirs.push(emptyDir);
+
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    try {
+      const report = await buildUsageReport('daily', {
+        piDir: emptyDir,
+        codexDir: emptyDir,
+        timezone: 'UTC',
+      });
+
+      expect(report).toContain('Daily Token Usage Report (Timezone: UTC)');
+      expect(errorSpy).not.toHaveBeenCalled();
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
+
   it('emits diagnostics to stderr before writing terminal output in runUsageReport', async () => {
     const emptyDir = await mkdtemp(path.join(os.tmpdir(), 'usage-run-diagnostics-'));
     tempDirs.push(emptyDir);
