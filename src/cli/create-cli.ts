@@ -30,7 +30,7 @@ function addSharedOptions(command: Command): Command {
     .option('--codex-dir <path>', 'Path to .codex sessions directory')
     .option(
       '--source <name>',
-      'Filter by source id (repeatable or comma-separated, e.g. --source codex or --source pi,codex)',
+      'Filter by source id (repeatable or comma-separated, allowed: pi,codex)',
       collectSourceOption,
       [],
     )
@@ -67,12 +67,24 @@ function createCommand(granularity: UsageGranularity): Command {
   return command;
 }
 
+function rootDescription(): string {
+  return [
+    'Aggregate local LLM usage metrics from pi and codex sessions',
+    '',
+    'Examples:',
+    '  $ llm-usage daily',
+    '  $ llm-usage weekly --timezone Europe/Paris',
+    '  $ llm-usage monthly --since 2026-01-01 --until 2026-01-31 --source codex --json',
+    '  $ npx --yes llm-usage-metrics daily',
+  ].join('\n');
+}
+
 export function createCli(): Command {
   const program = new Command();
 
   program
     .name('llm-usage')
-    .description('Aggregate local LLM usage metrics from pi and codex sessions')
+    .description(rootDescription())
     .showHelpAfterError()
     .addCommand(createCommand('daily'))
     .addCommand(createCommand('weekly'))
