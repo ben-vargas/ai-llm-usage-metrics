@@ -128,13 +128,7 @@ async function parseAdapterEvents(
       const fileIndex = nextFileIndex;
       nextFileIndex += 1;
 
-      const filePath = files[fileIndex];
-
-      if (!filePath) {
-        break;
-      }
-
-      parsedByFile[fileIndex] = await adapter.parseFile(filePath);
+      parsedByFile[fileIndex] = await adapter.parseFile(files[fileIndex]);
     }
   });
 

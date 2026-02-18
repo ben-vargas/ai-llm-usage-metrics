@@ -25,23 +25,21 @@ function resolveBoundedEnvInteger(
     return defaults.fallback;
   }
 
-  const parsedValue = Number(trimmedValue);
-
-  if (!Number.isFinite(parsedValue)) {
+  if (!/^[+-]?\d+$/u.test(trimmedValue)) {
     return defaults.fallback;
   }
 
-  const roundedValue = Math.trunc(parsedValue);
+  const parsedValue = Number.parseInt(trimmedValue, 10);
 
-  if (roundedValue < defaults.min) {
+  if (parsedValue < defaults.min) {
     return defaults.min;
   }
 
-  if (roundedValue > defaults.max) {
+  if (parsedValue > defaults.max) {
     return defaults.max;
   }
 
-  return roundedValue;
+  return parsedValue;
 }
 
 export type UpdateNotifierRuntimeConfig = {

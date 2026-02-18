@@ -21,7 +21,7 @@ type SharedOptions = {
 const defaultTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 
 function collectSourceOption(value: string, previous: string[]): string[] {
-  return [...previous, ...value.split(',')];
+  return [...previous, value];
 }
 
 function addSharedOptions(command: Command): Command {

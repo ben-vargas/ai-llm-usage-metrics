@@ -400,7 +400,10 @@ export class LiteLLMPricingFetcher implements PricingSource {
       return false;
     }
 
-    const isStale = this.now() - cacheFileContent.fetchedAt > this.cacheTtlMs;
+    const nowTimestamp = this.now();
+    const isStale =
+      cacheFileContent.fetchedAt > nowTimestamp ||
+      nowTimestamp - cacheFileContent.fetchedAt > this.cacheTtlMs;
 
     if (isStale && !options.allowStale) {
       return false;

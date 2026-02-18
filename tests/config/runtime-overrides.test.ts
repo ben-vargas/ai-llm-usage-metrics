@@ -88,4 +88,26 @@ describe('runtime overrides', () => {
       maxParallelFileParsing: 8,
     });
   });
+
+  it('rejects non-integer formats and uses defaults', () => {
+    const env: NodeJS.ProcessEnv = {
+      LLM_USAGE_UPDATE_CACHE_TTL_MS: '1e6',
+      LLM_USAGE_UPDATE_FETCH_TIMEOUT_MS: '1000.5',
+      LLM_USAGE_PRICING_CACHE_TTL_MS: '0x100',
+      LLM_USAGE_PRICING_FETCH_TIMEOUT_MS: '2_000',
+      LLM_USAGE_PARSE_MAX_PARALLEL: '4.2',
+    };
+
+    expect(getUpdateNotifierRuntimeConfig(env)).toEqual({
+      cacheTtlMs: 12 * 60 * 60 * 1000,
+      fetchTimeoutMs: 1000,
+    });
+    expect(getPricingFetcherRuntimeConfig(env)).toEqual({
+      cacheTtlMs: 24 * 60 * 60 * 1000,
+      fetchTimeoutMs: 4000,
+    });
+    expect(getParsingRuntimeConfig(env)).toEqual({
+      maxParallelFileParsing: 8,
+    });
+  });
 });
