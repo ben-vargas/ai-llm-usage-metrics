@@ -257,7 +257,6 @@ export async function buildUsageData(
 
   const providerFilter = normalizeProviderFilter(options.provider);
   const sourceFilter = normalizeSourceFilter(options.source);
-  const effectiveProviderFilter = providerFilter ?? 'openai';
 
   const readParsingRuntimeConfig = deps.getParsingRuntimeConfig ?? getParsingRuntimeConfig;
   const readPricingRuntimeConfig =
@@ -268,7 +267,7 @@ export async function buildUsageData(
 
   const parsingRuntimeConfig = readParsingRuntimeConfig();
   const pricingRuntimeConfig = readPricingRuntimeConfig();
-  const adapters = makeAdapters(options, effectiveProviderFilter);
+  const adapters = makeAdapters(options);
 
   const availableSourceIds = new Set(adapters.map((adapter) => adapter.id.toLowerCase()));
   validateSourceFilterValues(sourceFilter, availableSourceIds);
@@ -292,7 +291,7 @@ export async function buildUsageData(
   const parsedEventsByAdapter = parseResults.map((result) => result.events);
   const providerFilteredEvents = parsedEventsByAdapter
     .flat()
-    .filter((event) => matchesProvider(event.provider, effectiveProviderFilter));
+    .filter((event) => matchesProvider(event.provider, providerFilter));
 
   const dateFilteredEvents = filterEventsByDateRange(
     providerFilteredEvents,
@@ -317,6 +316,7 @@ export async function buildUsageData(
   const rows = aggregateUsage(pricedEvents, {
     granularity,
     timezone,
+    sourceOrder: adaptersToParse.map((adapter) => adapter.id),
   });
 
   const diagnostics: UsageDiagnostics = {

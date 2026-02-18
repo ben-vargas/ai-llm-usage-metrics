@@ -2,46 +2,98 @@ import { CodexSourceAdapter } from './codex/codex-source-adapter.js';
 import { PiSourceAdapter } from './pi/pi-source-adapter.js';
 import type { SourceAdapter } from './source-adapter.js';
 
-type MatchesProvider = (
-  provider: string | undefined,
-  providerFilter: string | undefined,
-) => boolean;
+type SourceRegistration = {
+  id: string;
+  create: (
+    options: CreateDefaultAdaptersOptions,
+    sourceDirectoryOverrides: ReadonlyMap<string, string>,
+  ) => SourceAdapter;
+};
 
 export type CreateDefaultAdaptersOptions = {
   piDir?: string;
   codexDir?: string;
+  sourceDir?: string[];
 };
 
-export type CreateDefaultAdaptersDeps = {
-  matchesProvider?: MatchesProvider;
-};
+function parseSourceDirectoryOverrides(entries: string[] | undefined): Map<string, string> {
+  const overrides = new Map<string, string>();
 
-function defaultMatchesProvider(
-  provider: string | undefined,
-  providerFilter: string | undefined,
-): boolean {
-  if (!providerFilter) {
-    return true;
+  if (!entries || entries.length === 0) {
+    return overrides;
   }
 
-  const normalizedProviderFilter = providerFilter.toLowerCase();
-  return provider?.toLowerCase().includes(normalizedProviderFilter) ?? false;
+  for (const entry of entries) {
+    const separatorIndex = entry.indexOf('=');
+
+    if (separatorIndex <= 0 || separatorIndex >= entry.length - 1) {
+      throw new Error('--source-dir must use format <source-id>=<path>');
+    }
+
+    const sourceId = entry.slice(0, separatorIndex).trim().toLowerCase();
+    const directoryPath = entry.slice(separatorIndex + 1).trim();
+
+    if (!sourceId || !directoryPath) {
+      throw new Error('--source-dir must use non-empty <source-id>=<path> values');
+    }
+
+    overrides.set(sourceId, directoryPath);
+  }
+
+  return overrides;
 }
 
-export function createDefaultAdapters(
-  options: CreateDefaultAdaptersOptions,
-  effectiveProviderFilter: string,
-  deps: CreateDefaultAdaptersDeps = {},
-): SourceAdapter[] {
-  const matchesProvider = deps.matchesProvider ?? defaultMatchesProvider;
+const sourceRegistrations: readonly SourceRegistration[] = [
+  {
+    id: 'pi',
+    create: (options, sourceDirectoryOverrides) =>
+      new PiSourceAdapter({
+        sessionsDir: resolveDirectoryOverride('pi', options.piDir, sourceDirectoryOverrides),
+      }),
+  },
+  {
+    id: 'codex',
+    create: (options, sourceDirectoryOverrides) =>
+      new CodexSourceAdapter({
+        sessionsDir: resolveDirectoryOverride('codex', options.codexDir, sourceDirectoryOverrides),
+      }),
+  },
+];
 
-  return [
-    new PiSourceAdapter({
-      sessionsDir: options.piDir,
-      providerFilter: (provider) => matchesProvider(provider, effectiveProviderFilter),
-    }),
-    new CodexSourceAdapter({
-      sessionsDir: options.codexDir,
-    }),
-  ];
+function validateSourceDirectoryOverrideIds(
+  sourceDirectoryOverrides: ReadonlyMap<string, string>,
+): void {
+  const defaultSourceIds = new Set(sourceRegistrations.map((source) => source.id));
+  const unknownSourceIds = [...sourceDirectoryOverrides.keys()].filter(
+    (sourceId) => !defaultSourceIds.has(sourceId),
+  );
+
+  if (unknownSourceIds.length === 0) {
+    return;
+  }
+
+  const allowedSourceIds = [...defaultSourceIds].sort((left, right) => left.localeCompare(right));
+
+  throw new Error(
+    `Unknown --source-dir source id(s): ${unknownSourceIds.join(', ')}. Allowed values: ${allowedSourceIds.join(', ')}`,
+  );
+}
+
+function resolveDirectoryOverride(
+  sourceId: string,
+  explicitDirectory: string | undefined,
+  sourceDirectoryOverrides: ReadonlyMap<string, string>,
+): string | undefined {
+  return explicitDirectory ?? sourceDirectoryOverrides.get(sourceId);
+}
+
+export function getDefaultSourceIds(): string[] {
+  return sourceRegistrations.map((source) => source.id);
+}
+
+export function createDefaultAdapters(options: CreateDefaultAdaptersOptions): SourceAdapter[] {
+  const sourceDirectoryOverrides = parseSourceDirectoryOverrides(options.sourceDir);
+  validateSourceDirectoryOverrideIds(sourceDirectoryOverrides);
+
+  return sourceRegistrations.map((source) => source.create(options, sourceDirectoryOverrides));
 }

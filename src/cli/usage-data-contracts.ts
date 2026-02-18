@@ -10,6 +10,7 @@ import type { SourceAdapter } from '../sources/source-adapter.js';
 export type ReportCommandOptions = {
   piDir?: string;
   codexDir?: string;
+  sourceDir?: string[];
   source?: string | string[];
   since?: string;
   until?: string;
@@ -49,10 +50,7 @@ export type PricingLoadResult = {
 export type BuildUsageDataDeps = {
   getParsingRuntimeConfig?: () => ParsingRuntimeConfig;
   getPricingFetcherRuntimeConfig?: () => PricingFetcherRuntimeConfig;
-  createAdapters?: (
-    options: ReportCommandOptions,
-    effectiveProviderFilter: string,
-  ) => SourceAdapter[];
+  createAdapters?: (options: ReportCommandOptions) => SourceAdapter[];
   resolvePricingSource?: (
     options: ReportCommandOptions,
     runtimeConfig: PricingFetcherRuntimeConfig,

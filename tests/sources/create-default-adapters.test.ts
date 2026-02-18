@@ -15,56 +15,39 @@ afterEach(async () => {
 
 describe('createDefaultAdapters', () => {
   it('builds pi and codex adapters in stable order', () => {
-    const adapters = createDefaultAdapters({}, 'openai');
+    const adapters = createDefaultAdapters({});
 
     expect(adapters.map((adapter) => adapter.id)).toEqual(['pi', 'codex']);
   });
 
-  it('wires provider filtering into the pi adapter', async () => {
-    const tempDir = await mkdtemp(path.join(os.tmpdir(), 'usage-adapters-provider-filter-'));
-    tempDirs.push(tempDir);
+  it('supports generic source directory overrides', async () => {
+    const piTempDir = await mkdtemp(path.join(os.tmpdir(), 'usage-adapters-pi-source-dir-'));
+    const codexTempDir = await mkdtemp(path.join(os.tmpdir(), 'usage-adapters-codex-source-dir-'));
+    tempDirs.push(piTempDir, codexTempDir);
 
-    const filePath = path.join(tempDir, 'session.jsonl');
+    const piFile = path.join(piTempDir, 'pi-session.jsonl');
+    const codexFile = path.join(codexTempDir, 'codex-session.jsonl');
 
-    await writeFile(
-      filePath,
-      [
-        JSON.stringify({
-          type: 'session',
-          id: 'session-1',
-          timestamp: '2026-02-14T10:00:00.000Z',
-        }),
-        JSON.stringify({
-          type: 'model_change',
-          provider: 'anthropic',
-          model: 'claude-3.7-sonnet',
-        }),
-        JSON.stringify({
-          type: 'message',
-          timestamp: '2026-02-14T10:00:01.000Z',
-          usage: {
-            input: 10,
-            output: 5,
-            totalTokens: 15,
-          },
-        }),
-      ].join('\n'),
-      'utf8',
+    await writeFile(piFile, '{}\n', 'utf8');
+    await writeFile(codexFile, '{}\n', 'utf8');
+
+    const adapters = createDefaultAdapters({
+      sourceDir: [`pi=${piTempDir}`, `codex=${codexTempDir}`],
+    });
+
+    await expect(adapters[0].discoverFiles()).resolves.toEqual([piFile]);
+    await expect(adapters[1].discoverFiles()).resolves.toEqual([codexFile]);
+  });
+
+  it('throws on invalid source directory override entries', () => {
+    expect(() => createDefaultAdapters({ sourceDir: ['invalid'] })).toThrow(
+      '--source-dir must use format <source-id>=<path>',
     );
+  });
 
-    const openAiFilteredAdapters = createDefaultAdapters({ piDir: tempDir }, 'openai');
-    const openAiPiAdapter = openAiFilteredAdapters[0];
-
-    const openAiEvents = await openAiPiAdapter.parseFile(filePath);
-
-    expect(openAiEvents).toHaveLength(0);
-
-    const anthropicFilteredAdapters = createDefaultAdapters({ piDir: tempDir }, 'anthropic');
-    const anthropicPiAdapter = anthropicFilteredAdapters[0];
-
-    const anthropicEvents = await anthropicPiAdapter.parseFile(filePath);
-
-    expect(anthropicEvents).toHaveLength(1);
-    expect(anthropicEvents[0]).toMatchObject({ source: 'pi', provider: 'anthropic' });
+  it('throws on unknown source ids in source directory overrides', () => {
+    expect(() => createDefaultAdapters({ sourceDir: ['opencode=/tmp/opencode'] })).toThrow(
+      'Unknown --source-dir source id(s): opencode. Allowed values: codex, pi',
+    );
   });
 });
