@@ -78,7 +78,13 @@ function resolveTimestamp(
   for (const candidate of candidates) {
     if (typeof candidate === 'number' && Number.isFinite(candidate)) {
       const timestampMs = Math.abs(candidate) < 1_000_000_000_000 ? candidate * 1000 : candidate;
-      return new Date(timestampMs).toISOString();
+      const date = new Date(timestampMs);
+
+      if (!Number.isNaN(date.getTime())) {
+        return date.toISOString();
+      }
+
+      continue;
     }
 
     if (typeof candidate === 'string' && candidate.trim()) {
