@@ -260,7 +260,9 @@ export async function buildUsageReport(
     ? adapters.filter((adapter) => sourceFilter.has(adapter.id.toLowerCase()))
     : adapters;
 
-  const parsedEventsByAdapter = await Promise.all(adaptersToParse.map((adapter) => parseAdapterEvents(adapter)));
+  const parsedEventsByAdapter = await Promise.all(
+    adaptersToParse.map((adapter) => parseAdapterEvents(adapter)),
+  );
   const providerFilteredEvents = parsedEventsByAdapter
     .flat()
     .filter((event) => matchesProvider(event.provider, effectiveProviderFilter));
