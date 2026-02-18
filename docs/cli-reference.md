@@ -68,19 +68,28 @@ Operational runtime knobs:
 
 ## Terminal output
 
-When outputting to terminal (default), the CLI displays:
+When outputting to terminal (default), the CLI emits:
 
-1. **Environment overrides** (if any): Active environment variables and their values
-2. **Session summary**: Total session files and events found, broken down by source
-3. **Pricing source**: Whether pricing was loaded from cache or fetched remotely
-4. **Report header**: Boxed title showing report type and timezone
-5. **Data table**: Usage statistics with rounded borders and color-coded rows
+### `stderr` diagnostics
 
-Row styling:
+1. **Session summary**: total files/events and per-source breakdown
+2. **Pricing source message**: cache / network / offline-cache / built-in pricing source
+
+### `stdout` report body
+
+1. **Environment overrides** (if any): active environment variables and their values
+2. **Report header**: boxed title showing report type and timezone
+3. **Data table**: usage statistics with rounded borders and color-coded rows
+
+Row styling policy:
 
 - Source names are color-coded (`pi` = cyan, `codex` = magenta, `combined` = yellow)
-- Grand total row is bold green
-- Combined subtotal rows are dimmed (except the source name)
+- Grand total source label (`TOTAL`) is bold green
+- Grand total numeric cells are bold
+- Combined subtotal rows are dimmed except the source cell
+- Unknown source labels are left unchanged
+
+For `--json` and `--markdown`, only data output is printed (no diagnostics).
 
 ## Examples
 

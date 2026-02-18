@@ -2,27 +2,35 @@
 
 ## High-level flow
 
-The runtime pipeline is linear and intentionally simple:
+The runtime pipeline is split into clear reporting layers:
 
 1. **CLI bootstrap** (`src/cli/index.ts`)
 2. **Startup update check** (`src/update`)
 3. **CLI command parsing** (`src/cli/create-cli.ts`)
-4. **Source discovery + parsing** (`src/sources`)
-5. **Event normalization** (`src/domain`)
-6. **Pricing resolution** (`src/pricing`)
-7. **Aggregation by period/source** (`src/aggregate`)
-8. **Rendering** (`src/render`)
+4. **Usage data build** (`src/cli/build-usage-data.ts`)
+   - option validation
+   - adapter wiring/discovery/parsing
+   - provider/date filtering
+   - pricing resolution
+   - aggregation
+   - diagnostics payload generation
+5. **Report rendering** (`src/render/render-usage-report.ts`)
+6. **Diagnostics emission** (`src/cli/emit-diagnostics.ts`, terminal format only)
+7. **Output write** (`stdout` for report body, `stderr` for diagnostics)
 
 ```mermaid
 flowchart LR
     A[CLI entrypoint] --> B[Update notifier]
     B --> C[Command parser]
-    C --> D[Source adapters]
-    D --> E[Normalized usage events]
-    E --> F[Pricing engine]
-    F --> G[Aggregated rows]
-    G --> H[Renderer]
-    H --> I[Terminal / Markdown / JSON]
+    C --> D[runUsageReport]
+    D --> E[buildUsageData]
+    E --> F[UsageDataResult rows + diagnostics]
+    F --> G[renderUsageReport]
+    G --> H[stdout report]
+    D --> I{format = terminal?}
+    I -- yes --> J[emitDiagnostics]
+    J --> K[stderr diagnostics]
+    I -- no --> L[skip diagnostics emission]
 ```
 
 ## Runtime sequence
@@ -32,26 +40,30 @@ sequenceDiagram
     participant User
     participant Entry as CLI entrypoint
     participant UP as Update notifier
-    participant CLI as CLI (run-usage-report)
-    participant PI as PiSourceAdapter
-    participant CX as CodexSourceAdapter
-    participant PR as PricingSource
+    participant CLI as runUsageReport
+    participant BLD as buildUsageData
+    participant ADP as Source adapters
+    participant PR as Pricing resolver
     participant AG as Aggregator
-    participant RD as Renderer
+    participant REN as renderUsageReport
+    participant EM as emitDiagnostics
 
-    User->>Entry: llm-usage daily --markdown
+    User->>Entry: llm-usage daily
     Entry->>UP: checkForUpdatesAndMaybeRestart()
     UP-->>Entry: continueExecution=true
-    Entry->>CLI: parse command + run report
-    CLI->>PI: discoverFiles + parseFile
-    CLI->>CX: discoverFiles + parseFile
-    PI-->>CLI: UsageEvent[]
-    CX-->>CLI: UsageEvent[]
-    CLI->>PR: load + getPricing(model)
-    CLI->>AG: aggregateUsage(events)
-    AG-->>CLI: UsageReportRow[]
-    CLI->>RD: renderMarkdownTable(rows)
-    RD-->>User: markdown output
+    Entry->>CLI: execute command
+    CLI->>BLD: buildUsageData(granularity, options)
+    BLD->>ADP: discoverFiles + parseFile
+    ADP-->>BLD: UsageEvent[]
+    BLD->>PR: resolve pricing source (if needed)
+    PR-->>BLD: pricing source + origin
+    BLD->>AG: aggregateUsage(events)
+    AG-->>BLD: UsageReportRow[]
+    BLD-->>CLI: UsageDataResult
+    CLI->>REN: renderUsageReport(data, format)
+    REN-->>CLI: output string
+    CLI->>EM: emitDiagnostics(data.diagnostics) [terminal only]
+    CLI-->>User: stderr diagnostics + stdout report
 ```
 
 ## Update notifier flow
@@ -80,13 +92,17 @@ flowchart TD
 ### `src/cli`
 
 - `create-cli.ts`: declares commands and flags.
-- `run-usage-report.ts`: orchestrates end-to-end report generation.
-- `package-metadata.ts`: resolves package metadata robustly across runtime layouts.
+- `build-usage-data.ts`: builds rows + diagnostics with no logger side effects.
+- `emit-diagnostics.ts`: prints diagnostics to stderr.
+- `run-usage-report.ts`: orchestrates build/render/emit.
+- `usage-data-contracts.ts`: reporting contracts (`UsageDataResult`, `UsageDiagnostics`, deps).
+- `package-metadata.ts`: resolves package metadata across runtime layouts.
 - `index.ts`: executable entrypoint.
 
 ### `src/sources`
 
 - `source-adapter.ts`: adapter contract used by all sources.
+- `create-default-adapters.ts`: default adapter factory (`pi`, `codex`).
 - `pi/pi-source-adapter.ts`: parser for `.pi` sessions.
 - `codex/codex-source-adapter.ts`: parser for `.codex` sessions.
 
@@ -99,12 +115,13 @@ flowchart TD
 ### `src/config`
 
 - `runtime-overrides.ts`: environment-variable runtime knobs with bounds and defaults.
+- `env-var-display.ts`: active override discovery + display formatting.
 
 ### `src/pricing`
 
 - `types.ts`: pricing interfaces.
 - `cost-engine.ts`: cost estimation logic.
-- `static-pricing-source.ts`: default local pricing fallback.
+- `static-pricing-source.ts`: built-in pricing source used when remote pricing is unavailable.
 - `litellm-pricing-fetcher.ts`: remote pricing loader with cache/offline support.
 
 ### `src/update`
@@ -117,15 +134,19 @@ flowchart TD
 
 ### `src/render`
 
+- `render-usage-report.ts`: format dispatch (`terminal`, `markdown`, `json`).
+- `terminal-style-policy.ts`: source + row-type styling policies.
+- `terminal-table.ts`: terminal table rendering.
+- `markdown-table.ts`: markdown table rendering.
+- `report-header.ts`: boxed report title + timezone.
 - `row-cells.ts`: shared table cells/formatting.
-- `terminal-table.ts`: default terminal output.
-- `markdown-table.ts`: markdown output.
 
 ### `src/utils`
 
 - `time-buckets.ts`: timezone-aware daily/weekly/monthly keys.
 - `discover-jsonl-files.ts`: recursive sorted file discovery.
 - `read-jsonl-objects.ts`: streaming JSONL reader used by adapters.
+- `logger.ts`: stderr logger for diagnostics.
 
 ## Core data model
 
@@ -149,6 +170,16 @@ Aggregation produces rows in this order:
 
 ## Design choices
 
+### Reporting layers are explicit
+
+Reporting is split into:
+
+- **build** (`buildUsageData`) for data + diagnostics
+- **render** (`renderUsageReport`) for format-specific string output
+- **emit** (`emitDiagnostics`) for stderr diagnostics
+
+This keeps JSON/Markdown outputs data-only and makes each stage easier to test.
+
 ### Source adapter pattern
 
 Each source implements the same contract:
@@ -158,22 +189,23 @@ Each source implements the same contract:
 
 This keeps format-specific logic isolated and makes new sources straightforward to add.
 
-Built-in adapters are `pi` and `codex`, but the contract already supports other source ids. Adding Claude/Gemini (or any other source) mainly requires a new adapter plus wiring it into the report pipeline.
-
 ### Pricing as a separate stage
 
-Parsing does not depend on pricing. Parsing produces usage events first; pricing is applied later. This separation keeps parsing deterministic and easier to test.
+Parsing does not depend on pricing. Parsing produces usage events first; pricing is applied later.
 
 ### Deterministic output
 
 Sorting rules are explicit:
 
 - periods are sorted ascending
-- sources are sorted with `pi` then `codex` then lexical fallback
+- sources are sorted with `pi` then `codex` then lexical order
 - model names are deduplicated and sorted
 
-### Failure tolerance
+### Terminal styling policy maps
 
-Malformed lines are ignored in adapters instead of stopping the entire report. This is deliberate: one bad session line should not block all usage reporting.
+Terminal styling is centralized into policy maps:
 
-Update checks are also fail-open: any cache/network/install-check error falls back to normal CLI execution.
+- source policy (`pi`, `codex`, `combined`, `TOTAL`, unknown)
+- row-type policy (`period_source`, `period_combined`, `grand_total`)
+
+This keeps styling behavior explicit and testable.

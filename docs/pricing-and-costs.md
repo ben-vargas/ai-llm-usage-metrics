@@ -9,24 +9,24 @@ Each event has one of two modes:
 
 Explicit cost is never overwritten.
 
-## Pricing sources
+## Pricing source resolution
 
 ```mermaid
 flowchart TD
     A[Need pricing data] --> B{Fresh cache available?}
-    B -- yes --> C[Use cache]
+    B -- yes --> C[Use cached LiteLLM pricing]
     B -- no --> D{Offline mode?}
-    D -- yes --> E{Stale cache available?}
+    D -- yes --> E{Any cache available?}
     E -- yes --> C
-    E -- no --> F[Fail: no pricing data]
-    D -- no --> G[Fetch from remote source]
+    E -- no --> F[Fail: no cached pricing]
+    D -- no --> G[Fetch remote pricing]
     G --> H{Fetch succeeded?}
-    H -- no --> I{Stale cache available?}
-    I -- yes --> C
-    I -- no --> F
-    H -- yes --> J[Normalize + keep in memory]
-    J --> K[Best-effort cache write]
-    K --> L[Use fetched pricing]
+    H -- yes --> I[Normalize pricing + keep in memory]
+    I --> J[Best-effort cache write]
+    J --> K[Use fetched pricing]
+    H -- no --> L{Custom --pricing-url set?}
+    L -- yes --> M[Fail: custom pricing source required]
+    L -- no --> N[Use built-in pricing source]
 ```
 
 ### 1) LiteLLM pricing fetcher
@@ -46,13 +46,13 @@ Cache behavior:
 - in offline mode, stale cache is allowed
 - if network fetch succeeds but cache write fails, pricing is still used in memory
 
-### 2) Static fallback pricing
+### 2) Built-in pricing source
 
 Source file: `src/pricing/static-pricing-source.ts`
 
-Used when LiteLLM pricing cannot be loaded and no custom `--pricing-url` is required.
+Used when remote LiteLLM pricing cannot be loaded and no custom `--pricing-url` is required.
 
-Includes a small default OpenAI model map and aliases.
+Includes a compact default OpenAI model map and aliases.
 
 ## Model resolution
 

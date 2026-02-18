@@ -33,7 +33,7 @@ bun run perf:report-baseline
 ```
 
 The command runs a warmup + sampled timings and prints min/avg/p95/max per scenario.
-Use this before/after refactor slices to check for regressions.
+Use it to track report runtime over time while iterating locally.
 
 ## Runtime configuration in development
 

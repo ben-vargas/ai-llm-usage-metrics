@@ -9,7 +9,6 @@ This folder contains the technical documentation for `llm-usage-metrics`.
 - [Parsing and normalization](./parsing-and-normalization.md)
 - [Pricing and cost calculation](./pricing-and-costs.md)
 - [Development guide](./development.md)
-- [Reporting refactor rollback notes](./reporting-refactor-rollbacks.md)
 - [Contributing](../CONTRIBUTING.md)
 
 ## Quick summary
