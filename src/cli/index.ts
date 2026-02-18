@@ -8,7 +8,7 @@ import { loadPackageMetadataFromRuntime } from './package-metadata.js';
 const { packageName, packageVersion } = loadPackageMetadataFromRuntime();
 const updateRuntimeConfig = getUpdateNotifierRuntimeConfig();
 
-const cli = createCli();
+const cli = createCli({ version: packageVersion });
 
 try {
   const updateResult = await checkForUpdatesAndMaybeRestart({

@@ -4,6 +4,10 @@ import { runUsageReport } from './run-usage-report.js';
 
 export type UsageGranularity = 'daily' | 'weekly' | 'monthly';
 
+export type CreateCliOptions = {
+  version?: string;
+};
+
 type SharedOptions = {
   piDir?: string;
   codexDir?: string;
@@ -79,12 +83,13 @@ function rootDescription(): string {
   ].join('\n');
 }
 
-export function createCli(): Command {
+export function createCli(options: CreateCliOptions = {}): Command {
   const program = new Command();
 
   program
     .name('llm-usage')
     .description(rootDescription())
+    .version(options.version ?? '0.0.0')
     .showHelpAfterError()
     .addCommand(createCommand('daily'))
     .addCommand(createCommand('weekly'))

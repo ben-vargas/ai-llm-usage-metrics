@@ -56,4 +56,24 @@ describe('createCli', () => {
     expect(help).toContain('Show daily usage report');
     expect(help).toContain('npx --yes llm-usage-metrics daily');
   });
+
+  it('supports --version output', async () => {
+    const cli = createCli({ version: '1.2.3' });
+    let output = '';
+
+    cli.exitOverride();
+    cli.configureOutput({
+      writeOut: (value) => {
+        output += value;
+      },
+      writeErr: (value) => {
+        output += value;
+      },
+    });
+
+    await expect(cli.parseAsync(['--version'], { from: 'user' })).rejects.toMatchObject({
+      code: 'commander.version',
+    });
+    expect(output.trim()).toBe('1.2.3');
+  });
 });
