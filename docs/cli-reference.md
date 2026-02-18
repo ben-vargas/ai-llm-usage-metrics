@@ -66,6 +66,21 @@ Operational runtime knobs:
 - `LLM_USAGE_PRICING_FETCH_TIMEOUT_MS`: pricing fetch timeout in milliseconds (clamped `200..30000`)
 - `LLM_USAGE_PARSE_MAX_PARALLEL`: max parallel file parsing per source adapter (clamped `1..64`)
 
+## Terminal output
+
+When outputting to terminal (default), the CLI displays:
+
+1. **Environment overrides** (if any): Active environment variables and their values
+2. **Session summary**: Total session files and events found, broken down by source
+3. **Pricing source**: Whether pricing was loaded from cache or fetched remotely
+4. **Report header**: Boxed title showing report type and timezone
+5. **Data table**: Usage statistics with rounded borders and color-coded rows
+
+Row styling:
+- Source names are color-coded (`pi` = cyan, `codex` = magenta, `combined` = yellow)
+- Grand total row is bold green
+- Combined subtotal rows are dimmed (except the source name)
+
 ## Examples
 
 Daily report:

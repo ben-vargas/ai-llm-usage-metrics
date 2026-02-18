@@ -131,7 +131,41 @@ llm-usage monthly --source pi --source codex
 llm-usage monthly --source pi,codex
 ```
 
-## Output semantics
+## Output features
+
+### Terminal UI
+
+The CLI provides an enhanced terminal output with:
+
+- **Boxed report header** showing the report type and timezone
+- **Session summary** displayed at startup (session files and event counts per source)
+- **Pricing source info** indicating whether data was loaded from cache or fetched remotely
+- **Environment variable overrides** displayed when active
+- **Models displayed as bullet points** for better readability
+- **Rounded table borders** and improved color scheme
+
+Example output:
+
+```
+ℹ Found 12 session file(s) with 45 event(s)
+  pi: 8 file(s), 32 events
+  codex: 4 file(s), 13 events
+ℹ Loaded pricing from cache
+
+╭──────────────────────────────────────────────────╮
+│ Monthly Token Usage Report                       │
+│ (Timezone: Africa/Casablanca)                    │
+╰──────────────────────────────────────────────────╯
+
+╭────────────┬──────────┬──────────────────────╮
+│ Period     │ Source   │ Models               │
+├────────────┼──────────┼──────────────────────┤
+│ Feb 2026   │ pi       │ • gpt-5.2            │
+│            │          │ • gpt-5.2-codex      │
+╰────────────┴──────────┴──────────────────────╯
+```
+
+### Report structure
 
 Each report includes:
 
@@ -149,8 +183,8 @@ Columns:
 - Reasoning
 - Cache Read
 - Cache Write
-- Total Tokens
-- Cost (USD)
+- Total
+- Cost
 
 ## Development
 
