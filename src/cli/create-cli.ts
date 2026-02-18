@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 
 import { runUsageReport } from './run-usage-report.js';
+import type { ReportCommandOptions } from './usage-data-contracts.js';
 
 export type UsageGranularity = 'daily' | 'weekly' | 'monthly';
 
@@ -8,19 +9,7 @@ export type CreateCliOptions = {
   version?: string;
 };
 
-type SharedOptions = {
-  piDir?: string;
-  codexDir?: string;
-  source?: string[];
-  since?: string;
-  until?: string;
-  timezone?: string;
-  provider?: string;
-  markdown?: boolean;
-  json?: boolean;
-  pricingUrl?: string;
-  pricingOffline?: boolean;
-};
+type SharedOptions = ReportCommandOptions;
 
 const defaultTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 

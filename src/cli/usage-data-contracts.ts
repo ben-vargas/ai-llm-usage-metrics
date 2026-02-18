@@ -1,13 +1,25 @@
 import type { EnvVarOverride } from '../config/env-var-display.js';
-import type { UsageReportRow } from '../domain/usage-report-row.js';
 import type {
-  getParsingRuntimeConfig,
-  getPricingFetcherRuntimeConfig,
+  ParsingRuntimeConfig,
   PricingFetcherRuntimeConfig,
 } from '../config/runtime-overrides.js';
+import type { UsageReportRow } from '../domain/usage-report-row.js';
 import type { PricingSource } from '../pricing/types.js';
 import type { SourceAdapter } from '../sources/source-adapter.js';
-import type { ReportCommandOptions } from './run-usage-report.js';
+
+export type ReportCommandOptions = {
+  piDir?: string;
+  codexDir?: string;
+  source?: string | string[];
+  since?: string;
+  until?: string;
+  timezone?: string;
+  provider?: string;
+  markdown?: boolean;
+  json?: boolean;
+  pricingUrl?: string;
+  pricingOffline?: boolean;
+};
 
 export type UsageSessionStats = {
   source: string;
@@ -22,7 +34,6 @@ export type UsageDiagnostics = {
   pricingOrigin: UsagePricingOrigin;
   activeEnvOverrides: EnvVarOverride[];
   timezone: string;
-  warnings?: string[];
 };
 
 export type UsageDataResult = {
@@ -36,8 +47,8 @@ export type PricingLoadResult = {
 };
 
 export type BuildUsageDataDeps = {
-  getParsingRuntimeConfig?: typeof getParsingRuntimeConfig;
-  getPricingFetcherRuntimeConfig?: typeof getPricingFetcherRuntimeConfig;
+  getParsingRuntimeConfig?: () => ParsingRuntimeConfig;
+  getPricingFetcherRuntimeConfig?: () => PricingFetcherRuntimeConfig;
   createAdapters?: (
     options: ReportCommandOptions,
     effectiveProviderFilter: string,

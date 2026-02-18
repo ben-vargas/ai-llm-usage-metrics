@@ -13,10 +13,10 @@ import type { PricingSource } from '../pricing/types.js';
 import { createDefaultAdapters } from '../sources/create-default-adapters.js';
 import type { SourceAdapter } from '../sources/source-adapter.js';
 import { getPeriodKey, type ReportGranularity } from '../utils/time-buckets.js';
-import type { ReportCommandOptions } from './run-usage-report.js';
 import type {
   BuildUsageDataDeps,
   PricingLoadResult,
+  ReportCommandOptions,
   UsageDataResult,
   UsageDiagnostics,
   UsagePricingOrigin,
@@ -226,10 +226,6 @@ function shouldLoadPricingSource(options: ReportCommandOptions, events: UsageEve
 }
 
 function validateBuildOptions(options: ReportCommandOptions): void {
-  if (options.markdown && options.json) {
-    throw new Error('Choose either --markdown or --json, not both');
-  }
-
   if (options.since) {
     validateDateInput(options.since, '--since');
   }
