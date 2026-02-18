@@ -2,6 +2,7 @@ import pc from 'picocolors';
 import { table, type TableUserConfig } from 'table';
 
 import type { UsageReportRow } from '../domain/usage-report-row.js';
+import { colorizeUsageBodyRows } from './terminal-style-policy.js';
 import { toUsageTableCells, usageTableHeaders } from './row-cells.js';
 
 const modelsColumnIndex = 2;
@@ -89,59 +90,6 @@ function shouldUseColorByDefault(): boolean {
   return process.stdout.isTTY;
 }
 
-function colorSource(source: string): (text: string) => string {
-  switch (source) {
-    case 'pi':
-      return pc.cyan;
-    case 'codex':
-      return pc.magenta;
-    case 'combined':
-      return pc.yellow;
-    case 'TOTAL':
-      return (text) => pc.bold(pc.green(text));
-    default:
-      return (text) => text;
-  }
-}
-
-function colorizeBodyRows(
-  bodyRows: string[][],
-  rows: UsageReportRow[],
-  useColor: boolean,
-): string[][] {
-  if (!useColor) {
-    return bodyRows;
-  }
-
-  return rows.map((row, index) => {
-    const styledCells = [...bodyRows[index]];
-    const sourceStyler = colorSource(styledCells[1]);
-
-    styledCells[0] = pc.white(styledCells[0]);
-    styledCells[1] = sourceStyler(styledCells[1]);
-
-    if (row.rowType === 'grand_total') {
-      return styledCells.map((cell, cellIndex) => {
-        if (cellIndex === 0) return pc.bold(pc.white(cell));
-        if (cellIndex === 1) return cell;
-        return pc.bold(cell);
-      });
-    }
-
-    if (row.rowType === 'period_combined') {
-      return styledCells.map((cell, cellIndex) => {
-        if (cellIndex === 1) return pc.bold(cell);
-        return pc.dim(cell);
-      });
-    }
-
-    const costColumnIndex = styledCells.length - 1;
-    styledCells[costColumnIndex] = pc.yellow(styledCells[costColumnIndex]);
-
-    return styledCells;
-  });
-}
-
 function colorizeHeader(useColor: boolean): string[] {
   const headerCells = Array.from(usageTableHeaders);
 
@@ -157,7 +105,7 @@ export function renderTerminalTable(
   options: TerminalRenderOptions = {},
 ): string {
   const useColor = options.useColor ?? shouldUseColorByDefault();
-  const bodyRows = colorizeBodyRows(toUsageTableCells(rows), rows, useColor);
+  const bodyRows = colorizeUsageBodyRows(toUsageTableCells(rows), rows, { useColor });
   const displayRows = [colorizeHeader(useColor), ...bodyRows];
 
   return table(displayRows, createTableConfig(displayRows));

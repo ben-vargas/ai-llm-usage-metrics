@@ -62,6 +62,7 @@ describe('renderTerminalTable', () => {
       ╰────────────┴──────────┴──────────────────────────────────┴───────┴────────┴───────────┴────────────┴─────────────┴───────┴───────╯
       "
     `);
+    expect(rendered.includes(`${String.fromCharCode(27)}[`)).toBe(false);
   });
 
   it('keeps unknown sources unchanged and still renders output', () => {
