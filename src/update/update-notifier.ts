@@ -225,7 +225,9 @@ export function isCacheFresh(
   return now() - payload.checkedAt <= cacheTtlMs;
 }
 
-async function readCachePayload(cacheFilePath: string): Promise<UpdateCheckCachePayload | undefined> {
+async function readCachePayload(
+  cacheFilePath: string,
+): Promise<UpdateCheckCachePayload | undefined> {
   let content: string;
 
   try {
@@ -274,9 +276,12 @@ async function fetchLatestVersion(
   fetchImpl: typeof fetch,
   fetchTimeoutMs: number,
 ): Promise<string | undefined> {
-  const response = await fetchImpl(`https://registry.npmjs.org/${encodeURIComponent(packageName)}/latest`, {
-    signal: AbortSignal.timeout(fetchTimeoutMs),
-  });
+  const response = await fetchImpl(
+    `https://registry.npmjs.org/${encodeURIComponent(packageName)}/latest`,
+    {
+      signal: AbortSignal.timeout(fetchTimeoutMs),
+    },
+  );
 
   if (!response.ok) {
     return undefined;
