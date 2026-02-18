@@ -1,12 +1,12 @@
-import { readFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
 import { createUsageEvent } from '../../domain/usage-event.js';
 import type { UsageEvent } from '../../domain/usage-event.js';
 import type { NumberLike } from '../../domain/normalization.js';
-import type { SourceAdapter } from '../source-adapter.js';
 import { discoverJsonlFiles } from '../../utils/discover-jsonl-files.js';
+import { readJsonlObjects } from '../../utils/read-jsonl-objects.js';
+import type { SourceAdapter } from '../source-adapter.js';
 
 const defaultSessionsDir = path.join(os.homedir(), '.pi', 'agent', 'sessions');
 
@@ -77,7 +77,8 @@ function resolveTimestamp(
 
   for (const candidate of candidates) {
     if (typeof candidate === 'number' && Number.isFinite(candidate)) {
-      return new Date(candidate).toISOString();
+      const timestampMs = Math.abs(candidate) < 1_000_000_000_000 ? candidate * 1000 : candidate;
+      return new Date(timestampMs).toISOString();
     }
 
     if (typeof candidate === 'string' && candidate.trim()) {
@@ -141,31 +142,10 @@ export class PiSourceAdapter implements SourceAdapter {
   }
 
   public async parseFile(filePath: string): Promise<UsageEvent[]> {
-    const content = await readFile(filePath, 'utf8');
     const events: UsageEvent[] = [];
     const state: PiSessionState = { sessionId: getFallbackSessionId(filePath) };
 
-    for (const rawLine of content.split(/\r?\n/u)) {
-      const lineText = rawLine.trim();
-
-      if (!lineText) {
-        continue;
-      }
-
-      let parsedLine: unknown;
-
-      try {
-        parsedLine = JSON.parse(lineText);
-      } catch {
-        continue;
-      }
-
-      const line = asRecord(parsedLine);
-
-      if (!line) {
-        continue;
-      }
-
+    for await (const line of readJsonlObjects(filePath)) {
       if (line.type === 'session') {
         state.sessionId = asText(line.id) ?? state.sessionId;
         state.sessionTimestamp = asText(line.timestamp) ?? state.sessionTimestamp;

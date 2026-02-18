@@ -1,4 +1,3 @@
-import { readFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -7,6 +6,7 @@ import type { UsageEvent } from '../../domain/usage-event.js';
 import { normalizeNonNegativeInteger } from '../../domain/normalization.js';
 import type { NumberLike } from '../../domain/normalization.js';
 import { discoverJsonlFiles } from '../../utils/discover-jsonl-files.js';
+import { readJsonlObjects } from '../../utils/read-jsonl-objects.js';
 import type { SourceAdapter } from '../source-adapter.js';
 
 const defaultSessionsDir = path.join(os.homedir(), '.codex', 'sessions');
@@ -144,7 +144,6 @@ export class CodexSourceAdapter implements SourceAdapter {
   }
 
   public async parseFile(filePath: string): Promise<UsageEvent[]> {
-    const content = await readFile(filePath, 'utf8');
     const events: UsageEvent[] = [];
 
     const state: CodexSessionState = {
@@ -152,27 +151,7 @@ export class CodexSourceAdapter implements SourceAdapter {
       provider: 'openai',
     };
 
-    for (const rawLine of content.split(/\r?\n/u)) {
-      const lineText = rawLine.trim();
-
-      if (!lineText) {
-        continue;
-      }
-
-      let parsedLine: unknown;
-
-      try {
-        parsedLine = JSON.parse(lineText);
-      } catch {
-        continue;
-      }
-
-      const line = asRecord(parsedLine);
-
-      if (!line) {
-        continue;
-      }
-
+    for await (const line of readJsonlObjects(filePath)) {
       if (line.type === 'session_meta') {
         const payload = asRecord(line.payload);
         state.sessionId = asText(payload?.id) ?? state.sessionId;
