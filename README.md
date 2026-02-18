@@ -25,6 +25,24 @@ npx --yes llm-usage-metrics daily
 
 (`npx llm-usage daily` works when the project is already installed locally.)
 
+## Update checks
+
+When installed globally, the CLI performs a lightweight npm update check on startup.
+
+Behavior:
+
+- uses a local cache (`~/.cache/llm-usage-metrics/update-check.json`) with TTL
+- skips checks for `--help` / `--version` invocations
+- skips checks when run through `npx`
+- prompts for install + restart only in interactive TTY sessions
+- prints a one-line notice in non-interactive sessions
+
+To force-skip startup update checks:
+
+```bash
+LLM_USAGE_SKIP_UPDATE_CHECK=1 llm-usage daily
+```
+
 ## Usage
 
 ### Daily report (default terminal table)

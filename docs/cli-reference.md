@@ -39,6 +39,22 @@ Commands:
 - source filter defaults to all parsed sources
 - output defaults to terminal table
 
+## Startup update notifier
+
+When installed globally, the CLI checks npm for newer versions using a cached lookup.
+
+- cache path: `~/.cache/llm-usage-metrics/update-check.json`
+- check is skipped for `--help`, `help`, `--version`, and `version` invocations
+- check is skipped when the CLI appears to run via `npx`
+- interactive TTY sessions can prompt to install + restart
+- non-interactive sessions print a one-line update notice
+
+Disable the startup check with:
+
+```bash
+LLM_USAGE_SKIP_UPDATE_CHECK=1 llm-usage daily
+```
+
 ## Examples
 
 Daily report:
