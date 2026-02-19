@@ -21,6 +21,7 @@ jobs:
       contents: read
       issues: write
       pull-requests: write
+      id-token: write
 
     steps:
       - name: Checkout
@@ -57,6 +58,13 @@ jobs:
 
       - name: Run tests with coverage (single run)
         run: bun run test
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          use_oidc: true
+          files: coverage/lcov.info
+          fail_ci_if_error: true
 
       - name: Build coverage summary
         run: node .github/scripts/build-coverage-summary.mjs
