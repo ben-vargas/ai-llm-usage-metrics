@@ -40,6 +40,30 @@ const allowAllProviders: ProviderFilter = () => true;
 
 const UNIX_SECONDS_ABS_CUTOFF = 10_000_000_000;
 
+function normalizeTimestampCandidate(candidate: unknown): string | undefined {
+  let date: Date | undefined;
+
+  if (typeof candidate === 'number' && Number.isFinite(candidate)) {
+    const timestampMs =
+      Math.abs(candidate) <= UNIX_SECONDS_ABS_CUTOFF ? candidate * 1000 : candidate;
+    date = new Date(timestampMs);
+  } else {
+    const normalizedText = asTrimmedText(candidate);
+
+    if (!normalizedText) {
+      return undefined;
+    }
+
+    date = new Date(normalizedText);
+  }
+
+  if (Number.isNaN(date.getTime())) {
+    return undefined;
+  }
+
+  return date.toISOString();
+}
+
 function resolveTimestamp(
   line: Record<string, unknown>,
   message: Record<string, unknown> | undefined,
@@ -48,24 +72,10 @@ function resolveTimestamp(
   const candidates = [line.timestamp, message?.timestamp, state.sessionTimestamp];
 
   for (const candidate of candidates) {
-    if (typeof candidate === 'number' && Number.isFinite(candidate)) {
-      const timestampMs =
-        Math.abs(candidate) <= UNIX_SECONDS_ABS_CUTOFF ? candidate * 1000 : candidate;
-      const date = new Date(timestampMs);
+    const normalizedTimestamp = normalizeTimestampCandidate(candidate);
 
-      if (!Number.isNaN(date.getTime())) {
-        return date.toISOString();
-      }
-
-      continue;
-    }
-
-    if (typeof candidate === 'string') {
-      const normalized = candidate.trim();
-
-      if (normalized) {
-        return normalized;
-      }
+    if (normalizedTimestamp) {
+      return normalizedTimestamp;
     }
   }
 

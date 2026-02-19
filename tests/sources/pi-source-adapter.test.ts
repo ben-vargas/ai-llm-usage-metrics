@@ -155,6 +155,43 @@ describe('PiSourceAdapter', () => {
     });
   });
 
+  it('falls back to message timestamp when line timestamp is malformed', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'pi-source-malformed-line-timestamp-'));
+    tempDirs.push(root);
+
+    const filePath = path.join(root, 'session.jsonl');
+
+    await writeFile(
+      filePath,
+      [
+        JSON.stringify({
+          type: 'session',
+          id: 'pi-malformed-line-timestamp',
+        }),
+        JSON.stringify({
+          type: 'message',
+          timestamp: 'not-a-date',
+          message: {
+            timestamp: '2026-02-12T20:01:00.000Z',
+          },
+          provider: 'openai',
+          usage: {
+            input: 1,
+            output: 2,
+            totalTokens: 3,
+          },
+        }),
+      ].join('\n'),
+      'utf8',
+    );
+
+    const adapter = new PiSourceAdapter({ sessionsDir: root });
+    const events = await adapter.parseFile(filePath);
+
+    expect(events).toHaveLength(1);
+    expect(events[0]?.timestamp).toBe('2026-02-12T20:01:00.000Z');
+  });
+
   it('supports unix-second timestamps in message events', async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), 'pi-source-unix-seconds-'));
     tempDirs.push(root);
