@@ -51,7 +51,11 @@ describe('terminal-style-policy', () => {
   });
 
   it('applies row-type style policy for period_combined rows', () => {
-    const styled = applyRowTypeStyle('period_combined', ['period', 'combined', 'model', '1'], testPalette);
+    const styled = applyRowTypeStyle(
+      'period_combined',
+      ['period', 'combined', 'model', '1'],
+      testPalette,
+    );
 
     expect(styled).toEqual([
       '<dim>period</dim>',

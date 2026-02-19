@@ -42,12 +42,7 @@ describe('update-notifier', () => {
     expect(shouldSkipUpdateCheckForArgv(['node', '/app/dist/index.js', '--help'])).toBe(true);
     expect(shouldSkipUpdateCheckForArgv(['node', '/app/dist/index.js', 'help'])).toBe(true);
     expect(
-      shouldSkipUpdateCheckForArgv([
-        'node',
-        '/app/dist/index.js',
-        'ts-node/register',
-        'help',
-      ]),
+      shouldSkipUpdateCheckForArgv(['node', '/app/dist/index.js', 'ts-node/register', 'help']),
     ).toBe(true);
     expect(shouldSkipUpdateCheckForArgv(['node', '/app/dist/index.js', '--version'])).toBe(true);
     expect(

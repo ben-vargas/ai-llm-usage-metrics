@@ -80,8 +80,11 @@ const sourceRegistrations: readonly SourceRegistration[] = [
 const sourceDirUnsupportedFlags = new Map(
   sourceRegistrations
     .filter(
-      (source): source is SourceRegistration & { sourceDirOverride: { kind: 'unsupported'; flag: string } } =>
-        source.sourceDirOverride.kind === 'unsupported',
+      (
+        source,
+      ): source is SourceRegistration & {
+        sourceDirOverride: { kind: 'unsupported'; flag: string };
+      } => source.sourceDirOverride.kind === 'unsupported',
     )
     .map((source) => [source.id, source.sourceDirOverride.flag]),
 );

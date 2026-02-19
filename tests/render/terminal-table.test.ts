@@ -1,10 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import type { UsageReportRow } from '../../src/domain/usage-report-row.js';
-import {
-  renderTerminalTable,
-  shouldUseColorByDefault,
-} from '../../src/render/terminal-table.js';
+import { renderTerminalTable, shouldUseColorByDefault } from '../../src/render/terminal-table.js';
 
 const sampleRows: UsageReportRow[] = [
   {

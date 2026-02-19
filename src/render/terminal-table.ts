@@ -54,7 +54,10 @@ function shouldDrawHorizontalLine(
   );
 }
 
-function createTableConfig(tableLayout: UsageTableLayout, usageRows: UsageReportRow[]): TableUserConfig {
+function createTableConfig(
+  tableLayout: UsageTableLayout,
+  usageRows: UsageReportRow[],
+): TableUserConfig {
   const rowVerticalAlignment = tableLayout === 'per_model_columns' ? 'top' : 'middle';
 
   return {
