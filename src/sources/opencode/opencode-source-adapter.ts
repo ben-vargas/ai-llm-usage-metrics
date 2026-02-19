@@ -339,14 +339,20 @@ export class OpenCodeSourceAdapter implements SourceAdapter {
       return [explicitDbPath];
     }
 
+    let firstUnreadableCandidatePath: string | undefined;
+
     for (const candidatePath of this.resolveDefaultDbPaths()) {
       if (await this.pathReadable(candidatePath)) {
         return [candidatePath];
       }
 
-      if (await this.pathExists(candidatePath)) {
-        throw new Error(`OpenCode DB path is unreadable: ${candidatePath}`);
+      if (!firstUnreadableCandidatePath && (await this.pathExists(candidatePath))) {
+        firstUnreadableCandidatePath = candidatePath;
       }
+    }
+
+    if (firstUnreadableCandidatePath) {
+      throw new Error(`OpenCode DB path is unreadable: ${firstUnreadableCandidatePath}`);
     }
 
     return [];
