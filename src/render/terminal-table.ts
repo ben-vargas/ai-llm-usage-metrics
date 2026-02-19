@@ -35,32 +35,31 @@ const roundedBorders = {
   joinMiddleRight: '├',
 };
 
-function shouldDrawHorizontalLine(index: number, rowCount: number, rows: string[][]): boolean {
+function shouldDrawHorizontalLine(
+  index: number,
+  rowCount: number,
+  usageRows: UsageReportRow[],
+): boolean {
   if (index === 0 || index === 1 || index === rowCount) {
     return true;
   }
 
-  const previousRow = rows[index - 1];
-  const nextRow = rows[index];
+  const previousRow = usageRows[index - 2];
+  const nextRow = usageRows[index - 1];
 
-  const previousSource = previousRow[1];
-  const nextSource = nextRow[1];
-  const previousPeriod = previousRow[0];
-  const nextPeriod = nextRow[0];
-
-  return previousSource === 'combined' || nextSource === 'TOTAL' || previousPeriod !== nextPeriod;
+  return (
+    previousRow.rowType === 'period_combined' ||
+    nextRow.rowType === 'grand_total' ||
+    previousRow.periodKey !== nextRow.periodKey
+  );
 }
 
-function createTableConfig(
-  uncoloredRows: string[][],
-  tableLayout: UsageTableLayout,
-): TableUserConfig {
+function createTableConfig(tableLayout: UsageTableLayout, usageRows: UsageReportRow[]): TableUserConfig {
   const rowVerticalAlignment = tableLayout === 'per_model_columns' ? 'top' : 'middle';
 
   return {
     border: roundedBorders,
-    drawHorizontalLine: (index, rowCount) =>
-      shouldDrawHorizontalLine(index, rowCount, uncoloredRows),
+    drawHorizontalLine: (index, rowCount) => shouldDrawHorizontalLine(index, rowCount, usageRows),
     columnDefault: {
       paddingLeft: 1,
       paddingRight: 1,
@@ -90,11 +89,12 @@ export function shouldUseColorByDefault(): boolean {
     return false;
   }
 
-  if (process.env.FORCE_COLOR !== undefined && process.env.FORCE_COLOR !== '0') {
-    return true;
+  if (process.env.FORCE_COLOR !== undefined) {
+    return process.env.FORCE_COLOR !== '0';
   }
 
-  return process.stdout.isTTY;
+  const stdoutIsTTY = (process.stdout as { isTTY: unknown }).isTTY;
+  return stdoutIsTTY === true;
 }
 
 function colorizeHeader(useColor: boolean): string[] {
@@ -116,7 +116,6 @@ export function renderTerminalTable(
   const uncoloredBodyRows = toUsageTableCells(rows, { layout: tableLayout });
   const bodyRows = colorizeUsageBodyRows(uncoloredBodyRows, rows, { useColor });
   const displayRows = [colorizeHeader(useColor), ...bodyRows];
-  const uncoloredDisplayRows = [Array.from(usageTableHeaders), ...uncoloredBodyRows];
 
-  return table(displayRows, createTableConfig(uncoloredDisplayRows, tableLayout));
+  return table(displayRows, createTableConfig(tableLayout, rows));
 }

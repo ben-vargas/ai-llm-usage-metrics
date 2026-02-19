@@ -1,7 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import type { UsageReportRow } from '../../src/domain/usage-report-row.js';
-import { renderTerminalTable } from '../../src/render/terminal-table.js';
+import {
+  renderTerminalTable,
+  shouldUseColorByDefault,
+} from '../../src/render/terminal-table.js';
 
 const sampleRows: UsageReportRow[] = [
   {
@@ -100,6 +103,27 @@ const sampleRows: UsageReportRow[] = [
     costUsd: 2.75,
   },
 ];
+
+const originalNoColor = process.env.NO_COLOR;
+const originalForceColor = process.env.FORCE_COLOR;
+const stdout = process.stdout as NodeJS.WriteStream;
+const originalStdoutIsTTY = stdout.isTTY;
+
+afterEach(() => {
+  if (originalNoColor === undefined) {
+    delete process.env.NO_COLOR;
+  } else {
+    process.env.NO_COLOR = originalNoColor;
+  }
+
+  if (originalForceColor === undefined) {
+    delete process.env.FORCE_COLOR;
+  } else {
+    process.env.FORCE_COLOR = originalForceColor;
+  }
+
+  stdout.isTTY = originalStdoutIsTTY;
+});
 
 describe('renderTerminalTable', () => {
   it('renders compact model names by default', () => {
@@ -252,5 +276,85 @@ describe('renderTerminalTable', () => {
 
     expect(rendered).toContain(' other ');
     expect(rendered).toContain(' x-model ');
+  });
+
+  it('does not add extra separators when period_source ids are combined/TOTAL', () => {
+    const rendered = renderTerminalTable(
+      [
+        {
+          rowType: 'period_source',
+          periodKey: '2026-02-10',
+          source: 'combined' as UsageReportRow['source'],
+          models: ['gpt-4.1'],
+          modelBreakdown: [],
+          inputTokens: 1,
+          outputTokens: 1,
+          reasoningTokens: 0,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          totalTokens: 2,
+          costUsd: 0.01,
+        },
+        {
+          rowType: 'period_source',
+          periodKey: '2026-02-10',
+          source: 'TOTAL' as UsageReportRow['source'],
+          models: ['gpt-4.1'],
+          modelBreakdown: [],
+          inputTokens: 2,
+          outputTokens: 2,
+          reasoningTokens: 0,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          totalTokens: 4,
+          costUsd: 0.02,
+        },
+        {
+          rowType: 'grand_total',
+          periodKey: 'ALL',
+          source: 'combined',
+          models: ['gpt-4.1'],
+          modelBreakdown: [],
+          inputTokens: 3,
+          outputTokens: 3,
+          reasoningTokens: 0,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          totalTokens: 6,
+          costUsd: 0.03,
+        },
+      ],
+      { useColor: false },
+    );
+
+    const separatorLines = rendered.split('\n').filter((line) => line.startsWith('├'));
+
+    expect(separatorLines).toHaveLength(2);
+  });
+});
+
+describe('shouldUseColorByDefault', () => {
+  it('returns false when FORCE_COLOR=0', () => {
+    delete process.env.NO_COLOR;
+    process.env.FORCE_COLOR = '0';
+    stdout.isTTY = true;
+
+    expect(shouldUseColorByDefault()).toBe(false);
+  });
+
+  it('returns true when FORCE_COLOR is a non-zero value', () => {
+    delete process.env.NO_COLOR;
+    process.env.FORCE_COLOR = '1';
+    stdout.isTTY = false;
+
+    expect(shouldUseColorByDefault()).toBe(true);
+  });
+
+  it('returns false when stdout is not a tty and no color env override is set', () => {
+    delete process.env.NO_COLOR;
+    delete process.env.FORCE_COLOR;
+    stdout.isTTY = false;
+
+    expect(shouldUseColorByDefault()).toBe(false);
   });
 });
