@@ -1,6 +1,8 @@
 const ansiEscapePattern = new RegExp(String.raw`\u001B\[[0-9;]*m`, 'gu');
 const combiningMarkPattern = /\p{Mark}/u;
 const extendedPictographicPattern = /\p{Extended_Pictographic}/u;
+const emojiPresentationPattern = /\p{Emoji_Presentation}/u;
+const regionalIndicatorPattern = /\p{Regional_Indicator}/u;
 const graphemeSegmenter = new Intl.Segmenter('en', { granularity: 'grapheme' });
 
 function stripAnsi(value: string): string {
@@ -73,8 +75,17 @@ function segmentGraphemes(value: string): string[] {
   return Array.from(graphemeSegmenter.segment(value), (segment) => segment.segment);
 }
 
+function isEmojiGrapheme(grapheme: string): boolean {
+  return (
+    extendedPictographicPattern.test(grapheme) ||
+    emojiPresentationPattern.test(grapheme) ||
+    regionalIndicatorPattern.test(grapheme) ||
+    grapheme.includes('\u20E3')
+  );
+}
+
 function graphemeDisplayWidth(grapheme: string): number {
-  if (extendedPictographicPattern.test(grapheme)) {
+  if (isEmojiGrapheme(grapheme)) {
     return 2;
   }
 

@@ -14,6 +14,8 @@ describe('table-text-layout', () => {
   it('counts emoji graphemes as width 2', () => {
     expect(visibleWidth('😀')).toBe(2);
     expect(visibleWidth('👨‍👩‍👦')).toBe(2);
+    expect(visibleWidth('🇺🇸')).toBe(2);
+    expect(visibleWidth('1️⃣')).toBe(2);
   });
 
   it('wraps at spaces when possible', () => {
