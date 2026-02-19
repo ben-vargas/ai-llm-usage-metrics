@@ -31,7 +31,8 @@ When installed globally, the CLI performs a lightweight npm update check on star
 
 Behavior:
 
-- uses a local cache (`~/.cache/llm-usage-metrics/update-check.json`) with TTL
+- uses a local cache (`~/.cache/llm-usage-metrics/update-check.json`) with a 1-hour default TTL
+- optional session-scoped cache mode via `LLM_USAGE_UPDATE_CACHE_SCOPE=session`
 - skips checks for `--help` / `--version` invocations
 - skips checks when run through `npx`
 - prompts for install + restart only in interactive TTY sessions
@@ -48,7 +49,9 @@ LLM_USAGE_SKIP_UPDATE_CHECK=1 llm-usage daily
 You can tune runtime behavior with environment variables:
 
 - `LLM_USAGE_SKIP_UPDATE_CHECK`: skip startup update check when set to `1`
-- `LLM_USAGE_UPDATE_CACHE_TTL_MS`: update-check cache TTL in milliseconds (clamped: `60000..2592000000`)
+- `LLM_USAGE_UPDATE_CACHE_SCOPE`: cache scope for update checks (`global` default, `session` to scope by terminal shell session)
+- `LLM_USAGE_UPDATE_CACHE_SESSION_KEY`: optional custom session key when `LLM_USAGE_UPDATE_CACHE_SCOPE=session` (defaults to parent shell PID)
+- `LLM_USAGE_UPDATE_CACHE_TTL_MS`: update-check cache TTL in milliseconds (clamped: `0..2592000000`; use `0` to check on every CLI run)
 - `LLM_USAGE_UPDATE_FETCH_TIMEOUT_MS`: update-check network timeout in milliseconds (clamped: `200..30000`)
 - `LLM_USAGE_PRICING_CACHE_TTL_MS`: pricing cache TTL in milliseconds (clamped: `60000..2592000000`)
 - `LLM_USAGE_PRICING_FETCH_TIMEOUT_MS`: pricing fetch timeout in milliseconds (clamped: `200..30000`)

@@ -46,7 +46,7 @@ Commands:
 
 ## Startup update notifier
 
-When installed globally, the CLI checks npm for newer versions using a cached lookup.
+When installed globally, the CLI checks npm for newer versions using a cached lookup (1-hour default TTL).
 
 - cache path: `~/.cache/llm-usage-metrics/update-check.json`
 - check is skipped for `--help`, `help`, `--version`, and `version` invocations
@@ -65,7 +65,9 @@ LLM_USAGE_SKIP_UPDATE_CHECK=1 llm-usage daily
 Operational runtime knobs:
 
 - `LLM_USAGE_SKIP_UPDATE_CHECK`: skip startup update check when set to `1`
-- `LLM_USAGE_UPDATE_CACHE_TTL_MS`: update-check cache TTL in milliseconds (clamped `60000..2592000000`)
+- `LLM_USAGE_UPDATE_CACHE_SCOPE`: update-check cache scope (`global` default, `session` to scope by terminal shell session)
+- `LLM_USAGE_UPDATE_CACHE_SESSION_KEY`: optional custom session key when cache scope is `session` (defaults to parent shell PID)
+- `LLM_USAGE_UPDATE_CACHE_TTL_MS`: update-check cache TTL in milliseconds (clamped `0..2592000000`; use `0` to check on every CLI run)
 - `LLM_USAGE_UPDATE_FETCH_TIMEOUT_MS`: update-check fetch timeout in milliseconds (clamped `200..30000`)
 - `LLM_USAGE_PRICING_CACHE_TTL_MS`: pricing cache TTL in milliseconds (clamped `60000..2592000000`)
 - `LLM_USAGE_PRICING_FETCH_TIMEOUT_MS`: pricing fetch timeout in milliseconds (clamped `200..30000`)
