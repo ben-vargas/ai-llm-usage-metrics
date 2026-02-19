@@ -284,6 +284,10 @@ function eventNeedsPricingLookup(event: UsageEvent): boolean {
 }
 
 function shouldLoadPricingSource(options: ReportCommandOptions, events: UsageEvent[]): boolean {
+  if (events.length === 0) {
+    return false;
+  }
+
   if (options.pricingUrl || options.pricingOffline) {
     return true;
   }
@@ -362,7 +366,7 @@ export async function buildUsageData(
     options.until,
   );
 
-  const modelFilterRules = resolveModelFilterRules(providerAndDateFilteredEvents, modelFilter);
+  const modelFilterRules = resolveModelFilterRules(providerFilteredEvents, modelFilter);
   const filteredEvents = providerAndDateFilteredEvents.filter((event) =>
     matchesModel(event.model, modelFilterRules),
   );

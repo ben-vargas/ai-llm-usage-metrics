@@ -112,6 +112,50 @@ describe('buildUsageData', () => {
     ]);
   });
 
+  it.each([
+    ['--pricing-offline', { pricingOffline: true }],
+    ['--pricing-url', { pricingUrl: 'https://example.test/pricing.json' }],
+  ] as const)(
+    'does not load pricing when %s is set but there are no events',
+    async (_, options) => {
+      const pricingLoaderSpy = vi.fn(async (): Promise<PricingLoadResult> => {
+        throw new Error('pricing should not be loaded when there are no events');
+      });
+
+      const result = await buildUsageData(
+        'daily',
+        {
+          timezone: 'UTC',
+          ...options,
+        },
+        {
+          ...withDeterministicRuntimeDeps(),
+          createAdapters: () => [createAdapter('pi', {}), createAdapter('codex', {})],
+          resolvePricingSource: pricingLoaderSpy,
+        },
+      );
+
+      expect(pricingLoaderSpy).not.toHaveBeenCalled();
+      expect(result.diagnostics.pricingOrigin).toBe('none');
+      expect(result.rows).toEqual([
+        {
+          rowType: 'grand_total',
+          periodKey: 'ALL',
+          source: 'combined',
+          models: [],
+          modelBreakdown: [],
+          inputTokens: 0,
+          outputTokens: 0,
+          reasoningTokens: 0,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          totalTokens: 0,
+          costUsd: 0,
+        },
+      ]);
+    },
+  );
+
   it('supports source filtering and preserves adapter order in session diagnostics', async () => {
     const result = await buildUsageData(
       'daily',
@@ -291,7 +335,7 @@ describe('buildUsageData', () => {
     });
   });
 
-  it('resolves exact-vs-substring model matching within the selected date range', async () => {
+  it('keeps exact model matching even when exact model exists outside the selected date range', async () => {
     const result = await buildUsageData(
       'daily',
       {
@@ -323,13 +367,23 @@ describe('buildUsageData', () => {
       },
     );
 
-    const periodRow = result.rows.find((row) => row.rowType === 'period_source');
-
-    expect(periodRow).toMatchObject({
-      source: 'pi',
-      models: ['claude-sonnet-4.5-v2'],
-      totalTokens: 30,
-    });
+    expect(result.rows.some((row) => row.rowType === 'period_source')).toBe(false);
+    expect(result.rows).toEqual([
+      {
+        rowType: 'grand_total',
+        periodKey: 'ALL',
+        source: 'combined',
+        models: [],
+        modelBreakdown: [],
+        inputTokens: 0,
+        outputTokens: 0,
+        reasoningTokens: 0,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+        totalTokens: 0,
+        costUsd: 0,
+      },
+    ]);
   });
 
   it('fails fast on malformed --source-dir values', async () => {
