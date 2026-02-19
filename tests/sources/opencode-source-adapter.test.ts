@@ -112,6 +112,18 @@ describe('OpenCodeSourceAdapter', () => {
     await expect(adapter.discoverFiles()).resolves.toEqual(['/tmp/opencode-b.db']);
   });
 
+  it('fails discovery when a default DB candidate exists but is unreadable', async () => {
+    const adapter = new OpenCodeSourceAdapter({
+      resolveDefaultDbPaths: () => ['/tmp/opencode.db'],
+      pathExists: async (filePath) => filePath === '/tmp/opencode.db',
+      pathReadable: async () => false,
+    });
+
+    await expect(adapter.discoverFiles()).rejects.toThrow(
+      'OpenCode DB path is unreadable: /tmp/opencode.db',
+    );
+  });
+
   it('maps assistant rows into normalized usage events and skips malformed rows', async () => {
     const adapter = new OpenCodeSourceAdapter({
       pathReadable: async () => true,
