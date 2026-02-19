@@ -67,8 +67,10 @@ describe('createCli', () => {
     const cli = createCli();
     const help = cli.helpInformation();
 
+    expect(help).toContain('Supported sources (3): pi, codex, opencode');
     expect(help).toContain('Show daily usage report');
     expect(help).toContain('llm-usage <command> --help');
+    expect(help).toContain('--source opencode --opencode-db /path/to/opencode.db');
     expect(help).toContain('npx --yes llm-usage-metrics daily');
   });
 
