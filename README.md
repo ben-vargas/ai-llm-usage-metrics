@@ -38,8 +38,7 @@ When installed globally, the CLI performs a lightweight npm update check on star
 
 Behavior:
 
-- uses a local cache (`~/.cache/llm-usage-metrics/update-check.json`) with a 1-hour default TTL
-- uses a local cache (`<platform-cache-root>/llm-usage-metrics/update-check.json`, defaulting to `~/.cache/llm-usage-metrics/update-check.json` on Linux when `XDG_CACHE_HOME` is unset) with a 1-hour default TTL
+- uses a local cache (`<platform-cache-root>/llm-usage-metrics/update-check.json`; defaults to `~/.cache/llm-usage-metrics/update-check.json` on Linux when `XDG_CACHE_HOME` is unset) with a 1-hour default TTL
 - optional session-scoped cache mode via `LLM_USAGE_UPDATE_CACHE_SCOPE=session`
 - skips checks for `--help` / `--version` invocations
 - skips checks when run through `npx`

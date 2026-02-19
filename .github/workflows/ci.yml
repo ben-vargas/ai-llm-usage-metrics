@@ -58,6 +58,14 @@ jobs:
       - name: Run tests with coverage (single run)
         run: bun run test
 
+      - name: Upload coverage to Codecov
+        if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork }}
+        uses: codecov/codecov-action@v5
+        with:
+          use_oidc: true
+          files: coverage/lcov.info
+          fail_ci_if_error: true
+
       - name: Build coverage summary
         run: node .github/scripts/build-coverage-summary.mjs
 
