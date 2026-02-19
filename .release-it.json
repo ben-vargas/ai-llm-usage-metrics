@@ -14,6 +14,12 @@
     "publish": true,
     "skipChecks": true
   },
+  "plugins": {
+    "@release-it/conventional-changelog": {
+      "preset": "conventionalcommits",
+      "infile": "CHANGELOG.md"
+    }
+  },
   "hooks": {
     "before:init": [
       "bun run lint",
