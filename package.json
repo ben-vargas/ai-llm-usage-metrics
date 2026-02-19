@@ -23,6 +23,7 @@
     "format:check": "prettier --check .",
     "format:write": "prettier --write .",
     "pack:check": "npm pack",
+    "smoke:dist-opencode": "node scripts/smoke-dist-opencode.mjs",
     "perf:report-baseline": "bun run scripts/perf-report-baseline.mjs",
     "release": "release-it",
     "release:dry": "release-it --dry-run",

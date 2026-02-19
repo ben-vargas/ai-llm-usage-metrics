@@ -1,4 +1,5 @@
 import { access, constants } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 
 import { createUsageEvent } from '../../domain/usage-event.js';
 import type { UsageEvent } from '../../domain/usage-event.js';
@@ -34,6 +35,7 @@ type SqliteModule = {
 
 type PathPredicate = (filePath: string) => Promise<boolean>;
 type SleepFn = (delayMs: number) => Promise<void>;
+const require = createRequire(import.meta.url);
 
 export type OpenCodeSourceAdapterOptions = {
   dbPath?: string;
@@ -264,7 +266,7 @@ function createFallbackQuery(columns: {
 
 async function loadNodeSqliteModule(): Promise<SqliteModule> {
   try {
-    return (await import('node:sqlite')) as unknown as SqliteModule;
+    return require('node:sqlite') as SqliteModule;
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
     throw new Error(

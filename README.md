@@ -26,6 +26,12 @@ npx --yes llm-usage-metrics daily
 
 (`npx llm-usage daily` works when the project is already installed locally.)
 
+Runtime notes:
+
+- OpenCode parsing requires Node.js 24+ (`node:sqlite`).
+- Bun is supported for dependency/scripts workflow, but OpenCode report runs should use Node-based CLI execution.
+- Example local execution against built dist: `node dist/index.js daily --source opencode --opencode-db /path/to/opencode.db`
+
 ## Update checks
 
 When installed globally, the CLI performs a lightweight npm update check on startup.

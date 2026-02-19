@@ -12,6 +12,11 @@ Without global install, use:
 npx --yes llm-usage-metrics <command> [options]
 ```
 
+Runtime note:
+
+- OpenCode (`--source opencode` / `--opencode-db`) requires Node.js 24+ because it uses `node:sqlite`.
+- If you build locally, run OpenCode flows via `node dist/index.js ...`.
+
 Commands:
 
 - `daily`

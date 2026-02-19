@@ -58,6 +58,12 @@ Build CLI bundle:
 bun run build
 ```
 
+Smoke-test built OpenCode path:
+
+```bash
+bun run smoke:dist-opencode
+```
+
 Check npm package output:
 
 ```bash
@@ -83,6 +89,7 @@ Checks:
 - typecheck
 - format check
 - build
+- built dist OpenCode smoke test
 - npm pack check
 - test + coverage (`bun run test`, Node 24)
 
