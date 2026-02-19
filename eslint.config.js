@@ -52,6 +52,13 @@ export default tseslint.config(
           allowNumber: true,
         },
       ],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'ImportExpression',
+          message: 'Inline dynamic imports are forbidden; use top-level static imports instead.',
+        },
+      ],
     },
   },
   prettierConfig,
