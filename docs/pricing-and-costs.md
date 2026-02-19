@@ -46,11 +46,11 @@ Cache behavior:
 - in offline mode, stale cache is allowed
 - if network fetch succeeds but cache write fails, pricing is still used in memory
 
-### 2) Static pricing source helper
+### 2) Test-only static pricing helper
 
-Source file: `src/pricing/static-pricing-source.ts`
+Source file: `tests/helpers/static-pricing-source.ts`
 
-This helper is retained for tests/tooling support. Runtime report pricing resolution uses LiteLLM pricing fetch/cache flows.
+This helper exists only for deterministic test fixtures. Runtime report pricing resolution uses LiteLLM pricing fetch/cache flows.
 
 ## Model resolution
 

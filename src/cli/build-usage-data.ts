@@ -311,13 +311,9 @@ function eventNeedsPricingLookup(event: UsageEvent): boolean {
   return event.costMode !== 'explicit' || event.costUsd === undefined || event.costUsd === 0;
 }
 
-function shouldLoadPricingSource(options: ReportCommandOptions, events: UsageEvent[]): boolean {
+function shouldLoadPricingSource(events: UsageEvent[]): boolean {
   if (events.length === 0) {
     return false;
-  }
-
-  if (options.pricingUrl || options.pricingOffline) {
-    return true;
   }
 
   return events.some((event) => eventNeedsPricingLookup(event));
@@ -512,7 +508,7 @@ export async function buildUsageData(
   let pricingOrigin: UsagePricingOrigin = 'none';
   let pricingSource: PricingSource | undefined;
 
-  if (shouldLoadPricingSource(options, filteredEvents)) {
+  if (shouldLoadPricingSource(filteredEvents)) {
     const pricingResult = await loadPricingSource(options, pricingRuntimeConfig);
     pricingSource = pricingResult.source;
     pricingOrigin = pricingResult.origin;

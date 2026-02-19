@@ -7,8 +7,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { buildUsageData } from '../../src/cli/build-usage-data.js';
 import type { PricingLoadResult } from '../../src/cli/usage-data-contracts.js';
 import { createUsageEvent } from '../../src/domain/usage-event.js';
-import { createDefaultOpenAiPricingSource } from '../../src/pricing/static-pricing-source.js';
 import type { SourceAdapter } from '../../src/sources/source-adapter.js';
+import { createDefaultOpenAiPricingSource } from '../helpers/static-pricing-source.js';
 
 const tempDirs: string[] = [];
 const originalXdgCacheHome = process.env.XDG_CACHE_HOME;
@@ -676,6 +676,47 @@ describe('buildUsageData', () => {
     expect(pricingLoaderSpy).not.toHaveBeenCalled();
     expect(result.diagnostics.pricingOrigin).toBe('none');
   });
+
+  it.each([
+    ['--pricing-offline', { pricingOffline: true }],
+    ['--pricing-url', { pricingUrl: 'https://example.test/pricing.json' }],
+  ] as const)(
+    'does not force pricing loading for explicit non-zero costs when %s is set',
+    async (_, optionOverrides) => {
+      const pricingLoaderSpy = vi.fn(
+        async (): Promise<PricingLoadResult> => ({
+          source: createDefaultOpenAiPricingSource(),
+          origin: 'network',
+        }),
+      );
+
+      const result = await buildUsageData(
+        'daily',
+        {
+          timezone: 'UTC',
+          ...optionOverrides,
+        },
+        {
+          ...withDeterministicRuntimeDeps(),
+          createAdapters: () => [
+            createAdapter('pi', {
+              '/tmp/pi-1.jsonl': [
+                createEvent({
+                  source: 'pi',
+                  costMode: 'explicit',
+                  costUsd: 0.12,
+                }),
+              ],
+            }),
+          ],
+          resolvePricingSource: pricingLoaderSpy,
+        },
+      );
+
+      expect(pricingLoaderSpy).not.toHaveBeenCalled();
+      expect(result.diagnostics.pricingOrigin).toBe('none');
+    },
+  );
 
   it('re-prices explicit zero-cost events when model pricing is available', async () => {
     const pricingLoaderSpy = vi.fn(

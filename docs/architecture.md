@@ -121,7 +121,6 @@ flowchart TD
 
 - `types.ts`: pricing interfaces.
 - `cost-engine.ts`: cost estimation logic.
-- `static-pricing-source.ts`: static pricing source helper (used in tests/tooling).
 - `litellm-pricing-fetcher.ts`: LiteLLM pricing loader with cache/offline support.
 
 ### `src/update`
