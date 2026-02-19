@@ -3,14 +3,11 @@ import { Command } from 'commander';
 import { getDefaultSourceIds } from '../sources/create-default-adapters.js';
 import { runUsageReport } from './run-usage-report.js';
 import type { ReportCommandOptions } from './usage-data-contracts.js';
-
-export type UsageGranularity = 'daily' | 'weekly' | 'monthly';
+import type { ReportGranularity } from '../utils/time-buckets.js';
 
 export type CreateCliOptions = {
   version?: string;
 };
-
-type SharedOptions = ReportCommandOptions;
 
 const defaultTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 
@@ -60,7 +57,7 @@ function addSharedOptions(command: Command): Command {
     );
 }
 
-function commandDescription(granularity: UsageGranularity): string {
+function commandDescription(granularity: ReportGranularity): string {
   switch (granularity) {
     case 'daily':
       return 'Show daily usage report';
@@ -71,12 +68,12 @@ function commandDescription(granularity: UsageGranularity): string {
   }
 }
 
-function createCommand(granularity: UsageGranularity): Command {
+function createCommand(granularity: ReportGranularity): Command {
   const command = new Command(granularity);
 
   addSharedOptions(command)
     .description(commandDescription(granularity))
-    .action(async (options: SharedOptions) => {
+    .action(async (options: ReportCommandOptions) => {
       await runUsageReport(granularity, options);
     });
 

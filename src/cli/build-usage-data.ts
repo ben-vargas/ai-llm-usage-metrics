@@ -351,9 +351,8 @@ export async function buildUsageData(
     eventsParsed: result.events.length,
   }));
 
-  const parsedEventsByAdapter = parseResults.map((result) => result.events);
-  const providerFilteredEvents = parsedEventsByAdapter
-    .flat()
+  const providerFilteredEvents = parseResults
+    .flatMap((result) => result.events)
     .filter((event) => matchesProvider(event.provider, providerFilter));
 
   const providerAndDateFilteredEvents = filterEventsByDateRange(
