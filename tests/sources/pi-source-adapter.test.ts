@@ -188,6 +188,40 @@ describe('PiSourceAdapter', () => {
     expect(events[0]?.timestamp).toBe('2024-02-12T20:00:00.000Z');
   });
 
+  it('treats millisecond timestamps as milliseconds (without multiplying by 1000)', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'pi-source-unix-milliseconds-'));
+    tempDirs.push(root);
+
+    const filePath = path.join(root, 'session.jsonl');
+
+    await writeFile(
+      filePath,
+      [
+        JSON.stringify({
+          type: 'session',
+          id: 'pi-unix-milliseconds',
+        }),
+        JSON.stringify({
+          type: 'message',
+          timestamp: 946_684_800_000,
+          provider: 'openai',
+          usage: {
+            input: 1,
+            output: 2,
+            totalTokens: 3,
+          },
+        }),
+      ].join('\n'),
+      'utf8',
+    );
+
+    const adapter = new PiSourceAdapter({ sessionsDir: root });
+    const events = await adapter.parseFile(filePath);
+
+    expect(events).toHaveLength(1);
+    expect(events[0]?.timestamp).toBe('2000-01-01T00:00:00.000Z');
+  });
+
   it('ignores out-of-range numeric timestamps instead of crashing', async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), 'pi-source-invalid-numeric-ts-'));
     tempDirs.push(root);

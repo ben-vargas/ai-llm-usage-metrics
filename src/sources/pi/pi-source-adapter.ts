@@ -65,6 +65,8 @@ function asNumberLike(value: unknown): NumberLike {
   return undefined;
 }
 
+const UNIX_SECONDS_ABS_CUTOFF = 10_000_000_000;
+
 function resolveTimestamp(
   line: Record<string, unknown>,
   message: Record<string, unknown> | undefined,
@@ -74,7 +76,8 @@ function resolveTimestamp(
 
   for (const candidate of candidates) {
     if (typeof candidate === 'number' && Number.isFinite(candidate)) {
-      const timestampMs = Math.abs(candidate) < 1_000_000_000_000 ? candidate * 1000 : candidate;
+      const timestampMs =
+        Math.abs(candidate) <= UNIX_SECONDS_ABS_CUTOFF ? candidate * 1000 : candidate;
       const date = new Date(timestampMs);
 
       if (!Number.isNaN(date.getTime())) {
