@@ -14,10 +14,10 @@ afterEach(async () => {
 });
 
 describe('createDefaultAdapters', () => {
-  it('builds pi and codex adapters in stable order', () => {
+  it('builds default adapters in stable order', () => {
     const adapters = createDefaultAdapters({});
 
-    expect(adapters.map((adapter) => adapter.id)).toEqual(['pi', 'codex']);
+    expect(adapters.map((adapter) => adapter.id)).toEqual(['pi', 'codex', 'opencode']);
   });
 
   it('supports generic source directory overrides', async () => {
@@ -57,10 +57,16 @@ describe('createDefaultAdapters', () => {
     );
   });
 
-  it('throws when --opencode-db is provided before OpenCode source is available', () => {
-    expect(() => createDefaultAdapters({ opencodeDb: '/tmp/opencode.sqlite' })).toThrow(
-      'OpenCode source is not available yet in this version. Remove --opencode-db for now.',
-    );
+  it('wires --opencode-db into the OpenCode adapter discovery path', async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), 'usage-adapters-opencode-db-'));
+    tempDirs.push(tempDir);
+    const opencodeDbPath = path.join(tempDir, 'opencode.db');
+    await writeFile(opencodeDbPath, '', 'utf8');
+
+    const adapters = createDefaultAdapters({ opencodeDb: opencodeDbPath });
+    const opencodeAdapter = adapters.find((adapter) => adapter.id === 'opencode');
+
+    await expect(opencodeAdapter?.discoverFiles()).resolves.toEqual([opencodeDbPath]);
   });
 
   it('throws when --opencode-db is blank', () => {

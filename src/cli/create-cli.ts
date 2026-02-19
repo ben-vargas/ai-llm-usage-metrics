@@ -25,10 +25,7 @@ function addSharedOptions(command: Command): Command {
   return command
     .option('--pi-dir <path>', 'Path to .pi sessions directory')
     .option('--codex-dir <path>', 'Path to .codex sessions directory')
-    .option(
-      '--opencode-db <path>',
-      'Path to OpenCode SQLite DB (reserved until OpenCode source support is enabled)',
-    )
+    .option('--opencode-db <path>', 'Path to OpenCode SQLite DB')
     .option(
       '--source-dir <source-id=path>',
       'Override source directory for directory-backed sources (repeatable)',

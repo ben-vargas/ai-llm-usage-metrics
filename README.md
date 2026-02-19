@@ -4,12 +4,13 @@ CLI to aggregate local LLM usage from:
 
 - `~/.pi/agent/sessions/**/*.jsonl`
 - `~/.codex/sessions/**/*.jsonl`
+- OpenCode SQLite DB (auto-discovered or provided via `--opencode-db`)
 
 Reports are available for daily, weekly (Monday-start), and monthly periods.
 
 Project documentation is available in [`docs/`](./docs/README.md).
 
-Built-in adapters currently support `.pi` and `.codex`. The codebase is structured to add more sources (for example Claude/Gemini exports) through the `SourceAdapter` pattern. See [`CONTRIBUTING.md`](./CONTRIBUTING.md).
+Built-in adapters currently support `.pi`, `.codex`, and OpenCode SQLite. The codebase is structured to add more sources (for example Claude/Gemini exports) through the `SourceAdapter` pattern. See [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
 ## Install
 
@@ -129,7 +130,13 @@ Directory override rules:
 
 - `--source-dir` is directory-only (currently `pi` and `codex`).
 - `--source-dir opencode=...` is invalid and points to `--opencode-db`.
-- `--opencode-db <path>` is reserved for upcoming OpenCode source support and currently fails fast with an explicit message.
+- `--opencode-db <path>` sets an explicit OpenCode SQLite DB path.
+
+OpenCode DB override:
+
+```bash
+llm-usage daily --opencode-db /path/to/opencode.db
+```
 
 ### Filter by source
 
@@ -143,6 +150,12 @@ Only pi rows:
 
 ```bash
 llm-usage monthly --source pi
+```
+
+Only OpenCode rows:
+
+```bash
+llm-usage monthly --source opencode
 ```
 
 Multiple sources (repeat or comma-separated):
@@ -227,7 +240,7 @@ Example output:
 
 Each report includes:
 
-- source rows (`pi`, `codex`) for each period
+- source rows (`pi`, `codex`, `opencode`) for each period
 - a per-period combined subtotal row (only when multiple sources exist in that period)
 - a final grand total row across all periods
 

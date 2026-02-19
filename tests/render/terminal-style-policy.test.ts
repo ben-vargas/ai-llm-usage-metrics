@@ -11,6 +11,7 @@ import type { UsageReportRow } from '../../src/domain/usage-report-row.js';
 const testPalette: TerminalStylePalette = {
   cyan: (text) => `<cyan>${text}</cyan>`,
   magenta: (text) => `<magenta>${text}</magenta>`,
+  blue: (text) => `<blue>${text}</blue>`,
   yellow: (text) => `<yellow>${text}</yellow>`,
   green: (text) => `<green>${text}</green>`,
   white: (text) => `<white>${text}</white>`,
@@ -22,6 +23,7 @@ describe('terminal-style-policy', () => {
   it('resolves source stylers for known sources and fallback', () => {
     expect(resolveSourceStyler('pi', testPalette)('pi')).toBe('<cyan>pi</cyan>');
     expect(resolveSourceStyler('codex', testPalette)('codex')).toBe('<magenta>codex</magenta>');
+    expect(resolveSourceStyler('opencode', testPalette)('opencode')).toBe('<blue>opencode</blue>');
     expect(resolveSourceStyler('combined', testPalette)('combined')).toBe(
       '<yellow>combined</yellow>',
     );

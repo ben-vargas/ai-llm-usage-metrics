@@ -8,6 +8,7 @@ import { buildUsageReport, runUsageReport } from '../../src/cli/run-usage-report
 
 const tempDirs: string[] = [];
 const originalParseMaxParallel = process.env.LLM_USAGE_PARSE_MAX_PARALLEL;
+const directoryBackedSources = 'pi,codex';
 
 function restoreParseMaxParallel(): void {
   if (originalParseMaxParallel === undefined) {
@@ -35,6 +36,7 @@ describe('buildUsageReport', () => {
     const report = await buildUsageReport('daily', {
       piDir: path.resolve('tests/fixtures/pi'),
       codexDir: path.resolve('tests/fixtures/codex'),
+      source: directoryBackedSources,
       timezone: 'UTC',
       markdown: true,
     });
@@ -53,6 +55,7 @@ describe('buildUsageReport', () => {
     const report = await buildUsageReport('daily', {
       piDir: path.resolve('tests/fixtures/pi'),
       codexDir: path.resolve('tests/fixtures/codex'),
+      source: directoryBackedSources,
       timezone: 'UTC',
       markdown: true,
       perModelColumns: true,
@@ -66,6 +69,7 @@ describe('buildUsageReport', () => {
     const report = await buildUsageReport('weekly', {
       piDir: path.resolve('tests/fixtures/pi'),
       codexDir: path.resolve('tests/fixtures/codex'),
+      source: directoryBackedSources,
       timezone: 'UTC',
       json: true,
     });
@@ -156,6 +160,7 @@ describe('buildUsageReport', () => {
     const report = await buildUsageReport('daily', {
       piDir: tempDir,
       codexDir: tempDir,
+      source: directoryBackedSources,
       timezone: 'UTC',
       provider: 'openai',
       json: true,
@@ -191,6 +196,7 @@ describe('buildUsageReport', () => {
       const report = await buildUsageReport('daily', {
         piDir: emptyDir,
         codexDir: emptyDir,
+        source: directoryBackedSources,
         timezone: 'UTC',
         json: true,
       });
@@ -226,6 +232,7 @@ describe('buildUsageReport', () => {
     const report = await buildUsageReport('monthly', {
       piDir: emptyDir,
       codexDir: emptyDir,
+      source: directoryBackedSources,
       timezone: 'UTC',
     });
 
@@ -248,6 +255,7 @@ describe('buildUsageReport', () => {
     const report = await buildUsageReport('daily', {
       piDir: emptyDir,
       codexDir: emptyDir,
+      source: directoryBackedSources,
       timezone: 'UTC',
     });
 
@@ -312,7 +320,7 @@ describe('buildUsageReport', () => {
       buildUsageReport('daily', {
         source: 'claude',
       }),
-    ).rejects.toThrow('Unknown --source value(s): claude. Allowed values: codex, pi');
+    ).rejects.toThrow('Unknown --source value(s): claude. Allowed values: codex, opencode, pi');
 
     await expect(
       buildUsageReport('daily', {
@@ -340,6 +348,7 @@ describe('buildUsageReport', () => {
       const report = await buildUsageReport('daily', {
         piDir: emptyDir,
         codexDir: emptyDir,
+        source: directoryBackedSources,
         timezone: 'UTC',
       });
 
@@ -361,6 +370,7 @@ describe('buildUsageReport', () => {
       await runUsageReport('daily', {
         piDir: emptyDir,
         codexDir: emptyDir,
+        source: directoryBackedSources,
         timezone: 'UTC',
       });
 
@@ -384,6 +394,7 @@ describe('buildUsageReport', () => {
       await runUsageReport('daily', {
         piDir: emptyDir,
         codexDir: emptyDir,
+        source: directoryBackedSources,
         timezone: 'UTC',
         json: true,
       });

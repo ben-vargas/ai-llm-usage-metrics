@@ -1,4 +1,5 @@
 import { CodexSourceAdapter } from './codex/codex-source-adapter.js';
+import { OpenCodeSourceAdapter } from './opencode/opencode-source-adapter.js';
 import { PiSourceAdapter } from './pi/pi-source-adapter.js';
 import type { SourceAdapter } from './source-adapter.js';
 
@@ -67,6 +68,13 @@ const sourceRegistrations: readonly SourceRegistration[] = [
         sessionsDir: resolveDirectoryOverride('codex', options.codexDir, sourceDirectoryOverrides),
       }),
   },
+  {
+    id: 'opencode',
+    create: (options) =>
+      new OpenCodeSourceAdapter({
+        dbPath: options.opencodeDb,
+      }),
+  },
 ];
 
 function validateSourceDirectoryOverrideIds(
@@ -99,7 +107,7 @@ function validateSourceDirectoryOverrideIds(
   );
 }
 
-function validatePendingOpencodeOverride(opencodeDb: string | undefined): void {
+function validateOpencodeOverride(opencodeDb: string | undefined): void {
   if (opencodeDb === undefined) {
     return;
   }
@@ -107,10 +115,6 @@ function validatePendingOpencodeOverride(opencodeDb: string | undefined): void {
   if (opencodeDb.trim().length === 0) {
     throw new Error('--opencode-db must be a non-empty path');
   }
-
-  throw new Error(
-    'OpenCode source is not available yet in this version. Remove --opencode-db for now.',
-  );
 }
 
 function resolveDirectoryOverride(
@@ -126,7 +130,7 @@ export function getDefaultSourceIds(): string[] {
 }
 
 export function createDefaultAdapters(options: CreateDefaultAdaptersOptions): SourceAdapter[] {
-  validatePendingOpencodeOverride(options.opencodeDb);
+  validateOpencodeOverride(options.opencodeDb);
 
   const sourceDirectoryOverrides = parseSourceDirectoryOverrides(options.sourceDir);
   validateSourceDirectoryOverrideIds(sourceDirectoryOverrides);

@@ -2,7 +2,8 @@
 
 ## File discovery
 
-Both adapters use recursive discovery for `*.jsonl` files and return paths in deterministic sorted order.
+- Directory-backed adapters (`pi`, `codex`) use recursive discovery for `*.jsonl` files and return paths in deterministic sorted order.
+- OpenCode uses a deterministic SQLite DB path resolver (or `--opencode-db` when explicitly provided).
 
 ## `.pi` parsing
 
@@ -83,6 +84,43 @@ This avoids double counting input + cache read later.
 
 When model metadata is missing, model is set to:
 `legacy-codex-unknown`
+
+## `opencode` parsing
+
+Source file: `src/sources/opencode/opencode-source-adapter.ts`
+
+### Data source and discovery
+
+- reads OpenCode SQLite usage history in read-only mode (`node:sqlite`)
+- discovery order:
+
+1. explicit `--opencode-db` path (must be readable)
+2. deterministic OS-specific default path candidates (`src/sources/opencode/opencode-db-path-resolver.ts`)
+
+### Extraction query and fallback
+
+- primary query reads assistant rows from `message` table using `json_extract(data, '$.role') = 'assistant'`
+- deterministic ordering: `ORDER BY <timestamp>, <id>`
+- if `json_extract` is unavailable, adapter falls back to a broader query and performs assistant-role filtering in JavaScript
+
+### Field mapping
+
+- provider: `providerID` fallback `provider`
+- model: `modelID` fallback `model`
+- tokens:
+  - input: `tokens.input`
+  - output: `tokens.output`
+  - reasoning: `tokens.reasoning`
+  - cache read: `tokens.cache.read`
+  - cache write: `tokens.cache.write`
+  - total: `tokens.total`
+- cost: `cost` when numeric and non-negative; otherwise omitted for pricing-stage estimation
+
+### Drift/error handling
+
+- probes schema via `sqlite_master` and `PRAGMA table_info('message')`
+- retries busy/locked SQLite errors with bounded backoff, then fails with actionable guidance
+- malformed JSON rows or rows with missing required usage/timestamp/session fields are skipped
 
 ## Shared normalization (`src/domain/normalization.ts`)
 

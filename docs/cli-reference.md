@@ -22,7 +22,7 @@ Commands:
 
 - `--pi-dir <path>`: override `.pi` sessions directory
 - `--codex-dir <path>`: override `.codex` sessions directory
-- `--opencode-db <path>`: OpenCode SQLite DB path override (reserved until OpenCode source support is enabled)
+- `--opencode-db <path>`: OpenCode SQLite DB path override
 - `--source-dir <source-id=path>`: override sessions directory for directory-backed sources only (repeatable)
 - `--source <name>`: source filter (repeatable or comma-separated)
 - `--since <YYYY-MM-DD>`: inclusive start date (local to selected timezone)
@@ -91,7 +91,7 @@ When outputting to terminal (default), the CLI emits:
 
 Row styling policy:
 
-- Source names are color-coded (`pi` = cyan, `codex` = magenta, `combined` = yellow)
+- Source names are color-coded (`pi` = cyan, `codex` = magenta, `opencode` = blue, `combined` = yellow)
 - Grand total source label (`TOTAL`) is bold green
 - Grand total numeric cells are bold
 - Combined subtotal rows are dimmed except the source cell
@@ -150,10 +150,10 @@ Generic source directory overrides:
 llm-usage daily --source-dir pi=/path/to/pi --source-dir codex=/path/to/codex
 ```
 
-OpenCode DB override (pre-wired; not yet active in current release):
+OpenCode DB override:
 
 ```bash
-llm-usage daily --opencode-db /path/to/opencode.sqlite
+llm-usage daily --opencode-db /path/to/opencode.db
 ```
 
 Offline pricing mode:
@@ -172,6 +172,12 @@ Only pi rows:
 
 ```bash
 llm-usage monthly --source pi
+```
+
+Only OpenCode rows:
+
+```bash
+llm-usage monthly --source opencode
 ```
 
 Multiple sources (repeat or comma-separated):
@@ -194,12 +200,11 @@ llm-usage monthly --model claude,gpt-5
 - `--since` and `--until` must be valid calendar dates in `YYYY-MM-DD`
 - `--since` must be `<= --until`
 - `--timezone` must be a valid IANA timezone
-- `--source` values must be non-empty source ids and match known sources (`pi`, `codex`)
+- `--source` values must be non-empty source ids and match known sources (`pi`, `codex`, `opencode`)
 - `--model` must contain at least one non-empty filter value
 - `--source-dir` values must use `<source-id>=<path>` with non-empty source id and path
 - `--source-dir` is currently directory-only (`pi`, `codex`)
 - `--source-dir opencode=...` is rejected; use `--opencode-db` for DB-based sources
-- `--opencode-db` is currently reserved and fails fast until OpenCode source parsing is released
 - `--pricing-url` must be `http` or `https`
 - `--markdown` and `--json` are mutually exclusive
 - if LiteLLM pricing cannot be loaded (or cache is unavailable in offline mode), report generation fails

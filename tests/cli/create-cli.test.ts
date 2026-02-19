@@ -44,7 +44,17 @@ describe('createCli', () => {
     const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
 
     await cli.parseAsync(
-      ['daily', '--pi-dir', emptySessionsDir, '--codex-dir', emptySessionsDir, '--timezone', 'UTC'],
+      [
+        'daily',
+        '--pi-dir',
+        emptySessionsDir,
+        '--codex-dir',
+        emptySessionsDir,
+        '--source',
+        'pi,codex',
+        '--timezone',
+        'UTC',
+      ],
       { from: 'user' },
     );
 

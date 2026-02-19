@@ -13,10 +13,11 @@ This folder contains the technical documentation for `llm-usage-metrics`.
 
 ## Quick summary
 
-`llm-usage-metrics` reads local `.jsonl` session logs from:
+`llm-usage-metrics` reads local usage data from:
 
 - `~/.pi/agent/sessions`
 - `~/.codex/sessions`
+- OpenCode SQLite DB (auto-discovered or via `--opencode-db`)
 
 It normalizes events, estimates cost when needed, aggregates by period (daily/weekly/monthly), and renders the result as terminal table, markdown, or JSON.
 

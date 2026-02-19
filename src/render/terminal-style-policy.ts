@@ -7,6 +7,7 @@ export type TextStyler = (text: string) => string;
 export type TerminalStylePalette = {
   cyan: TextStyler;
   magenta: TextStyler;
+  blue: TextStyler;
   yellow: TextStyler;
   green: TextStyler;
   white: TextStyler;
@@ -17,6 +18,7 @@ export type TerminalStylePalette = {
 export const defaultTerminalStylePalette: TerminalStylePalette = {
   cyan: pc.cyan,
   magenta: pc.magenta,
+  blue: pc.blue,
   yellow: pc.yellow,
   green: pc.green,
   white: pc.white,
@@ -31,6 +33,7 @@ type SourceStylePolicy = (palette: TerminalStylePalette) => TextStyler;
 const sourceStylePolicies = new Map<string, SourceStylePolicy>([
   ['pi', (palette) => palette.cyan],
   ['codex', (palette) => palette.magenta],
+  ['opencode', (palette) => palette.blue],
   ['combined', (palette) => palette.yellow],
   ['TOTAL', (palette) => (text) => palette.bold(palette.green(text))],
 ]);
