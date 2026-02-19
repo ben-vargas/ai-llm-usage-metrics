@@ -4,6 +4,8 @@
 [![CI](https://github.com/ayagmar/llm-usage-metrics/actions/workflows/ci.yml/badge.svg)](https://github.com/ayagmar/llm-usage-metrics/actions/workflows/ci.yml)
 [![Coverage](https://img.shields.io/codecov/c/github/ayagmar/llm-usage-metrics)](https://codecov.io/gh/ayagmar/llm-usage-metrics)
 [![npm version](https://img.shields.io/npm/v/llm-usage-metrics.svg)](https://www.npmjs.com/package/llm-usage-metrics)
+[![npm total downloads](https://img.shields.io/npm/dt/llm-usage-metrics.svg)](https://www.npmjs.com/package/llm-usage-metrics)
+[![install size](https://packagephobia.com/badge?p=llm-usage-metrics)](https://packagephobia.com/result?p=llm-usage-metrics)
 
 CLI to aggregate local LLM usage from:
 
