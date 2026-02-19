@@ -1,5 +1,10 @@
 # llm-usage-metrics
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/ayagmar/llm-usage-metrics)
+[![CI](https://github.com/ayagmar/llm-usage-metrics/actions/workflows/ci.yml/badge.svg)](https://github.com/ayagmar/llm-usage-metrics/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/codecov/c/github/ayagmar/llm-usage-metrics)](https://codecov.io/gh/ayagmar/llm-usage-metrics)
+[![npm version](https://img.shields.io/npm/v/llm-usage-metrics.svg)](https://www.npmjs.com/package/llm-usage-metrics)
+
 CLI to aggregate local LLM usage from:
 
 - `~/.pi/agent/sessions/**/*.jsonl`
