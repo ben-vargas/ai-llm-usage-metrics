@@ -153,6 +153,16 @@ describe('OpenCodeSourceAdapter', () => {
             row_time: 1_737_000_003,
             data_json: JSON.stringify({ role: 'user', tokens: { input: 1 } }),
           },
+          {
+            row_id: 'msg-5',
+            row_session_id: 'session-5',
+            row_time: 1_737_000_004,
+            data_json: JSON.stringify({
+              role: 'assistant',
+              modelID: 'gpt-4.1',
+              tokens: { input: 0, output: 0, total: 0 },
+            }),
+          },
         ],
       }),
     });
@@ -160,7 +170,7 @@ describe('OpenCodeSourceAdapter', () => {
     const parseDiagnostics = await adapter.parseFileWithDiagnostics('/tmp/opencode.db');
 
     expect(parseDiagnostics.events).toHaveLength(1);
-    expect(parseDiagnostics.skippedRows).toBe(2);
+    expect(parseDiagnostics.skippedRows).toBe(3);
     expect(parseDiagnostics.events[0]).toMatchObject({
       source: 'opencode',
       sessionId: 'session-1',

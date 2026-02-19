@@ -131,7 +131,10 @@ function hasUsageSignal(usageFields: Array<unknown>, explicitCost: number | unde
     return true;
   }
 
-  return usageFields.some((value) => value !== undefined && value !== null);
+  return usageFields.some((value) => {
+    const parsed = parseNonNegativeNumber(value);
+    return parsed !== undefined && parsed > 0;
+  });
 }
 
 function isBusyOrLockedError(error: unknown): boolean {

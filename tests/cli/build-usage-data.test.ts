@@ -201,6 +201,42 @@ describe('buildUsageData', () => {
     },
   );
 
+  it('does not load pricing when parsed events have zero total tokens only', async () => {
+    const pricingLoaderSpy = vi.fn(async (): Promise<PricingLoadResult> => {
+      throw new Error('pricing should not be loaded when all events are zero-usage');
+    });
+
+    const result = await buildUsageData(
+      'daily',
+      {
+        timezone: 'UTC',
+      },
+      {
+        ...withDeterministicRuntimeDeps(),
+        createAdapters: () => [
+          createAdapter('pi', {
+            '/tmp/pi-1.jsonl': [
+              createEvent({
+                inputTokens: 0,
+                outputTokens: 0,
+                reasoningTokens: 0,
+                cacheReadTokens: 0,
+                cacheWriteTokens: 0,
+                totalTokens: 0,
+                costMode: 'estimated',
+                costUsd: undefined,
+              }),
+            ],
+          }),
+        ],
+        resolvePricingSource: pricingLoaderSpy,
+      },
+    );
+
+    expect(pricingLoaderSpy).not.toHaveBeenCalled();
+    expect(result.diagnostics.pricingOrigin).toBe('none');
+  });
+
   it('supports source filtering and preserves adapter order in session diagnostics', async () => {
     const result = await buildUsageData(
       'daily',
@@ -291,6 +327,32 @@ describe('buildUsageData', () => {
       { source: 'opencode', filesFound: 1, eventsParsed: 1 },
     ]);
     expect(result.diagnostics.skippedRows).toEqual([{ source: 'opencode', skippedRows: 2 }]);
+  });
+
+  it('normalizes invalid skipped-row diagnostics emitted by adapters', async () => {
+    const result = await buildUsageData(
+      'daily',
+      {
+        timezone: 'UTC',
+      },
+      {
+        ...withDeterministicRuntimeDeps(),
+        createAdapters: () => [
+          createAdapterWithDiagnostics('opencode', {
+            '/tmp/opencode-a.db': {
+              events: [createEvent({ source: 'opencode', sessionId: 'opencode-session-a' })],
+              skippedRows: Number.NaN,
+            },
+            '/tmp/opencode-b.db': {
+              events: [createEvent({ source: 'opencode', sessionId: 'opencode-session-b' })],
+              skippedRows: -3,
+            },
+          }),
+        ],
+      },
+    );
+
+    expect(result.diagnostics.skippedRows).toEqual([]);
   });
 
   it('fails when an explicitly selected source cannot be parsed', async () => {

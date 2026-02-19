@@ -177,6 +177,14 @@ function getDefaultParseFileDiagnostics(events: UsageEvent[]): SourceParseFileDi
   return { events, skippedRows: 0 };
 }
 
+function normalizeSkippedRowsCount(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.trunc(value));
+}
+
 async function parseAdapterEvents(
   adapter: SourceAdapter,
   maxParallelFileParsing: number,
@@ -206,7 +214,7 @@ async function parseAdapterEvents(
         : getDefaultParseFileDiagnostics(await adapter.parseFile(files[fileIndex]));
 
       parsedByFile[fileIndex] = parseFileDiagnostics.events;
-      skippedRowsByFile[fileIndex] = parseFileDiagnostics.skippedRows;
+      skippedRowsByFile[fileIndex] = normalizeSkippedRowsCount(parseFileDiagnostics.skippedRows);
     }
   });
 
@@ -293,6 +301,10 @@ async function resolvePricingSource(
 
 function eventNeedsPricingLookup(event: UsageEvent): boolean {
   if (!event.model) {
+    return false;
+  }
+
+  if (event.totalTokens <= 0) {
     return false;
   }
 
