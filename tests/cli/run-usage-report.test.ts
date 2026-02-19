@@ -420,7 +420,7 @@ describe('buildUsageReport', () => {
     }
   });
 
-  it('keeps runUsageReport JSON output data-only (no diagnostics on stderr)', async () => {
+  it('keeps runUsageReport JSON output data-only on stdout while still emitting diagnostics', async () => {
     const emptyDir = await mkdtemp(path.join(os.tmpdir(), 'usage-run-json-no-logs-'));
     tempDirs.push(emptyDir);
 
@@ -436,9 +436,10 @@ describe('buildUsageReport', () => {
         json: true,
       });
 
-      expect(errorSpy).not.toHaveBeenCalled();
+      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('No sessions found'));
       expect(logSpy).toHaveBeenCalledTimes(1);
       expect(String(logSpy.mock.calls[0]?.[0])).toContain('"rowType": "grand_total"');
+      expect(errorSpy.mock.invocationCallOrder[0]).toBeLessThan(logSpy.mock.invocationCallOrder[0]);
     } finally {
       errorSpy.mockRestore();
       logSpy.mockRestore();
