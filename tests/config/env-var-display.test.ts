@@ -1,18 +1,28 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
   formatEnvVarOverrides,
   getActiveEnvVarOverrides,
 } from '../../src/config/env-var-display.js';
 
-afterEach(() => {
+function clearTestEnvVars(): void {
   delete process.env.LLM_USAGE_SKIP_UPDATE_CHECK;
+  delete process.env.LLM_USAGE_UPDATE_CACHE_SCOPE;
+  delete process.env.LLM_USAGE_UPDATE_CACHE_SESSION_KEY;
   delete process.env.LLM_USAGE_UPDATE_CACHE_TTL_MS;
   delete process.env.LLM_USAGE_UPDATE_FETCH_TIMEOUT_MS;
   delete process.env.LLM_USAGE_PRICING_CACHE_TTL_MS;
   delete process.env.LLM_USAGE_PRICING_FETCH_TIMEOUT_MS;
   delete process.env.LLM_USAGE_PARSE_MAX_PARALLEL;
   delete process.env.UNRELATED_ENV;
+}
+
+beforeEach(() => {
+  clearTestEnvVars();
+});
+
+afterEach(() => {
+  clearTestEnvVars();
 });
 
 describe('env-var-display', () => {

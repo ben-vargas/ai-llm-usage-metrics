@@ -175,6 +175,103 @@ describe('update-notifier', () => {
     expect(latestVersion).toBe('0.3.0');
   });
 
+  it('supports session-scoped update cache files', async () => {
+    const cacheFilePath = await createTempCachePath('update-cache-session-');
+    const fetchSpy = vi.fn(
+      async () => new Response(JSON.stringify({ version: '0.2.0' }), { status: 200 }),
+    );
+
+    const baseNow = 5_000_000;
+    const now = () => baseNow;
+
+    await checkForUpdatesAndMaybeRestart({
+      packageName: 'llm-usage-metrics',
+      currentVersion: '0.1.0',
+      cacheFilePath,
+      env: {
+        LLM_USAGE_UPDATE_CACHE_SCOPE: 'session',
+        LLM_USAGE_UPDATE_CACHE_SESSION_KEY: 'kitty/tab-1',
+      },
+      now,
+      fetchImpl: fetchSpy,
+      stdinIsTTY: false,
+      stdoutIsTTY: false,
+      notify: vi.fn(),
+    });
+
+    await checkForUpdatesAndMaybeRestart({
+      packageName: 'llm-usage-metrics',
+      currentVersion: '0.1.0',
+      cacheFilePath,
+      env: {
+        LLM_USAGE_UPDATE_CACHE_SCOPE: 'session',
+        LLM_USAGE_UPDATE_CACHE_SESSION_KEY: 'kitty/tab-1',
+      },
+      now,
+      fetchImpl: fetchSpy,
+      stdinIsTTY: false,
+      stdoutIsTTY: false,
+      notify: vi.fn(),
+    });
+
+    const parsedCachePath = path.parse(cacheFilePath);
+    const sessionScopedCachePath = path.join(
+      parsedCachePath.dir,
+      `${parsedCachePath.name}.kitty_tab-1${parsedCachePath.ext}`,
+    );
+
+    const sessionCachePayload = JSON.parse(await readFile(sessionScopedCachePath, 'utf8')) as {
+      checkedAt: number;
+      latestVersion: string;
+    };
+
+    expect(sessionCachePayload).toEqual({
+      checkedAt: baseNow,
+      latestVersion: '0.2.0',
+    });
+    await expect(readFile(cacheFilePath, 'utf8')).rejects.toThrow();
+    expect(fetchSpy).toHaveBeenCalledOnce();
+  });
+
+  it('falls back to parent pid session key when custom env session key is blank', async () => {
+    const cacheFilePath = await createTempCachePath('update-cache-session-blank-key-');
+    const nowValue = 6_000_000;
+
+    await checkForUpdatesAndMaybeRestart({
+      packageName: 'llm-usage-metrics',
+      currentVersion: '0.1.0',
+      cacheFilePath,
+      env: {
+        LLM_USAGE_UPDATE_CACHE_SCOPE: 'session',
+        LLM_USAGE_UPDATE_CACHE_SESSION_KEY: '   ',
+      },
+      now: () => nowValue,
+      fetchImpl: vi.fn(
+        async () => new Response(JSON.stringify({ version: '0.2.0' }), { status: 200 }),
+      ),
+      stdinIsTTY: false,
+      stdoutIsTTY: false,
+      notify: vi.fn(),
+    });
+
+    const parsedCachePath = path.parse(cacheFilePath);
+    const sessionScopedCachePath = path.join(
+      parsedCachePath.dir,
+      `${parsedCachePath.name}.ppid-${process.ppid}${parsedCachePath.ext}`,
+    );
+
+    const sessionCachePayload = JSON.parse(await readFile(sessionScopedCachePath, 'utf8')) as {
+      checkedAt: number;
+      latestVersion: string;
+    };
+
+    expect(sessionCachePayload).toEqual({
+      checkedAt: nowValue,
+      latestVersion: '0.2.0',
+    });
+    await expect(readFile(cacheFilePath, 'utf8')).rejects.toThrow();
+  });
+
   it('skips update checks for npx execution', async () => {
     const fetchSpy = vi.fn(async () => {
       throw new Error('fetch should not be called for npx execution');
