@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   createDefaultOpenAiPricingSource,
   StaticPricingSource,
-} from '../../src/pricing/static-pricing-source.js';
+} from '../helpers/static-pricing-source.js';
 
 describe('StaticPricingSource', () => {
   it('resolves aliases case-insensitively', () => {

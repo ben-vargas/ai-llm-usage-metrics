@@ -6,7 +6,7 @@ import {
   applyPricingToEvents,
   calculateEstimatedCostUsd,
 } from '../../src/pricing/cost-engine.js';
-import { StaticPricingSource } from '../../src/pricing/static-pricing-source.js';
+import { StaticPricingSource } from '../helpers/static-pricing-source.js';
 
 describe('cost engine', () => {
   it('keeps non-zero explicit costs unchanged', () => {

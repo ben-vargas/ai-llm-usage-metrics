@@ -7,8 +7,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { buildUsageData } from '../../src/cli/build-usage-data.js';
 import type { PricingLoadResult } from '../../src/cli/usage-data-contracts.js';
 import { createUsageEvent } from '../../src/domain/usage-event.js';
-import { createDefaultOpenAiPricingSource } from '../../src/pricing/static-pricing-source.js';
 import type { SourceAdapter } from '../../src/sources/source-adapter.js';
+import { createDefaultOpenAiPricingSource } from '../helpers/static-pricing-source.js';
 
 const tempDirs: string[] = [];
 const originalXdgCacheHome = process.env.XDG_CACHE_HOME;

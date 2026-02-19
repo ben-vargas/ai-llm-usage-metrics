@@ -1,4 +1,4 @@
-import type { ModelPricing, PricingSource } from './types.js';
+import type { ModelPricing, PricingSource } from '../../src/pricing/types.js';
 
 export type StaticPricingSourceOptions = {
   pricingByModel: Record<string, ModelPricing>;
