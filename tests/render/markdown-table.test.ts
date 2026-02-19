@@ -130,4 +130,62 @@ describe('renderMarkdownTable', () => {
     expect(rendered).toContain('1,234<br>766<br>2,000');
     expect(rendered).toContain('$1.25<br>$1.50<br>$2.75');
   });
+
+  it('normalizes CRLF newlines in cell values', () => {
+    const rendered = renderMarkdownTable([
+      {
+        rowType: 'period_source',
+        periodKey: '2026-02-10',
+        source: 'pi',
+        models: ['gpt-4.1'],
+        modelBreakdown: [
+          {
+            model: 'gpt-4.1\r\ngpt-4.1-mini',
+            inputTokens: 10,
+            outputTokens: 5,
+            reasoningTokens: 0,
+            cacheReadTokens: 0,
+            cacheWriteTokens: 0,
+            totalTokens: 15,
+            costUsd: 0.02,
+          },
+        ],
+        inputTokens: 10,
+        outputTokens: 5,
+        reasoningTokens: 0,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+        totalTokens: 15,
+        costUsd: 0.02,
+      },
+      {
+        rowType: 'grand_total',
+        periodKey: 'ALL',
+        source: 'combined',
+        models: ['gpt-4.1'],
+        modelBreakdown: [
+          {
+            model: 'gpt-4.1\r\ngpt-4.1-mini',
+            inputTokens: 10,
+            outputTokens: 5,
+            reasoningTokens: 0,
+            cacheReadTokens: 0,
+            cacheWriteTokens: 0,
+            totalTokens: 15,
+            costUsd: 0.02,
+          },
+        ],
+        inputTokens: 10,
+        outputTokens: 5,
+        reasoningTokens: 0,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+        totalTokens: 15,
+        costUsd: 0.02,
+      },
+    ]);
+
+    expect(rendered).toContain('<br>');
+    expect(rendered).not.toContain('\r');
+  });
 });

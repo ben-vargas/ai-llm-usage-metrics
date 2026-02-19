@@ -10,7 +10,7 @@ type MarkdownRenderOptions = {
 };
 
 function toMarkdownSafeCell(value: string): string {
-  return value.replaceAll('\n', '<br>');
+  return value.replace(/\r?\n/gu, '<br>');
 }
 
 export function renderMarkdownTable(
