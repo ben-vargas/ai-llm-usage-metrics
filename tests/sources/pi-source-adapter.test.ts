@@ -6,7 +6,6 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import {
   getDefaultPiSessionsDir,
-  isOpenAiProvider,
   PiSourceAdapter,
 } from '../../src/sources/pi/pi-source-adapter.js';
 
@@ -86,7 +85,9 @@ describe('PiSourceAdapter', () => {
 
   it('supports provider filter override for targeted parsing', async () => {
     const fixturePath = path.resolve('tests/fixtures/pi/session-mixed.jsonl');
-    const adapter = new PiSourceAdapter({ providerFilter: isOpenAiProvider });
+    const adapter = new PiSourceAdapter({
+      providerFilter: (provider) => provider?.toLowerCase().includes('openai') ?? false,
+    });
 
     const events = await adapter.parseFile(fixturePath);
 
@@ -257,13 +258,6 @@ describe('PiSourceAdapter', () => {
 });
 
 describe('pi source helpers', () => {
-  it('detects openai-like provider names', () => {
-    expect(isOpenAiProvider('openai')).toBe(true);
-    expect(isOpenAiProvider('OpenAI-Codex')).toBe(true);
-    expect(isOpenAiProvider('anthropic')).toBe(false);
-    expect(isOpenAiProvider(undefined)).toBe(false);
-  });
-
   it('returns the default pi sessions path', () => {
     expect(getDefaultPiSessionsDir()).toContain(path.join('.pi', 'agent', 'sessions'));
   });

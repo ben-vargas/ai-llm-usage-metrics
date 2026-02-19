@@ -27,6 +27,7 @@ afterEach(async () => {
   tempDirs.length = 0;
 
   restoreParseMaxParallel();
+  vi.unstubAllGlobals();
 });
 
 describe('buildUsageReport', () => {
@@ -286,9 +287,16 @@ describe('buildUsageReport', () => {
       }),
     ).rejects.toThrow('--pricing-url must be a valid http(s) URL');
 
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new Error('network unavailable');
+      }),
+    );
+
     await expect(
       buildUsageReport('daily', {
-        pricingUrl: 'http://127.0.0.1:1/pricing.json',
+        pricingUrl: 'https://example.test/pricing.json',
       }),
     ).rejects.toThrow('Could not load pricing from --pricing-url');
   });

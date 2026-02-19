@@ -7,6 +7,7 @@ import type { NumberLike } from '../../domain/normalization.js';
 import { asRecord } from '../../utils/as-record.js';
 import { discoverJsonlFiles } from '../../utils/discover-jsonl-files.js';
 import { readJsonlObjects } from '../../utils/read-jsonl-objects.js';
+import { asTrimmedText, toNumberLike } from '../parsing-utils.js';
 import type { SourceAdapter } from '../source-adapter.js';
 
 const defaultSessionsDir = path.join(os.homedir(), '.pi', 'agent', 'sessions');
@@ -36,32 +37,6 @@ export type PiSourceAdapterOptions = {
 };
 
 const allowAllProviders: ProviderFilter = () => true;
-
-export function isOpenAiProvider(provider: string | undefined): boolean {
-  return provider?.toLowerCase().includes('openai') ?? false;
-}
-
-function asText(value: unknown): string | undefined {
-  if (typeof value !== 'string') {
-    return undefined;
-  }
-
-  const normalized = value.trim();
-  return normalized || undefined;
-}
-
-function asNumberLike(value: unknown): NumberLike {
-  if (
-    value === null ||
-    value === undefined ||
-    typeof value === 'number' ||
-    typeof value === 'string'
-  ) {
-    return value;
-  }
-
-  return undefined;
-}
 
 const UNIX_SECONDS_ABS_CUTOFF = 10_000_000_000;
 
@@ -101,15 +76,15 @@ function extractUsageFromRecord(usage: Record<string, unknown>): PiUsageExtract 
   const cost = asRecord(usage.cost);
 
   const extracted: PiUsageExtract = {
-    inputTokens: asNumberLike(usage.input),
-    outputTokens: asNumberLike(usage.output),
-    reasoningTokens: asNumberLike(
+    inputTokens: toNumberLike(usage.input),
+    outputTokens: toNumberLike(usage.output),
+    reasoningTokens: toNumberLike(
       usage.reasoning ?? usage.reasoningTokens ?? usage.reasoningOutput ?? usage.outputReasoning,
     ),
-    cacheReadTokens: asNumberLike(usage.cacheRead),
-    cacheWriteTokens: asNumberLike(usage.cacheWrite),
-    totalTokens: asNumberLike(usage.totalTokens),
-    costUsd: asNumberLike(cost?.total),
+    cacheReadTokens: toNumberLike(usage.cacheRead),
+    cacheWriteTokens: toNumberLike(usage.cacheWrite),
+    totalTokens: toNumberLike(usage.totalTokens),
+    costUsd: toNumberLike(cost?.total),
   };
 
   const hasKnownUsageField =
@@ -168,14 +143,14 @@ export class PiSourceAdapter implements SourceAdapter {
 
     for await (const line of readJsonlObjects(filePath)) {
       if (line.type === 'session') {
-        state.sessionId = asText(line.id) ?? state.sessionId;
-        state.sessionTimestamp = asText(line.timestamp) ?? state.sessionTimestamp;
+        state.sessionId = asTrimmedText(line.id) ?? state.sessionId;
+        state.sessionTimestamp = asTrimmedText(line.timestamp) ?? state.sessionTimestamp;
         continue;
       }
 
       if (line.type === 'model_change') {
-        state.provider = asText(line.provider) ?? state.provider;
-        state.model = asText(line.modelId) ?? asText(line.model) ?? state.model;
+        state.provider = asTrimmedText(line.provider) ?? state.provider;
+        state.model = asTrimmedText(line.modelId) ?? asTrimmedText(line.model) ?? state.model;
         continue;
       }
 
@@ -190,7 +165,8 @@ export class PiSourceAdapter implements SourceAdapter {
         continue;
       }
 
-      const provider = asText(line.provider) ?? asText(message?.provider) ?? state.provider;
+      const provider =
+        asTrimmedText(line.provider) ?? asTrimmedText(message?.provider) ?? state.provider;
 
       if (!this.providerFilter(provider)) {
         continue;
@@ -203,7 +179,10 @@ export class PiSourceAdapter implements SourceAdapter {
       }
 
       const model =
-        asText(line.model) ?? asText(line.modelId) ?? asText(message?.model) ?? state.model;
+        asTrimmedText(line.model) ??
+        asTrimmedText(line.modelId) ??
+        asTrimmedText(message?.model) ??
+        state.model;
 
       try {
         events.push(
