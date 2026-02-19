@@ -363,22 +363,22 @@ export async function buildUsageData(
   );
 
   const modelFilterRules = resolveModelFilterRules(providerAndDateFilteredEvents, modelFilter);
-  const dateFilteredEvents = providerAndDateFilteredEvents.filter((event) =>
+  const filteredEvents = providerAndDateFilteredEvents.filter((event) =>
     matchesModel(event.model, modelFilterRules),
   );
 
   let pricingOrigin: UsagePricingOrigin = 'none';
   let pricingSource: PricingSource | undefined;
 
-  if (shouldLoadPricingSource(options, dateFilteredEvents)) {
+  if (shouldLoadPricingSource(options, filteredEvents)) {
     const pricingResult = await loadPricingSource(options, pricingRuntimeConfig);
     pricingSource = pricingResult.source;
     pricingOrigin = pricingResult.origin;
   }
 
   const pricedEvents = pricingSource
-    ? applyPricingToEvents(dateFilteredEvents, pricingSource)
-    : dateFilteredEvents;
+    ? applyPricingToEvents(filteredEvents, pricingSource)
+    : filteredEvents;
 
   const rows = aggregateUsage(pricedEvents, {
     granularity,
