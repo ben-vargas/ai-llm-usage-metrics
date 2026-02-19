@@ -103,10 +103,10 @@ describe('OpenCodeSourceAdapter', () => {
     );
   });
 
-  it('resolves default DB path deterministically when no explicit override is set', async () => {
+  it('resolves first readable default DB path when no explicit override is set', async () => {
     const adapter = new OpenCodeSourceAdapter({
       resolveDefaultDbPaths: () => ['/tmp/opencode-a.db', '/tmp/opencode-b.db'],
-      pathExists: async (filePath) => filePath === '/tmp/opencode-b.db',
+      pathReadable: async (filePath) => filePath === '/tmp/opencode-b.db',
     });
 
     await expect(adapter.discoverFiles()).resolves.toEqual(['/tmp/opencode-b.db']);

@@ -302,8 +302,45 @@ describe('buildUsageReport', () => {
       }),
     );
 
+    const piTempDir = await mkdtemp(path.join(os.tmpdir(), 'usage-pricing-url-fetch-fail-pi-'));
+    const codexTempDir = await mkdtemp(
+      path.join(os.tmpdir(), 'usage-pricing-url-fetch-fail-codex-'),
+    );
+    tempDirs.push(piTempDir, codexTempDir);
+
+    const piSessionPath = path.join(piTempDir, 'session.jsonl');
+
+    await writeFile(
+      piSessionPath,
+      [
+        JSON.stringify({
+          type: 'session',
+          id: 'pi-pricing-fail-session',
+          timestamp: '2026-02-14T10:00:00.000Z',
+        }),
+        JSON.stringify({
+          type: 'model_change',
+          provider: 'openai',
+          modelId: 'gpt-4.1',
+        }),
+        JSON.stringify({
+          type: 'message',
+          timestamp: '2026-02-14T10:00:01.000Z',
+          usage: {
+            input: 10,
+            output: 5,
+            totalTokens: 15,
+          },
+        }),
+      ].join('\n'),
+      'utf8',
+    );
+
     await expect(
       buildUsageReport('daily', {
+        piDir: piTempDir,
+        codexDir: codexTempDir,
+        source: 'pi',
         pricingUrl: 'https://example.test/pricing.json',
       }),
     ).rejects.toThrow('Could not load pricing from --pricing-url');
