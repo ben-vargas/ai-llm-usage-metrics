@@ -39,34 +39,26 @@ function formatUsd(value: number): string {
   return usdFormatter.format(value);
 }
 
-function formatCompactModels(row: UsageReportRow): string {
-  if (row.modelBreakdown.length === 0) {
-    return row.models.length === 0 ? '-' : row.models.map((model) => `• ${model}`).join('\n');
+function buildModelLines(row: UsageReportRow): string[] {
+  if (row.modelBreakdown.length > 0) {
+    return row.modelBreakdown.map((modelUsage) => `• ${modelUsage.model}`);
   }
 
-  return row.modelBreakdown.map((modelUsage) => `• ${modelUsage.model}`).join('\n');
-}
-
-function formatPerModelColumnModels(row: UsageReportRow): string {
-  if (row.modelBreakdown.length === 0) {
-    return row.models.length === 0 ? '-' : row.models.map((model) => `• ${model}`).join('\n');
-  }
-
-  const modelLines = row.modelBreakdown.map((modelUsage) => `• ${modelUsage.model}`);
-
-  if (row.modelBreakdown.length > 1) {
-    modelLines.push('Σ TOTAL');
-  }
-
-  return modelLines.join('\n');
+  return row.models.map((model) => `• ${model}`);
 }
 
 function formatModels(row: UsageReportRow, layout: UsageTableLayout): string {
-  if (layout === 'per_model_columns') {
-    return formatPerModelColumnModels(row);
+  const modelLines = buildModelLines(row);
+
+  if (modelLines.length === 0) {
+    return '-';
   }
 
-  return formatCompactModels(row);
+  if (layout === 'per_model_columns' && row.modelBreakdown.length > 1) {
+    return [...modelLines, 'Σ TOTAL'].join('\n');
+  }
+
+  return modelLines.join('\n');
 }
 
 function formatModelMetric(

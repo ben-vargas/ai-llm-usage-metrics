@@ -4,6 +4,7 @@ import path from 'node:path';
 import { createUsageEvent } from '../../domain/usage-event.js';
 import type { UsageEvent } from '../../domain/usage-event.js';
 import type { NumberLike } from '../../domain/normalization.js';
+import { asRecord } from '../../utils/as-record.js';
 import { discoverJsonlFiles } from '../../utils/discover-jsonl-files.js';
 import { readJsonlObjects } from '../../utils/read-jsonl-objects.js';
 import type { SourceAdapter } from '../source-adapter.js';
@@ -40,14 +41,6 @@ function allowAllProviders(): boolean {
 
 export function isOpenAiProvider(provider: string | undefined): boolean {
   return provider?.toLowerCase().includes('openai') ?? false;
-}
-
-function asRecord(value: unknown): Record<string, unknown> | undefined {
-  if (!value || typeof value !== 'object') {
-    return undefined;
-  }
-
-  return value as Record<string, unknown>;
 }
 
 function asText(value: unknown): string | undefined {
@@ -91,21 +84,19 @@ function resolveTimestamp(
       continue;
     }
 
-    if (typeof candidate === 'string' && candidate.trim()) {
-      return candidate;
+    if (typeof candidate === 'string') {
+      const normalized = candidate.trim();
+
+      if (normalized) {
+        return normalized;
+      }
     }
   }
 
   return undefined;
 }
 
-function extractUsage(line: Record<string, unknown>, message: Record<string, unknown> | undefined) {
-  const usage = asRecord(line.usage) ?? asRecord(message?.usage);
-
-  if (!usage) {
-    return undefined;
-  }
-
+function extractUsageFromRecord(usage: Record<string, unknown>): PiUsageExtract | undefined {
   const cost = asRecord(usage.cost);
 
   const extracted: PiUsageExtract = {
@@ -130,6 +121,25 @@ function extractUsage(line: Record<string, unknown>, message: Record<string, unk
     extracted.costUsd !== undefined;
 
   return hasKnownUsageField ? extracted : undefined;
+}
+
+function extractUsage(line: Record<string, unknown>, message: Record<string, unknown> | undefined) {
+  const lineUsage = asRecord(line.usage);
+  const messageUsage = asRecord(message?.usage);
+
+  if (lineUsage) {
+    const extractedLineUsage = extractUsageFromRecord(lineUsage);
+
+    if (extractedLineUsage) {
+      return extractedLineUsage;
+    }
+  }
+
+  if (!messageUsage) {
+    return undefined;
+  }
+
+  return extractUsageFromRecord(messageUsage);
 }
 
 function getFallbackSessionId(filePath: string): string {

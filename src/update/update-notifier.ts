@@ -1,8 +1,10 @@
 import { spawn } from 'node:child_process';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import os from 'node:os';
 import path from 'node:path';
 import { createInterface } from 'node:readline/promises';
+
+import { asRecord } from '../utils/as-record.js';
+import { getUserCacheRootDir } from '../utils/cache-root-dir.js';
 
 const DEFAULT_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
 const DEFAULT_FETCH_TIMEOUT_MS = 1000;
@@ -64,34 +66,8 @@ export type UpdateNotifierResult = {
   exitCode?: number;
 };
 
-function getCacheRootDir(): string {
-  const xdgCacheDir = process.env.XDG_CACHE_HOME;
-
-  if (xdgCacheDir) {
-    return xdgCacheDir;
-  }
-
-  if (process.platform === 'win32') {
-    const localAppData = process.env.LOCALAPPDATA;
-
-    if (localAppData) {
-      return localAppData;
-    }
-  }
-
-  return path.join(os.homedir(), '.cache');
-}
-
 export function getDefaultUpdateCheckCachePath(): string {
-  return path.join(getCacheRootDir(), 'llm-usage-metrics', 'update-check.json');
-}
-
-function asRecord(value: unknown): Record<string, unknown> | undefined {
-  if (!value || typeof value !== 'object') {
-    return undefined;
-  }
-
-  return value as Record<string, unknown>;
+  return path.join(getUserCacheRootDir(), 'llm-usage-metrics', 'update-check.json');
 }
 
 function toNonNegativeNumber(value: unknown): number | undefined {

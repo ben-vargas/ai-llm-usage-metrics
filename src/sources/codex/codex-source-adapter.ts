@@ -5,6 +5,7 @@ import { createUsageEvent } from '../../domain/usage-event.js';
 import type { UsageEvent } from '../../domain/usage-event.js';
 import { normalizeNonNegativeInteger } from '../../domain/normalization.js';
 import type { NumberLike } from '../../domain/normalization.js';
+import { asRecord } from '../../utils/as-record.js';
 import { discoverJsonlFiles } from '../../utils/discover-jsonl-files.js';
 import { readJsonlObjects } from '../../utils/read-jsonl-objects.js';
 import type { SourceAdapter } from '../source-adapter.js';
@@ -31,14 +32,6 @@ type CodexSessionState = {
 export type CodexSourceAdapterOptions = {
   sessionsDir?: string;
 };
-
-function asRecord(value: unknown): Record<string, unknown> | undefined {
-  if (!value || typeof value !== 'object') {
-    return undefined;
-  }
-
-  return value as Record<string, unknown>;
-}
 
 function asText(value: unknown): string | undefined {
   if (typeof value !== 'string') {

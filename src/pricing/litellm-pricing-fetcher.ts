@@ -1,7 +1,8 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import os from 'node:os';
 import path from 'node:path';
 
+import { asRecord } from '../utils/as-record.js';
+import { getUserCacheRootDir } from '../utils/cache-root-dir.js';
 import litellmModelMapPayload from './litellm-model-map.json' with { type: 'json' };
 import type { ModelPricing, PricingSource } from './types.js';
 
@@ -48,8 +49,10 @@ function parseLiteLLMModelMap(payload: LiteLLMModelMapPayload): LiteLLMModelMap 
   const canonicalizedAliasToCanonicalModel = new Map<string, string>();
   const preferredPricingKeyByCanonicalModel = new Map<string, string>();
 
-  if (payload.aliases && typeof payload.aliases === 'object') {
-    for (const [alias, canonicalModel] of Object.entries(payload.aliases)) {
+  const aliasesRecord = asRecord(payload.aliases);
+
+  if (aliasesRecord) {
+    for (const [alias, canonicalModel] of Object.entries(aliasesRecord)) {
       if (typeof canonicalModel !== 'string') {
         continue;
       }
@@ -65,13 +68,10 @@ function parseLiteLLMModelMap(payload: LiteLLMModelMapPayload): LiteLLMModelMap 
     }
   }
 
-  if (
-    payload.preferredPricingKeyByCanonicalModel &&
-    typeof payload.preferredPricingKeyByCanonicalModel === 'object'
-  ) {
-    for (const [canonicalModel, preferredPricingKey] of Object.entries(
-      payload.preferredPricingKeyByCanonicalModel,
-    )) {
+  const preferredPricingRecord = asRecord(payload.preferredPricingKeyByCanonicalModel);
+
+  if (preferredPricingRecord) {
+    for (const [canonicalModel, preferredPricingKey] of Object.entries(preferredPricingRecord)) {
       if (typeof preferredPricingKey !== 'string') {
         continue;
       }
@@ -91,14 +91,6 @@ function parseLiteLLMModelMap(payload: LiteLLMModelMapPayload): LiteLLMModelMap 
 }
 
 const litellmModelMap = parseLiteLLMModelMap(litellmModelMapPayload);
-
-function asRecord(value: unknown): Record<string, unknown> | undefined {
-  if (!value || typeof value !== 'object') {
-    return undefined;
-  }
-
-  return value as Record<string, unknown>;
-}
 
 function toNonNegativeNumber(value: unknown): number | undefined {
   if (typeof value === 'number') {
@@ -197,26 +189,8 @@ function normalizeLitellmPricingPayload(payload: unknown): Map<string, ModelPric
   return normalizedPricing;
 }
 
-function getCacheRootDir(): string {
-  const xdgCacheDir = process.env.XDG_CACHE_HOME;
-
-  if (xdgCacheDir) {
-    return xdgCacheDir;
-  }
-
-  if (process.platform === 'win32') {
-    const localAppData = process.env.LOCALAPPDATA;
-
-    if (localAppData) {
-      return localAppData;
-    }
-  }
-
-  return path.join(os.homedir(), '.cache');
-}
-
 export function getDefaultLiteLLMPricingCachePath(): string {
-  return path.join(getCacheRootDir(), 'llm-usage-metrics', 'litellm-pricing-cache.json');
+  return path.join(getUserCacheRootDir(), 'llm-usage-metrics', 'litellm-pricing-cache.json');
 }
 
 function stripProviderPrefix(model: string): string {

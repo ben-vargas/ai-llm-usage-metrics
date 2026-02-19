@@ -1,9 +1,6 @@
 import { createRequire } from 'node:module';
 
-type PackageJson = {
-  name?: string;
-  version?: string;
-};
+import { asRecord } from '../utils/as-record.js';
 
 export type PackageMetadata = {
   packageName: string;
@@ -18,13 +15,15 @@ const defaultPackageJsonCandidates = ['../package.json', '../../package.json'] a
 type JsonLoader = (path: string) => unknown;
 
 function normalizeMetadata(candidate: unknown): PackageMetadata | undefined {
-  if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+  const packageJson = asRecord(candidate);
+
+  if (!packageJson) {
     return undefined;
   }
 
-  const packageJson = candidate as PackageJson;
-  const packageName = packageJson.name?.trim();
-  const packageVersion = packageJson.version?.trim();
+  const packageName = typeof packageJson.name === 'string' ? packageJson.name.trim() : undefined;
+  const packageVersion =
+    typeof packageJson.version === 'string' ? packageJson.version.trim() : undefined;
 
   if (!packageName || !packageVersion) {
     return undefined;
