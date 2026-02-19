@@ -6,10 +6,12 @@ import { createInterface } from 'node:readline/promises';
 import { asRecord } from '../utils/as-record.js';
 import { getUserCacheRootDir } from '../utils/cache-root-dir.js';
 
-const DEFAULT_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
+const DEFAULT_CACHE_TTL_MS = 60 * 60 * 1000;
 const DEFAULT_FETCH_TIMEOUT_MS = 1000;
 
 export const UPDATE_CHECK_SKIP_ENV_VAR = 'LLM_USAGE_SKIP_UPDATE_CHECK';
+export const UPDATE_CHECK_CACHE_SCOPE_ENV_VAR = 'LLM_USAGE_UPDATE_CACHE_SCOPE';
+export const UPDATE_CHECK_CACHE_SESSION_KEY_ENV_VAR = 'LLM_USAGE_UPDATE_CACHE_SESSION_KEY';
 
 type ParsedVersion = {
   major: number;
@@ -68,6 +70,39 @@ export type UpdateNotifierResult = {
 
 export function getDefaultUpdateCheckCachePath(): string {
   return path.join(getUserCacheRootDir(), 'llm-usage-metrics', 'update-check.json');
+}
+
+function sanitizeCachePathFragment(value: string): string {
+  return value.replace(/[^A-Za-z0-9._-]/gu, '_');
+}
+
+function toCacheSessionKey(value: string | undefined): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  const trimmedValue = value.trim();
+
+  if (!trimmedValue) {
+    return undefined;
+  }
+
+  const sanitizedValue = sanitizeCachePathFragment(trimmedValue);
+  return sanitizedValue || undefined;
+}
+
+function getSessionScopedCachePath(baseCacheFilePath: string, env: NodeJS.ProcessEnv): string {
+  const cacheScope = env[UPDATE_CHECK_CACHE_SCOPE_ENV_VAR]?.trim().toLowerCase();
+
+  if (cacheScope !== 'session') {
+    return baseCacheFilePath;
+  }
+
+  const sessionKey =
+    toCacheSessionKey(env[UPDATE_CHECK_CACHE_SESSION_KEY_ENV_VAR]) ?? `ppid-${process.ppid}`;
+
+  const parsedPath = path.parse(baseCacheFilePath);
+  return path.join(parsedPath.dir, `${parsedPath.name}.${sessionKey}${parsedPath.ext}`);
 }
 
 function toNonNegativeNumber(value: unknown): number | undefined {
@@ -443,9 +478,12 @@ export async function checkForUpdatesAndMaybeRestart(
   }
 
   try {
+    const baseCacheFilePath = options.cacheFilePath ?? getDefaultUpdateCheckCachePath();
+    const scopedCacheFilePath = getSessionScopedCachePath(baseCacheFilePath, env);
+
     const latestVersion = await resolveLatestVersion({
       packageName: options.packageName,
-      cacheFilePath: options.cacheFilePath,
+      cacheFilePath: scopedCacheFilePath,
       cacheTtlMs: options.cacheTtlMs,
       fetchTimeoutMs: options.fetchTimeoutMs,
       fetchImpl: options.fetchImpl,

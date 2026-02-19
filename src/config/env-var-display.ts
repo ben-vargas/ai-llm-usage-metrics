@@ -6,6 +6,11 @@ export type EnvVarOverride = {
 
 const ENV_VARS_TO_DISPLAY: Array<{ name: string; description: string }> = [
   { name: 'LLM_USAGE_SKIP_UPDATE_CHECK', description: 'skip startup update check' },
+  {
+    name: 'LLM_USAGE_UPDATE_CACHE_SCOPE',
+    description: 'update-check cache scope (global/session)',
+  },
+  { name: 'LLM_USAGE_UPDATE_CACHE_SESSION_KEY', description: 'update-check session cache key' },
   { name: 'LLM_USAGE_UPDATE_CACHE_TTL_MS', description: 'update-check cache TTL' },
   { name: 'LLM_USAGE_UPDATE_FETCH_TIMEOUT_MS', description: 'update-check fetch timeout' },
   { name: 'LLM_USAGE_PRICING_CACHE_TTL_MS', description: 'pricing cache TTL' },

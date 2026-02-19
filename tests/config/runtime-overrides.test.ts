@@ -11,7 +11,7 @@ describe('runtime overrides', () => {
     const env: NodeJS.ProcessEnv = {};
 
     expect(getUpdateNotifierRuntimeConfig(env)).toEqual({
-      cacheTtlMs: 12 * 60 * 60 * 1000,
+      cacheTtlMs: 60 * 60 * 1000,
       fetchTimeoutMs: 1000,
     });
     expect(getPricingFetcherRuntimeConfig(env)).toEqual({
@@ -47,7 +47,7 @@ describe('runtime overrides', () => {
 
   it('clamps out-of-range env values to safe bounds', () => {
     const env: NodeJS.ProcessEnv = {
-      LLM_USAGE_UPDATE_CACHE_TTL_MS: '10',
+      LLM_USAGE_UPDATE_CACHE_TTL_MS: '-1',
       LLM_USAGE_UPDATE_FETCH_TIMEOUT_MS: '999999',
       LLM_USAGE_PRICING_CACHE_TTL_MS: '-1',
       LLM_USAGE_PRICING_FETCH_TIMEOUT_MS: '1',
@@ -55,7 +55,7 @@ describe('runtime overrides', () => {
     };
 
     expect(getUpdateNotifierRuntimeConfig(env)).toEqual({
-      cacheTtlMs: 60_000,
+      cacheTtlMs: 0,
       fetchTimeoutMs: 30_000,
     });
     expect(getPricingFetcherRuntimeConfig(env)).toEqual({
@@ -77,7 +77,7 @@ describe('runtime overrides', () => {
     };
 
     expect(getUpdateNotifierRuntimeConfig(env)).toEqual({
-      cacheTtlMs: 12 * 60 * 60 * 1000,
+      cacheTtlMs: 60 * 60 * 1000,
       fetchTimeoutMs: 1000,
     });
     expect(getPricingFetcherRuntimeConfig(env)).toEqual({
@@ -99,7 +99,7 @@ describe('runtime overrides', () => {
     };
 
     expect(getUpdateNotifierRuntimeConfig(env)).toEqual({
-      cacheTtlMs: 12 * 60 * 60 * 1000,
+      cacheTtlMs: 60 * 60 * 1000,
       fetchTimeoutMs: 1000,
     });
     expect(getPricingFetcherRuntimeConfig(env)).toEqual({
@@ -108,6 +108,17 @@ describe('runtime overrides', () => {
     });
     expect(getParsingRuntimeConfig(env)).toEqual({
       maxParallelFileParsing: 8,
+    });
+  });
+
+  it('accepts zero update cache ttl for per-run checks', () => {
+    const env: NodeJS.ProcessEnv = {
+      LLM_USAGE_UPDATE_CACHE_TTL_MS: '0',
+    };
+
+    expect(getUpdateNotifierRuntimeConfig(env)).toEqual({
+      cacheTtlMs: 0,
+      fetchTimeoutMs: 1000,
     });
   });
 });

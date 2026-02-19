@@ -42,6 +42,8 @@ The CLI reads runtime knobs directly from environment variables (no `.env` auto-
 Common variables:
 
 - `LLM_USAGE_SKIP_UPDATE_CHECK=1`
+- `LLM_USAGE_UPDATE_CACHE_SCOPE=session`
+- `LLM_USAGE_UPDATE_CACHE_SESSION_KEY=...`
 - `LLM_USAGE_UPDATE_CACHE_TTL_MS=...`
 - `LLM_USAGE_UPDATE_FETCH_TIMEOUT_MS=...`
 - `LLM_USAGE_PRICING_CACHE_TTL_MS=...`

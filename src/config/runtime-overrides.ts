@@ -1,7 +1,8 @@
 const MINUTE_MS = 60_000;
+const HOUR_MS = 60 * MINUTE_MS;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-const UPDATE_CACHE_TTL_DEFAULT_MS = 12 * 60 * 60 * 1000;
+const UPDATE_CACHE_TTL_DEFAULT_MS = HOUR_MS;
 const UPDATE_FETCH_TIMEOUT_DEFAULT_MS = 1_000;
 const PRICING_CACHE_TTL_DEFAULT_MS = DAY_MS;
 const PRICING_FETCH_TIMEOUT_DEFAULT_MS = 4_000;
@@ -62,7 +63,7 @@ export function getUpdateNotifierRuntimeConfig(
   return {
     cacheTtlMs: resolveBoundedEnvInteger(env.LLM_USAGE_UPDATE_CACHE_TTL_MS, {
       fallback: UPDATE_CACHE_TTL_DEFAULT_MS,
-      min: MINUTE_MS,
+      min: 0,
       max: 30 * DAY_MS,
     }),
     fetchTimeoutMs: resolveBoundedEnvInteger(env.LLM_USAGE_UPDATE_FETCH_TIMEOUT_MS, {
