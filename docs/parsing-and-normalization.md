@@ -34,7 +34,7 @@ Recognized fields:
 
 ### Provider filtering
 
-The adapter receives a provider filter function and applies it before creating events.
+Provider filtering is applied in the shared CLI pipeline (`src/cli/build-usage-data.ts`) after adapters parse events. The `.pi` adapter always emits normalized events first; then `--provider` applies a case-insensitive substring filter across all sources.
 
 ## `.codex` parsing
 

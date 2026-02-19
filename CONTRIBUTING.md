@@ -66,11 +66,13 @@ Register the adapter in `src/sources/create-default-adapters.ts`.
 If the source should be selectable from CLI source filtering/help text, ensure its id is included via
 `getDefaultSourceIds()` (same file).
 
-When needed, add CLI docs/examples for source-specific directory overrides using:
+When adding a **directory-backed** source, wire `--source-dir` support and add CLI docs/examples:
 
 ```bash
 llm-usage daily --source-dir <new-source-id>=/path/to/sessions
 ```
+
+For file/DB-backed sources, add a dedicated flag (for example `--opencode-db`) instead of extending `--source-dir`.
 
 ### 3) Add tests
 
