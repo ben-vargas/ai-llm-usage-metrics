@@ -21,6 +21,8 @@ import type {
   UsageDiagnostics,
   UsagePricingOrigin,
   UsageSessionStats,
+  UsageSkippedRowsStat,
+  UsageSourceFailure,
 } from './usage-data-contracts.js';
 
 function validateDateInput(value: string, flagName: '--since' | '--until'): void {
@@ -165,8 +167,10 @@ function matchesModel(
 }
 
 type AdapterParseResult = {
+  source: string;
   events: UsageEvent[];
   filesFound: number;
+  skippedRows: number;
 };
 
 async function parseAdapterEvents(
@@ -176,7 +180,7 @@ async function parseAdapterEvents(
   const files = await adapter.discoverFiles();
 
   if (files.length === 0) {
-    return { events: [], filesFound: 0 };
+    return { source: adapter.id, events: [], filesFound: 0, skippedRows: 0 };
   }
 
   const safeMaxParallelFileParsing =
@@ -199,8 +203,10 @@ async function parseAdapterEvents(
   await Promise.all(workers);
 
   return {
+    source: adapter.id,
     events: parsedByFile.flat(),
     filesFound: files.length,
+    skippedRows: 0,
   };
 }
 
@@ -311,6 +317,88 @@ function validateBuildOptions(options: ReportCommandOptions): void {
   validatePricingUrl(options.pricingUrl);
 }
 
+function parseSourceDirOverrideIds(sourceDirEntries: string[] | undefined): Set<string> {
+  const overrideIds = new Set<string>();
+
+  if (!sourceDirEntries || sourceDirEntries.length === 0) {
+    return overrideIds;
+  }
+
+  for (const entry of sourceDirEntries) {
+    const separatorIndex = entry.indexOf('=');
+
+    if (separatorIndex <= 0) {
+      continue;
+    }
+
+    const sourceId = entry.slice(0, separatorIndex).trim().toLowerCase();
+
+    if (sourceId.length > 0) {
+      overrideIds.add(sourceId);
+    }
+  }
+
+  return overrideIds;
+}
+
+function resolveExplicitSourceIds(
+  options: ReportCommandOptions,
+  sourceFilter: Set<string> | undefined,
+): Set<string> {
+  const explicitSourceIds = new Set<string>();
+
+  if (sourceFilter) {
+    for (const sourceId of sourceFilter) {
+      explicitSourceIds.add(sourceId);
+    }
+  }
+
+  for (const sourceId of parseSourceDirOverrideIds(options.sourceDir)) {
+    explicitSourceIds.add(sourceId);
+  }
+
+  if (options.piDir) {
+    explicitSourceIds.add('pi');
+  }
+
+  if (options.codexDir) {
+    explicitSourceIds.add('codex');
+  }
+
+  if (options.opencodeDb) {
+    explicitSourceIds.add('opencode');
+  }
+
+  return explicitSourceIds;
+}
+
+function getErrorReason(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return String(error);
+}
+
+function throwOnExplicitSourceFailures(
+  sourceFailures: UsageSourceFailure[],
+  explicitSourceIds: ReadonlySet<string>,
+): void {
+  const explicitFailures = sourceFailures.filter((failure) =>
+    explicitSourceIds.has(failure.source.toLowerCase()),
+  );
+
+  if (explicitFailures.length === 0) {
+    return;
+  }
+
+  const details = explicitFailures
+    .map((failure) => `${failure.source}: ${failure.reason}`)
+    .join('; ');
+
+  throw new Error(`Failed to parse explicitly requested source(s): ${details}`);
+}
+
 export async function buildUsageData(
   granularity: ReportGranularity,
   options: ReportCommandOptions,
@@ -324,6 +412,7 @@ export async function buildUsageData(
   const providerFilter = normalizeProviderFilter(options.provider);
   const sourceFilter = normalizeSourceFilter(options.source);
   const modelFilter = normalizeModelFilter(options.model);
+  const explicitSourceIds = resolveExplicitSourceIds(options, sourceFilter);
 
   const readParsingRuntimeConfig = deps.getParsingRuntimeConfig ?? getParsingRuntimeConfig;
   const readPricingRuntimeConfig =
@@ -343,19 +432,46 @@ export async function buildUsageData(
     ? adapters.filter((adapter) => sourceFilter.has(adapter.id.toLowerCase()))
     : adapters;
 
-  const parseResults = await Promise.all(
+  const parseResults = await Promise.allSettled(
     adaptersToParse.map((adapter) =>
       parseAdapterEvents(adapter, parsingRuntimeConfig.maxParallelFileParsing),
     ),
   );
+  const sourceFailures: UsageSourceFailure[] = [];
+  const successfulParseResults: AdapterParseResult[] = [];
 
-  const sessionStats: UsageSessionStats[] = parseResults.map((result, index) => ({
-    source: adaptersToParse[index].id,
-    filesFound: result.filesFound,
-    eventsParsed: result.events.length,
-  }));
+  for (const [index, parseResult] of parseResults.entries()) {
+    const source = adaptersToParse[index].id;
 
-  const providerFilteredEvents = parseResults
+    if (parseResult.status === 'fulfilled') {
+      successfulParseResults.push(parseResult.value);
+      continue;
+    }
+
+    sourceFailures.push({ source, reason: getErrorReason(parseResult.reason) });
+  }
+
+  throwOnExplicitSourceFailures(sourceFailures, explicitSourceIds);
+
+  const parseResultBySource = new Map(
+    successfulParseResults.map((result) => [result.source.toLowerCase(), result]),
+  );
+
+  const sessionStats: UsageSessionStats[] = adaptersToParse.map((adapter) => {
+    const parseResult = parseResultBySource.get(adapter.id.toLowerCase());
+
+    return {
+      source: adapter.id,
+      filesFound: parseResult?.filesFound ?? 0,
+      eventsParsed: parseResult?.events.length ?? 0,
+    };
+  });
+
+  const skippedRows: UsageSkippedRowsStat[] = successfulParseResults
+    .filter((result) => result.skippedRows > 0)
+    .map((result) => ({ source: result.source, skippedRows: result.skippedRows }));
+
+  const providerFilteredEvents = successfulParseResults
     .flatMap((result) => result.events)
     .filter((event) => matchesProvider(event.provider, providerFilter));
 
@@ -392,6 +508,8 @@ export async function buildUsageData(
 
   const diagnostics: UsageDiagnostics = {
     sessionStats,
+    sourceFailures,
+    skippedRows,
     pricingOrigin,
     activeEnvOverrides: readEnvVarOverrides(),
     timezone,

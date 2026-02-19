@@ -29,6 +29,31 @@ export function emitDiagnostics(
     diagnosticsLogger.warn('No sessions found');
   }
 
+  if (diagnostics.sourceFailures.length > 0) {
+    const sourceLabel = diagnostics.sourceFailures.length === 1 ? 'source' : 'sources';
+    diagnosticsLogger.warn(`Failed to parse ${diagnostics.sourceFailures.length} ${sourceLabel}`);
+
+    for (const failure of diagnostics.sourceFailures) {
+      diagnosticsLogger.dim(`  ${failure.source}: ${failure.reason}`);
+    }
+  }
+
+  const totalSkippedRows = diagnostics.skippedRows.reduce(
+    (sum, skippedRowsEntry) => sum + skippedRowsEntry.skippedRows,
+    0,
+  );
+
+  if (totalSkippedRows > 0) {
+    const rowLabel = totalSkippedRows === 1 ? 'row' : 'rows';
+    diagnosticsLogger.warn(`Skipped ${totalSkippedRows} malformed ${rowLabel}`);
+
+    for (const skippedRowsEntry of diagnostics.skippedRows) {
+      diagnosticsLogger.dim(
+        `  ${skippedRowsEntry.source}: ${skippedRowsEntry.skippedRows} skipped`,
+      );
+    }
+  }
+
   switch (diagnostics.pricingOrigin) {
     case 'offline-cache':
       diagnosticsLogger.info('Using cached pricing (offline mode)');

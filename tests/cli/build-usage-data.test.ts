@@ -39,6 +39,26 @@ function createAdapter(
   };
 }
 
+function createFailingAdapter(
+  id: SourceAdapter['id'],
+  errorMessage: string,
+  failurePoint: 'discover' | 'parse' = 'parse',
+): SourceAdapter {
+  return {
+    id,
+    discoverFiles: async () => {
+      if (failurePoint === 'discover') {
+        throw new Error(errorMessage);
+      }
+
+      return ['/tmp/failing-source.jsonl'];
+    },
+    parseFile: async () => {
+      throw new Error(errorMessage);
+    },
+  };
+}
+
 function createEvent(
   overrides: Partial<Parameters<typeof createUsageEvent>[0]> = {},
 ): ReturnType<typeof createUsageEvent> {
@@ -91,6 +111,8 @@ describe('buildUsageData', () => {
         { source: 'pi', filesFound: 0, eventsParsed: 0 },
         { source: 'codex', filesFound: 0, eventsParsed: 0 },
       ],
+      sourceFailures: [],
+      skippedRows: [],
       pricingOrigin: 'none',
       timezone: 'UTC',
     });
@@ -190,6 +212,74 @@ describe('buildUsageData', () => {
     expect(sourceRows).toHaveLength(1);
     expect(sourceRows[0].source).toBe('codex');
     expect(result.rows.some((row) => row.rowType === 'period_combined')).toBe(false);
+  });
+
+  it('records non-explicit source failures in diagnostics and continues with healthy sources', async () => {
+    const result = await buildUsageData(
+      'daily',
+      {
+        timezone: 'UTC',
+      },
+      {
+        ...withDeterministicRuntimeDeps(),
+        createAdapters: () => [
+          createAdapter('pi', {
+            '/tmp/pi-1.jsonl': [createEvent({ source: 'pi', sessionId: 'pi-session' })],
+          }),
+          createFailingAdapter('codex', 'codex parse failed'),
+        ],
+      },
+    );
+
+    expect(result.diagnostics.sessionStats).toEqual([
+      { source: 'pi', filesFound: 1, eventsParsed: 1 },
+      { source: 'codex', filesFound: 0, eventsParsed: 0 },
+    ]);
+    expect(result.diagnostics.sourceFailures).toEqual([
+      { source: 'codex', reason: 'codex parse failed' },
+    ]);
+    expect(result.diagnostics.skippedRows).toEqual([]);
+
+    const sourceRows = result.rows.filter((row) => row.rowType === 'period_source');
+    expect(sourceRows).toHaveLength(1);
+    expect(sourceRows[0].source).toBe('pi');
+  });
+
+  it('fails when an explicitly selected source cannot be parsed', async () => {
+    await expect(
+      buildUsageData(
+        'daily',
+        {
+          timezone: 'UTC',
+          source: 'codex',
+        },
+        {
+          ...withDeterministicRuntimeDeps(),
+          createAdapters: () => [createFailingAdapter('codex', 'codex parse failed')],
+        },
+      ),
+    ).rejects.toThrow('Failed to parse explicitly requested source(s): codex: codex parse failed');
+  });
+
+  it('fails when a source with an explicit override flag cannot be parsed', async () => {
+    await expect(
+      buildUsageData(
+        'daily',
+        {
+          timezone: 'UTC',
+          codexDir: '/tmp/explicit-codex',
+        },
+        {
+          ...withDeterministicRuntimeDeps(),
+          createAdapters: () => [
+            createAdapter('pi', {
+              '/tmp/pi-1.jsonl': [createEvent({ source: 'pi', sessionId: 'pi-session' })],
+            }),
+            createFailingAdapter('codex', 'permission denied'),
+          ],
+        },
+      ),
+    ).rejects.toThrow('Failed to parse explicitly requested source(s): codex: permission denied');
   });
 
   it('guards against non-positive parsing concurrency from injected deps', async () => {
