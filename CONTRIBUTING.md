@@ -6,7 +6,7 @@ Thanks for contributing.
 
 Requirements:
 
-- Node.js 20+
+- Node.js 24+
 - Bun
 
 Install dependencies:
@@ -61,7 +61,16 @@ Normalize raw data with `createUsageEvent` so downstream code receives consisten
 
 ### 2) Wire it into reporting
 
-Update `buildUsageReport` in `src/cli/run-usage-report.ts` to instantiate and parse the new adapter.
+Register the adapter in `src/sources/create-default-adapters.ts`.
+
+If the source should be selectable from CLI source filtering/help text, ensure its id is included via
+`getDefaultSourceIds()` (same file).
+
+When needed, add CLI docs/examples for source-specific directory overrides using:
+
+```bash
+llm-usage daily --source-dir <new-source-id>=/path/to/sessions
+```
 
 ### 3) Add tests
 

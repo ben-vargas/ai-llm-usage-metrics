@@ -39,9 +39,6 @@ export function emitDiagnostics(
     case 'network':
       diagnosticsLogger.info('Fetched pricing from LiteLLM');
       return;
-    case 'fallback':
-      diagnosticsLogger.warn('Using built-in pricing source');
-      return;
     case 'none':
       return;
   }

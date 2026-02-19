@@ -14,12 +14,10 @@ describe('SourceAdapter contract', () => {
       }
 
       public parseFile(filePath: string): Promise<UsageEvent[]> {
-        void filePath;
-
         return Promise.resolve([
           createUsageEvent({
             source: 'pi',
-            sessionId: 'session-id',
+            sessionId: filePath,
             timestamp: '2026-02-12T10:00:00Z',
             inputTokens: 10,
             outputTokens: 5,
@@ -34,6 +32,7 @@ describe('SourceAdapter contract', () => {
     expect(adapter.id).toBe('pi');
     expect(events).toHaveLength(1);
     expect(events[0]?.source).toBe('pi');
+    expect(events[0]?.sessionId).toBe('/tmp/session.jsonl');
 
     expectTypeOf(adapter.id).toEqualTypeOf<'pi'>();
     expectTypeOf(events).toEqualTypeOf<UsageEvent[]>();
@@ -43,7 +42,7 @@ describe('SourceAdapter contract', () => {
     const candidate = {
       id: 'codex',
       discoverFiles: () => Promise.resolve(['/tmp/codex.jsonl']),
-      parseFile: () => Promise.resolve([] as UsageEvent[]),
+      parseFile: () => Promise.resolve<UsageEvent[]>([]),
     };
 
     expect(isSourceAdapter(candidate)).toBe(true);

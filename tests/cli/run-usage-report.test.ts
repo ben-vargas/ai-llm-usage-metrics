@@ -27,6 +27,7 @@ afterEach(async () => {
   tempDirs.length = 0;
 
   restoreParseMaxParallel();
+  vi.unstubAllGlobals();
 });
 
 describe('buildUsageReport', () => {
@@ -45,6 +46,20 @@ describe('buildUsageReport', () => {
     expect(report).toMatch(/\|\s+\d{4}-\d{2}-\d{2}\s+\|\s+codex\s+\|/u);
     expect(report).not.toMatch(/\|\s+\d{4}-\d{2}-\d{2}\s+\|\s+combined\s+\|/u);
     expect(report).toMatch(/\|\s+ALL\s+\|\s+TOTAL\s+\|/u);
+    expect(report).not.toContain('Σ TOTAL');
+  });
+
+  it('builds markdown report with per-model column layout when requested', async () => {
+    const report = await buildUsageReport('daily', {
+      piDir: path.resolve('tests/fixtures/pi'),
+      codexDir: path.resolve('tests/fixtures/codex'),
+      timezone: 'UTC',
+      markdown: true,
+      perModelColumns: true,
+    });
+
+    expect(report).toContain('Σ TOTAL');
+    expect(report).toContain('<br>');
   });
 
   it('builds json report when --json semantics are requested', async () => {
@@ -99,7 +114,7 @@ describe('buildUsageReport', () => {
     );
   });
 
-  it('defaults provider filtering to openai for both pi and codex sources', async () => {
+  it('applies provider filtering when --provider is supplied', async () => {
     const tempDir = await mkdtemp(path.join(os.tmpdir(), 'usage-provider-filter-'));
     tempDirs.push(tempDir);
 
@@ -142,6 +157,7 @@ describe('buildUsageReport', () => {
       piDir: tempDir,
       codexDir: tempDir,
       timezone: 'UTC',
+      provider: 'openai',
       json: true,
     });
 
@@ -186,6 +202,7 @@ describe('buildUsageReport', () => {
           periodKey: 'ALL',
           source: 'combined',
           models: [],
+          modelBreakdown: [],
           inputTokens: 0,
           outputTokens: 0,
           reasoningTokens: 0,
@@ -270,14 +287,21 @@ describe('buildUsageReport', () => {
       }),
     ).rejects.toThrow('--pricing-url must be a valid http(s) URL');
 
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new Error('network unavailable');
+      }),
+    );
+
     await expect(
       buildUsageReport('daily', {
-        pricingUrl: 'http://127.0.0.1:1/pricing.json',
+        pricingUrl: 'https://example.test/pricing.json',
       }),
     ).rejects.toThrow('Could not load pricing from --pricing-url');
   });
 
-  it('validates source filter input', async () => {
+  it('validates source and model filter input', async () => {
     await expect(
       buildUsageReport('daily', {
         source: '   ',
@@ -289,6 +313,12 @@ describe('buildUsageReport', () => {
         source: 'claude',
       }),
     ).rejects.toThrow('Unknown --source value(s): claude. Allowed values: codex, pi');
+
+    await expect(
+      buildUsageReport('daily', {
+        model: '   ',
+      }),
+    ).rejects.toThrow('--model must contain at least one non-empty model filter');
   });
 
   it('validates conflicting output flags', async () => {

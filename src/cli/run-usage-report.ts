@@ -2,6 +2,7 @@ import { buildUsageData } from './build-usage-data.js';
 import { emitDiagnostics } from './emit-diagnostics.js';
 import type { ReportCommandOptions, UsageDiagnostics } from './usage-data-contracts.js';
 import { renderUsageReport, type UsageReportFormat } from '../render/render-usage-report.js';
+import type { UsageTableLayout } from '../render/row-cells.js';
 import { logger } from '../utils/logger.js';
 import type { ReportGranularity } from '../utils/time-buckets.js';
 
@@ -29,6 +30,10 @@ function resolveReportFormat(options: ReportCommandOptions): UsageReportFormat {
   return 'terminal';
 }
 
+function resolveTableLayout(options: ReportCommandOptions): UsageTableLayout {
+  return options.perModelColumns ? 'per_model_columns' : 'compact';
+}
+
 async function prepareUsageReport(
   granularity: ReportGranularity,
   options: ReportCommandOptions,
@@ -41,7 +46,10 @@ async function prepareUsageReport(
   return {
     format,
     diagnostics: usageData.diagnostics,
-    output: renderUsageReport(usageData, format, { granularity }),
+    output: renderUsageReport(usageData, format, {
+      granularity,
+      tableLayout: resolveTableLayout(options),
+    }),
   };
 }
 

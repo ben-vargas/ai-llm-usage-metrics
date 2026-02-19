@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- Node.js 20+
+- Node.js 24+
 - Bun (used for local scripts and lockfile)
 
 ## Install
@@ -82,14 +82,13 @@ Checks:
 - format check
 - build
 - npm pack check
-- test + coverage (`bun run test`, Node 22 only)
+- test + coverage (`bun run test`, Node 24)
 
-Matrix:
+Runtime:
 
-- Node 20
-- Node 22
+- Node 24
 
-To avoid duplicate execution, tests run once (Node 22) and publish coverage summary/artifacts from that single run.
+Coverage summary/artifacts are generated from the single Node 24 CI run.
 
 ## Release process
 
@@ -112,7 +111,7 @@ The release workflow is manual (`workflow_dispatch`) and asks for:
 - increment type (`patch`, `minor`, `major`)
 - dry-run flag
 
-The workflow pins Node `22.14.0+` and upgrades npm to `11.5.1+`, which is required for trusted publishing.
+The workflow uses Node `24` and upgrades npm to `11.5.1+`, which is required for trusted publishing.
 
 ### Required repository configuration
 
@@ -144,6 +143,7 @@ Optional but recommended:
 2. Implement `SourceAdapter`
 3. Normalize output through `createUsageEvent`
 4. Add fixture tests under `tests/sources`
-5. Wire into CLI report pipeline if needed
+5. Register adapter in `src/sources/create-default-adapters.ts`
+6. Verify CLI filtering with `--source <name>`
 
 Keep parsing logic isolated to the adapter. Do not spread source-specific assumptions across aggregation or rendering.

@@ -104,10 +104,22 @@ llm-usage monthly --pricing-offline
 llm-usage monthly --pricing-url https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json
 ```
 
+Pricing behavior notes:
+
+- LiteLLM is the active pricing source.
+- explicit `costUsd: 0` events are re-priced from LiteLLM when model pricing is available.
+- when pricing cannot be loaded from LiteLLM (or cache in offline mode), report generation fails fast.
+
 ### Custom session directories
 
 ```bash
 llm-usage daily --pi-dir /path/to/pi/sessions --codex-dir /path/to/codex/sessions
+```
+
+Or use generic source-id mapping (repeatable):
+
+```bash
+llm-usage daily --source-dir pi=/path/to/pi/sessions --source-dir codex=/path/to/codex/sessions
 ```
 
 ### Filter by source
@@ -129,6 +141,44 @@ Multiple sources (repeat or comma-separated):
 ```bash
 llm-usage monthly --source pi --source codex
 llm-usage monthly --source pi,codex
+```
+
+### Filter by provider (optional)
+
+```bash
+llm-usage monthly --provider openai
+llm-usage monthly --provider github
+llm-usage monthly --provider kimi
+```
+
+### Filter by model (optional)
+
+`--model` supports repeatable/comma-separated filters. Matching is case-insensitive.
+
+- if an exact model exists for a filter value, exact matching is used
+- otherwise, substring matching is used
+
+```bash
+# substring match (all Claude-family models)
+llm-usage monthly --model claude
+
+# exact match when present
+llm-usage monthly --model claude-sonnet-4.5
+
+# multiple filters
+llm-usage monthly --model claude --model gpt-5
+llm-usage monthly --model claude,gpt-5
+```
+
+### Per-model columns (opt-in detailed table layout)
+
+Default output is compact (model names only in the Models column).
+
+Use `--per-model-columns` to render per-model multiline metrics in each numeric column:
+
+```bash
+llm-usage monthly --per-model-columns
+llm-usage monthly --markdown --per-model-columns
 ```
 
 ## Output features

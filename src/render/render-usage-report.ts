@@ -3,6 +3,7 @@ import type { UsageDataResult } from '../cli/usage-data-contracts.js';
 import type { ReportGranularity } from '../utils/time-buckets.js';
 import { renderMarkdownTable } from './markdown-table.js';
 import { renderReportHeader } from './report-header.js';
+import type { UsageTableLayout } from './row-cells.js';
 import { renderTerminalTable, shouldUseColorByDefault } from './terminal-table.js';
 
 export type UsageReportFormat = 'terminal' | 'markdown' | 'json';
@@ -10,6 +11,7 @@ export type UsageReportFormat = 'terminal' | 'markdown' | 'json';
 export type RenderUsageReportOptions = {
   granularity: ReportGranularity;
   useColor?: boolean;
+  tableLayout?: UsageTableLayout;
 };
 
 function getReportTitle(granularity: ReportGranularity): string {
@@ -30,6 +32,7 @@ function renderTerminalUsageReport(
   const outputLines: string[] = [];
   const envVarOverrideLines = formatEnvVarOverrides(usageData.diagnostics.activeEnvOverrides);
   const useColor = options.useColor ?? shouldUseColorByDefault();
+  const tableLayout = options.tableLayout ?? 'compact';
 
   if (envVarOverrideLines.length > 0) {
     outputLines.push(...envVarOverrideLines);
@@ -45,7 +48,7 @@ function renderTerminalUsageReport(
   );
 
   outputLines.push('');
-  outputLines.push(renderTerminalTable(usageData.rows, { useColor }));
+  outputLines.push(renderTerminalTable(usageData.rows, { useColor, tableLayout }));
 
   return outputLines.join('\n');
 }
@@ -55,11 +58,13 @@ export function renderUsageReport(
   format: UsageReportFormat,
   options: RenderUsageReportOptions,
 ): string {
+  const tableLayout = options.tableLayout ?? 'compact';
+
   switch (format) {
     case 'json':
       return JSON.stringify(usageData.rows, null, 2);
     case 'markdown':
-      return renderMarkdownTable(usageData.rows);
+      return renderMarkdownTable(usageData.rows, { tableLayout });
     case 'terminal':
       return renderTerminalUsageReport(usageData, options);
   }

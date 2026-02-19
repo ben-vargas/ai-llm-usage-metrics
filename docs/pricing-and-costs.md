@@ -7,7 +7,7 @@ Each event has one of two modes:
 - `explicit`: cost came from source logs
 - `estimated`: cost is missing or computed from model pricing
 
-Explicit cost is never overwritten.
+Explicit cost is preserved, except when explicit cost is exactly `0` and model pricing is available (then it is re-estimated from LiteLLM pricing).
 
 ## Pricing source resolution
 
@@ -26,7 +26,7 @@ flowchart TD
     J --> K[Use fetched pricing]
     H -- no --> L{Custom --pricing-url set?}
     L -- yes --> M[Fail: custom pricing source required]
-    L -- no --> N[Use built-in pricing source]
+    L -- no --> N[Fail: LiteLLM pricing unavailable]
 ```
 
 ### 1) LiteLLM pricing fetcher
@@ -46,13 +46,11 @@ Cache behavior:
 - in offline mode, stale cache is allowed
 - if network fetch succeeds but cache write fails, pricing is still used in memory
 
-### 2) Built-in pricing source
+### 2) Static pricing source helper
 
 Source file: `src/pricing/static-pricing-source.ts`
 
-Used when remote LiteLLM pricing cannot be loaded and no custom `--pricing-url` is required.
-
-Includes a compact default OpenAI model map and aliases.
+This helper is retained for tests/tooling support. Runtime report pricing resolution uses LiteLLM pricing fetch/cache flows.
 
 ## Model resolution
 

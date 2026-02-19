@@ -10,11 +10,16 @@ export type UsageTotals = {
   costUsd: number;
 };
 
+export type ModelUsageBreakdown = UsageTotals & {
+  model: string;
+};
+
 export type PeriodSourceRow = UsageTotals & {
   rowType: 'period_source';
   periodKey: string;
   source: SourceId;
   models: string[];
+  modelBreakdown: ModelUsageBreakdown[];
 };
 
 export type PeriodCombinedRow = UsageTotals & {
@@ -22,6 +27,7 @@ export type PeriodCombinedRow = UsageTotals & {
   periodKey: string;
   source: 'combined';
   models: string[];
+  modelBreakdown: ModelUsageBreakdown[];
 };
 
 export type GrandTotalRow = UsageTotals & {
@@ -29,6 +35,7 @@ export type GrandTotalRow = UsageTotals & {
   periodKey: 'ALL';
   source: 'combined';
   models: string[];
+  modelBreakdown: ModelUsageBreakdown[];
 };
 
 export type UsageReportRow = PeriodSourceRow | PeriodCombinedRow | GrandTotalRow;

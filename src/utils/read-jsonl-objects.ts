@@ -1,13 +1,7 @@
 import { createReadStream } from 'node:fs';
 import { createInterface } from 'node:readline';
 
-function asObject(value: unknown): Record<string, unknown> | undefined {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return undefined;
-  }
-
-  return value as Record<string, unknown>;
-}
+import { asRecord } from './as-record.js';
 
 export async function* readJsonlObjects(
   filePath: string,
@@ -41,7 +35,7 @@ export async function* readJsonlObjects(
         continue;
       }
 
-      const parsedObject = asObject(parsed);
+      const parsedObject = asRecord(parsed);
 
       if (!parsedObject) {
         continue;

@@ -3,14 +3,40 @@ import { describe, expect, it } from 'vitest';
 import type { UsageReportRow } from '../../src/domain/usage-report-row.js';
 import { renderMarkdownTable } from '../../src/render/markdown-table.js';
 
-describe('renderMarkdownTable', () => {
-  it('renders the same row semantics as the terminal renderer in markdown format', () => {
-    const rows: UsageReportRow[] = [
+const sampleRows: UsageReportRow[] = [
+  {
+    rowType: 'period_source',
+    periodKey: '2026-02-10',
+    source: 'pi',
+    models: ['gpt-4.1'],
+    modelBreakdown: [
       {
-        rowType: 'period_source',
-        periodKey: '2026-02-10',
-        source: 'pi',
-        models: ['gpt-4.1'],
+        model: 'gpt-4.1',
+        inputTokens: 1234,
+        outputTokens: 321,
+        reasoningTokens: 0,
+        cacheReadTokens: 30,
+        cacheWriteTokens: 0,
+        totalTokens: 1585,
+        costUsd: 1.25,
+      },
+    ],
+    inputTokens: 1234,
+    outputTokens: 321,
+    reasoningTokens: 0,
+    cacheReadTokens: 30,
+    cacheWriteTokens: 0,
+    totalTokens: 1585,
+    costUsd: 1.25,
+  },
+  {
+    rowType: 'period_combined',
+    periodKey: '2026-02-10',
+    source: 'combined',
+    models: ['gpt-4.1', 'gpt-5-codex'],
+    modelBreakdown: [
+      {
+        model: 'gpt-4.1',
         inputTokens: 1234,
         outputTokens: 321,
         reasoningTokens: 0,
@@ -20,34 +46,64 @@ describe('renderMarkdownTable', () => {
         costUsd: 1.25,
       },
       {
-        rowType: 'period_combined',
-        periodKey: '2026-02-10',
-        source: 'combined',
-        models: ['gpt-4.1', 'gpt-5-codex'],
-        inputTokens: 2000,
-        outputTokens: 500,
+        model: 'gpt-5-codex',
+        inputTokens: 766,
+        outputTokens: 179,
         reasoningTokens: 120,
-        cacheReadTokens: 100,
+        cacheReadTokens: 70,
         cacheWriteTokens: 0,
-        totalTokens: 2720,
-        costUsd: 2.75,
+        totalTokens: 1135,
+        costUsd: 1.5,
+      },
+    ],
+    inputTokens: 2000,
+    outputTokens: 500,
+    reasoningTokens: 120,
+    cacheReadTokens: 100,
+    cacheWriteTokens: 0,
+    totalTokens: 2720,
+    costUsd: 2.75,
+  },
+  {
+    rowType: 'grand_total',
+    periodKey: 'ALL',
+    source: 'combined',
+    models: ['gpt-4.1', 'gpt-5-codex'],
+    modelBreakdown: [
+      {
+        model: 'gpt-4.1',
+        inputTokens: 1234,
+        outputTokens: 321,
+        reasoningTokens: 0,
+        cacheReadTokens: 30,
+        cacheWriteTokens: 0,
+        totalTokens: 1585,
+        costUsd: 1.25,
       },
       {
-        rowType: 'grand_total',
-        periodKey: 'ALL',
-        source: 'combined',
-        models: ['gpt-4.1', 'gpt-5-codex'],
-        inputTokens: 2000,
-        outputTokens: 500,
+        model: 'gpt-5-codex',
+        inputTokens: 766,
+        outputTokens: 179,
         reasoningTokens: 120,
-        cacheReadTokens: 100,
+        cacheReadTokens: 70,
         cacheWriteTokens: 0,
-        totalTokens: 2720,
-        costUsd: 2.75,
+        totalTokens: 1135,
+        costUsd: 1.5,
       },
-    ];
+    ],
+    inputTokens: 2000,
+    outputTokens: 500,
+    reasoningTokens: 120,
+    cacheReadTokens: 100,
+    cacheWriteTokens: 0,
+    totalTokens: 2720,
+    costUsd: 2.75,
+  },
+];
 
-    const rendered = renderMarkdownTable(rows);
+describe('renderMarkdownTable', () => {
+  it('renders compact model names by default', () => {
+    const rendered = renderMarkdownTable(sampleRows);
 
     expect(rendered).toMatchInlineSnapshot(`
       "| Period     | Source   | Models                     | Input | Output | Reasoning | Cache Read | Cache Write | Total |  Cost |
@@ -57,5 +113,21 @@ describe('renderMarkdownTable', () => {
       | ALL        | TOTAL    | • gpt-4.1<br>• gpt-5-codex | 2,000 |    500 |       120 |        100 |           0 | 2,720 | $2.75 |"
     `);
     expect(rendered).toContain('<br>');
+    expect(rendered).not.toContain('tok, $');
+  });
+
+  it('renders per-model aligned columns when enabled', () => {
+    const rendered = renderMarkdownTable(sampleRows, { tableLayout: 'per_model_columns' });
+
+    expect(rendered).toMatchInlineSnapshot(`
+      "| Period     | Source   | Models                                |                 Input |            Output |       Reasoning |      Cache Read | Cache Write |                   Total |                    Cost |
+      | :--------- | :------- | :------------------------------------ | --------------------: | ----------------: | --------------: | --------------: | ----------: | ----------------------: | ----------------------: |
+      | 2026-02-10 | pi       | • gpt-4.1                             |                 1,234 |               321 |               0 |              30 |           0 |                   1,585 |                   $1.25 |
+      | 2026-02-10 | combined | • gpt-4.1<br>• gpt-5-codex<br>Σ TOTAL | 1,234<br>766<br>2,000 | 321<br>179<br>500 | 0<br>120<br>120 | 30<br>70<br>100 | 0<br>0<br>0 | 1,585<br>1,135<br>2,720 | $1.25<br>$1.50<br>$2.75 |
+      | ALL        | TOTAL    | • gpt-4.1<br>• gpt-5-codex<br>Σ TOTAL | 1,234<br>766<br>2,000 | 321<br>179<br>500 | 0<br>120<br>120 | 30<br>70<br>100 | 0<br>0<br>0 | 1,585<br>1,135<br>2,720 | $1.25<br>$1.50<br>$2.75 |"
+    `);
+    expect(rendered).toContain('Σ TOTAL');
+    expect(rendered).toContain('1,234<br>766<br>2,000');
+    expect(rendered).toContain('$1.25<br>$1.50<br>$2.75');
   });
 });

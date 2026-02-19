@@ -3,12 +3,13 @@ import { table, type TableUserConfig } from 'table';
 
 import type { UsageReportRow } from '../domain/usage-report-row.js';
 import { colorizeUsageBodyRows } from './terminal-style-policy.js';
-import { toUsageTableCells, usageTableHeaders } from './row-cells.js';
+import { toUsageTableCells, type UsageTableLayout, usageTableHeaders } from './row-cells.js';
 
 const modelsColumnIndex = 2;
 
 type TerminalRenderOptions = {
   useColor?: boolean;
+  tableLayout?: UsageTableLayout;
 };
 
 const roundedBorders = {
@@ -50,7 +51,12 @@ function shouldDrawHorizontalLine(index: number, rowCount: number, rows: string[
   return previousSource === 'combined' || nextSource === 'TOTAL' || previousPeriod !== nextPeriod;
 }
 
-function createTableConfig(uncoloredRows: string[][]): TableUserConfig {
+function createTableConfig(
+  uncoloredRows: string[][],
+  tableLayout: UsageTableLayout,
+): TableUserConfig {
+  const rowVerticalAlignment = tableLayout === 'per_model_columns' ? 'top' : 'middle';
+
   return {
     border: roundedBorders,
     drawHorizontalLine: (index, rowCount) =>
@@ -61,20 +67,20 @@ function createTableConfig(uncoloredRows: string[][]): TableUserConfig {
       verticalAlignment: 'top',
     },
     columns: {
-      0: { alignment: 'left', verticalAlignment: 'middle' },
-      1: { alignment: 'left', verticalAlignment: 'middle' },
+      0: { alignment: 'left', verticalAlignment: rowVerticalAlignment },
+      1: { alignment: 'left', verticalAlignment: rowVerticalAlignment },
       [modelsColumnIndex]: {
         alignment: 'left',
         width: 32,
         wrapWord: true,
       },
-      3: { alignment: 'right', verticalAlignment: 'middle' },
-      4: { alignment: 'right', verticalAlignment: 'middle' },
-      5: { alignment: 'right', verticalAlignment: 'middle' },
-      6: { alignment: 'right', verticalAlignment: 'middle' },
-      7: { alignment: 'right', verticalAlignment: 'middle' },
-      8: { alignment: 'right', verticalAlignment: 'middle' },
-      9: { alignment: 'right', verticalAlignment: 'middle' },
+      3: { alignment: 'right', verticalAlignment: rowVerticalAlignment },
+      4: { alignment: 'right', verticalAlignment: rowVerticalAlignment },
+      5: { alignment: 'right', verticalAlignment: rowVerticalAlignment },
+      6: { alignment: 'right', verticalAlignment: rowVerticalAlignment },
+      7: { alignment: 'right', verticalAlignment: rowVerticalAlignment },
+      8: { alignment: 'right', verticalAlignment: rowVerticalAlignment },
+      9: { alignment: 'right', verticalAlignment: rowVerticalAlignment },
     },
   };
 }
@@ -106,10 +112,11 @@ export function renderTerminalTable(
   options: TerminalRenderOptions = {},
 ): string {
   const useColor = options.useColor ?? shouldUseColorByDefault();
-  const uncoloredBodyRows = toUsageTableCells(rows);
+  const tableLayout = options.tableLayout ?? 'compact';
+  const uncoloredBodyRows = toUsageTableCells(rows, { layout: tableLayout });
   const bodyRows = colorizeUsageBodyRows(uncoloredBodyRows, rows, { useColor });
   const displayRows = [colorizeHeader(useColor), ...bodyRows];
   const uncoloredDisplayRows = [Array.from(usageTableHeaders), ...uncoloredBodyRows];
 
-  return table(displayRows, createTableConfig(uncoloredDisplayRows));
+  return table(displayRows, createTableConfig(uncoloredDisplayRows, tableLayout));
 }

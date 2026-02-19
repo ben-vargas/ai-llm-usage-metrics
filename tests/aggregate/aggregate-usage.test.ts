@@ -42,7 +42,11 @@ describe('aggregateUsage', () => {
       }),
     ];
 
-    const rows = aggregateUsage(events, { granularity: 'daily', timezone: 'UTC' });
+    const rows = aggregateUsage(events, {
+      granularity: 'daily',
+      timezone: 'UTC',
+      sourceOrder: ['pi', 'codex'],
+    });
 
     expect(rows).toHaveLength(5);
     expect(rows[0]).toMatchObject({
@@ -52,6 +56,13 @@ describe('aggregateUsage', () => {
       totalTokens: 16,
       costUsd: 1,
       models: ['gpt-4.1'],
+      modelBreakdown: [
+        {
+          model: 'gpt-4.1',
+          totalTokens: 16,
+          costUsd: 1,
+        },
+      ],
     });
     expect(rows[1]).toMatchObject({
       rowType: 'period_source',
@@ -68,6 +79,18 @@ describe('aggregateUsage', () => {
       totalTokens: 53,
       costUsd: 1.5,
       models: ['gpt-4.1', 'gpt-5-codex'],
+      modelBreakdown: [
+        {
+          model: 'gpt-4.1',
+          totalTokens: 16,
+          costUsd: 1,
+        },
+        {
+          model: 'gpt-5-codex',
+          totalTokens: 37,
+          costUsd: 0.5,
+        },
+      ],
     });
 
     expect(rows[3]).toMatchObject({
@@ -82,6 +105,18 @@ describe('aggregateUsage', () => {
       periodKey: 'ALL',
       totalTokens: 58,
       costUsd: 1.5,
+      modelBreakdown: [
+        {
+          model: 'gpt-4.1',
+          totalTokens: 21,
+          costUsd: 1,
+        },
+        {
+          model: 'gpt-5-codex',
+          totalTokens: 37,
+          costUsd: 0.5,
+        },
+      ],
     });
   });
 
@@ -118,6 +153,47 @@ describe('aggregateUsage', () => {
       totalTokens: 4,
     });
     expect(rows[2]).toMatchObject({ rowType: 'grand_total', totalTokens: 6 });
+  });
+
+  it('normalizes model keys before aggregating model breakdown totals', () => {
+    const events = [
+      createUsageEvent({
+        source: 'pi',
+        sessionId: 's1',
+        timestamp: '2026-02-10T10:00:00Z',
+        model: 'gpt-4.1',
+        inputTokens: 10,
+        outputTokens: 5,
+        totalTokens: 15,
+        costUsd: 1,
+        costMode: 'explicit',
+      }),
+      createUsageEvent({
+        source: 'pi',
+        sessionId: 's2',
+        timestamp: '2026-02-10T11:00:00Z',
+        model: '  gpt-4.1  ',
+        inputTokens: 20,
+        outputTokens: 10,
+        totalTokens: 30,
+        costUsd: 2,
+        costMode: 'explicit',
+      }),
+    ];
+
+    const rows = aggregateUsage(events, { granularity: 'daily', timezone: 'UTC' });
+    const periodRow = rows.find((row) => row.rowType === 'period_source');
+
+    expect(periodRow).toMatchObject({
+      models: ['gpt-4.1'],
+      modelBreakdown: [
+        {
+          model: 'gpt-4.1',
+          totalTokens: 45,
+          costUsd: 3,
+        },
+      ],
+    });
   });
 
   it('keeps usd totals numerically stable for many small costs', () => {

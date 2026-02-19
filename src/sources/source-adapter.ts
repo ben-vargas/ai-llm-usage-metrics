@@ -1,4 +1,5 @@
 import type { UsageEvent, SourceId } from '../domain/usage-event.js';
+import { asRecord } from '../utils/as-record.js';
 
 export interface SourceAdapter<Event extends UsageEvent = UsageEvent> {
   readonly id: SourceId;
@@ -7,11 +8,11 @@ export interface SourceAdapter<Event extends UsageEvent = UsageEvent> {
 }
 
 export function isSourceAdapter(candidate: unknown): candidate is SourceAdapter {
-  if (!candidate || typeof candidate !== 'object') {
+  const adapter = asRecord(candidate);
+
+  if (!adapter) {
     return false;
   }
-
-  const adapter = candidate as Partial<SourceAdapter>;
 
   return (
     typeof adapter.id === 'string' &&

@@ -1,7 +1,9 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import os from 'node:os';
 import path from 'node:path';
 
+import { asRecord } from '../utils/as-record.js';
+import { getUserCacheRootDir } from '../utils/cache-root-dir.js';
+import litellmModelMapPayload from './litellm-model-map.json' with { type: 'json' };
 import type { ModelPricing, PricingSource } from './types.js';
 
 const ONE_MILLION = 1_000_000;
@@ -27,17 +29,68 @@ export type LiteLLMPricingFetcherOptions = {
   now?: () => number;
 };
 
+type LiteLLMModelMapPayload = {
+  aliases?: unknown;
+  preferredPricingKeyByCanonicalModel?: unknown;
+};
+
+type LiteLLMModelMap = {
+  aliasToCanonicalModel: Map<string, string>;
+  canonicalizedAliasToCanonicalModel: Map<string, string>;
+  preferredPricingKeyByCanonicalModel: Map<string, string>;
+};
+
 function normalizeKey(value: string): string {
   return value.trim().toLowerCase();
 }
 
-function asRecord(value: unknown): Record<string, unknown> | undefined {
-  if (!value || typeof value !== 'object') {
-    return undefined;
+function parseLiteLLMModelMap(payload: LiteLLMModelMapPayload): LiteLLMModelMap {
+  const aliasToCanonicalModel = new Map<string, string>();
+  const canonicalizedAliasToCanonicalModel = new Map<string, string>();
+  const preferredPricingKeyByCanonicalModel = new Map<string, string>();
+
+  const aliasesRecord = asRecord(payload.aliases);
+
+  if (aliasesRecord) {
+    for (const [alias, canonicalModel] of Object.entries(aliasesRecord)) {
+      if (typeof canonicalModel !== 'string') {
+        continue;
+      }
+
+      const normalizedAlias = normalizeKey(alias);
+      const normalizedCanonicalModel = normalizeKey(canonicalModel);
+
+      aliasToCanonicalModel.set(normalizedAlias, normalizedCanonicalModel);
+      canonicalizedAliasToCanonicalModel.set(
+        canonicalizeForFuzzy(normalizedAlias),
+        normalizedCanonicalModel,
+      );
+    }
   }
 
-  return value as Record<string, unknown>;
+  const preferredPricingRecord = asRecord(payload.preferredPricingKeyByCanonicalModel);
+
+  if (preferredPricingRecord) {
+    for (const [canonicalModel, preferredPricingKey] of Object.entries(preferredPricingRecord)) {
+      if (typeof preferredPricingKey !== 'string') {
+        continue;
+      }
+
+      preferredPricingKeyByCanonicalModel.set(
+        normalizeKey(canonicalModel),
+        normalizeKey(preferredPricingKey),
+      );
+    }
+  }
+
+  return {
+    aliasToCanonicalModel,
+    canonicalizedAliasToCanonicalModel,
+    preferredPricingKeyByCanonicalModel,
+  };
 }
+
+const litellmModelMap = parseLiteLLMModelMap(litellmModelMapPayload);
 
 function toNonNegativeNumber(value: unknown): number | undefined {
   if (typeof value === 'number') {
@@ -136,26 +189,8 @@ function normalizeLitellmPricingPayload(payload: unknown): Map<string, ModelPric
   return normalizedPricing;
 }
 
-function getCacheRootDir(): string {
-  const xdgCacheDir = process.env.XDG_CACHE_HOME;
-
-  if (xdgCacheDir) {
-    return xdgCacheDir;
-  }
-
-  if (process.platform === 'win32') {
-    const localAppData = process.env.LOCALAPPDATA;
-
-    if (localAppData) {
-      return localAppData;
-    }
-  }
-
-  return path.join(os.homedir(), '.cache');
-}
-
 export function getDefaultLiteLLMPricingCachePath(): string {
-  return path.join(getCacheRootDir(), 'llm-usage-metrics', 'litellm-pricing-cache.json');
+  return path.join(getUserCacheRootDir(), 'llm-usage-metrics', 'litellm-pricing-cache.json');
 }
 
 function stripProviderPrefix(model: string): string {
@@ -170,6 +205,49 @@ function stripProviderPrefix(model: string): string {
 
 function canonicalizeForFuzzy(value: string): string {
   return value.replace(/[^a-z0-9]/gu, '');
+}
+
+function isPrefixModelMatch(candidate: string, modelName: string): boolean {
+  if (!candidate.startsWith(modelName)) {
+    return false;
+  }
+
+  if (candidate.length === modelName.length) {
+    return true;
+  }
+
+  const nextCharacter = candidate[modelName.length];
+  return nextCharacter === '-' || nextCharacter === ':' || nextCharacter === '@';
+}
+
+function extractNumericTokens(value: string): string[] {
+  return value.match(/\d+/gu) ?? [];
+}
+
+function areNumericSignaturesCompatible(left: string, right: string): boolean {
+  const leftTokens = extractNumericTokens(left);
+  const rightTokens = extractNumericTokens(right);
+
+  if (leftTokens.length === 0 || rightTokens.length === 0) {
+    return true;
+  }
+
+  if (
+    leftTokens.length === rightTokens.length &&
+    leftTokens.every((token, index) => token === rightTokens[index])
+  ) {
+    return true;
+  }
+
+  if (leftTokens.length === 1 && rightTokens.length > 1 && rightTokens.join('') === leftTokens[0]) {
+    return true;
+  }
+
+  if (rightTokens.length === 1 && leftTokens.length > 1 && leftTokens.join('') === rightTokens[0]) {
+    return true;
+  }
+
+  return false;
 }
 
 function levenshteinDistance(left: string, right: string): number {
@@ -270,11 +348,25 @@ export class LiteLLMPricingFetcher implements PricingSource {
       return cachedAlias;
     }
 
+    const mappedAlias = this.resolveMappedModelAlias(normalizedModel);
+
+    if (mappedAlias) {
+      this.resolvedAliasCache.set(normalizedModel, mappedAlias);
+      return mappedAlias;
+    }
+
     const directMatch = this.resolveDirectModelMatch(normalizedModel);
 
     if (directMatch) {
       this.resolvedAliasCache.set(normalizedModel, directMatch);
       return directMatch;
+    }
+
+    const providerPrefixedMatch = this.resolveProviderPrefixedModelMatch(normalizedModel);
+
+    if (providerPrefixedMatch) {
+      this.resolvedAliasCache.set(normalizedModel, providerPrefixedMatch);
+      return providerPrefixedMatch;
     }
 
     const prefixMatch = this.resolvePrefixModelMatch(normalizedModel);
@@ -296,6 +388,61 @@ export class LiteLLMPricingFetcher implements PricingSource {
     return this.pricingByModel.get(resolvedModel);
   }
 
+  private resolveMappedModelAlias(normalizedModel: string): string | undefined {
+    const canonicalModel = this.resolveCanonicalModelName(normalizedModel);
+
+    if (!canonicalModel) {
+      return undefined;
+    }
+
+    const preferredPricingKey =
+      litellmModelMap.preferredPricingKeyByCanonicalModel.get(canonicalModel);
+
+    if (preferredPricingKey && this.pricingByModel.has(preferredPricingKey)) {
+      return preferredPricingKey;
+    }
+
+    const directCanonicalMatch = this.resolveDirectModelMatch(canonicalModel);
+
+    if (directCanonicalMatch) {
+      return directCanonicalMatch;
+    }
+
+    const providerPrefixedCanonicalMatch = this.resolveProviderPrefixedModelMatch(canonicalModel);
+
+    if (providerPrefixedCanonicalMatch) {
+      return providerPrefixedCanonicalMatch;
+    }
+
+    const prefixCanonicalMatch = this.resolvePrefixModelMatch(canonicalModel);
+
+    if (prefixCanonicalMatch) {
+      return prefixCanonicalMatch;
+    }
+
+    return this.resolveFuzzyModelMatch(canonicalModel);
+  }
+
+  private resolveCanonicalModelName(normalizedModel: string): string | undefined {
+    const strippedModel = stripProviderPrefix(normalizedModel);
+
+    const directCanonicalMatch =
+      litellmModelMap.aliasToCanonicalModel.get(normalizedModel) ??
+      litellmModelMap.aliasToCanonicalModel.get(strippedModel);
+
+    if (directCanonicalMatch) {
+      return directCanonicalMatch;
+    }
+
+    const canonicalizedModel = canonicalizeForFuzzy(normalizedModel);
+    const canonicalizedStrippedModel = canonicalizeForFuzzy(strippedModel);
+
+    return (
+      litellmModelMap.canonicalizedAliasToCanonicalModel.get(canonicalizedModel) ??
+      litellmModelMap.canonicalizedAliasToCanonicalModel.get(canonicalizedStrippedModel)
+    );
+  }
+
   private resolveDirectModelMatch(normalizedModel: string): string | undefined {
     if (this.pricingByModel.has(normalizedModel)) {
       return normalizedModel;
@@ -310,6 +457,37 @@ export class LiteLLMPricingFetcher implements PricingSource {
     return undefined;
   }
 
+  private resolveProviderPrefixedModelMatch(normalizedModel: string): string | undefined {
+    const candidates = [normalizedModel, stripProviderPrefix(normalizedModel)];
+
+    for (const candidate of candidates) {
+      let bestMatch: string | undefined;
+
+      for (const modelName of this.pricingByModel.keys()) {
+        const isProviderPrefixedMatch =
+          modelName.endsWith(`/${candidate}`) || modelName.endsWith(`.${candidate}`);
+
+        if (!isProviderPrefixedMatch) {
+          continue;
+        }
+
+        if (
+          !bestMatch ||
+          modelName.length < bestMatch.length ||
+          (modelName.length === bestMatch.length && modelName.localeCompare(bestMatch) < 0)
+        ) {
+          bestMatch = modelName;
+        }
+      }
+
+      if (bestMatch) {
+        return bestMatch;
+      }
+    }
+
+    return undefined;
+  }
+
   private resolvePrefixModelMatch(normalizedModel: string): string | undefined {
     const candidates = [normalizedModel, stripProviderPrefix(normalizedModel)];
 
@@ -317,7 +495,7 @@ export class LiteLLMPricingFetcher implements PricingSource {
       let bestMatch: string | undefined;
 
       for (const modelName of this.pricingByModel.keys()) {
-        if (!candidate.startsWith(modelName)) {
+        if (!isPrefixModelMatch(candidate, modelName)) {
           continue;
         }
 
@@ -339,7 +517,8 @@ export class LiteLLMPricingFetcher implements PricingSource {
   }
 
   private resolveFuzzyModelMatch(normalizedModel: string): string | undefined {
-    const fuzzyTarget = canonicalizeForFuzzy(stripProviderPrefix(normalizedModel));
+    const strippedModel = stripProviderPrefix(normalizedModel);
+    const fuzzyTarget = canonicalizeForFuzzy(strippedModel);
 
     if (!fuzzyTarget) {
       return undefined;
@@ -348,6 +527,10 @@ export class LiteLLMPricingFetcher implements PricingSource {
     let bestMatch: { modelName: string; distance: number } | undefined;
 
     for (const modelName of this.pricingByModel.keys()) {
+      if (!areNumericSignaturesCompatible(strippedModel, modelName)) {
+        continue;
+      }
+
       const fuzzyModelName = canonicalizeForFuzzy(modelName);
 
       if (!fuzzyModelName) {

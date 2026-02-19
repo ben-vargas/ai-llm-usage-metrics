@@ -4,9 +4,10 @@ import path from 'node:path';
 import { createUsageEvent } from '../../domain/usage-event.js';
 import type { UsageEvent } from '../../domain/usage-event.js';
 import { normalizeNonNegativeInteger } from '../../domain/normalization.js';
-import type { NumberLike } from '../../domain/normalization.js';
+import { asRecord } from '../../utils/as-record.js';
 import { discoverJsonlFiles } from '../../utils/discover-jsonl-files.js';
 import { readJsonlObjects } from '../../utils/read-jsonl-objects.js';
+import { asTrimmedText, toNumberLike } from '../parsing-utils.js';
 import type { SourceAdapter } from '../source-adapter.js';
 
 const defaultSessionsDir = path.join(os.homedir(), '.codex', 'sessions');
@@ -32,23 +33,6 @@ export type CodexSourceAdapterOptions = {
   sessionsDir?: string;
 };
 
-function asRecord(value: unknown): Record<string, unknown> | undefined {
-  if (!value || typeof value !== 'object') {
-    return undefined;
-  }
-
-  return value as Record<string, unknown>;
-}
-
-function asText(value: unknown): string | undefined {
-  if (typeof value !== 'string') {
-    return undefined;
-  }
-
-  const normalized = value.trim();
-  return normalized || undefined;
-}
-
 function toUsage(value: unknown): CodexUsage | undefined {
   const usage = asRecord(value);
 
@@ -56,9 +40,9 @@ function toUsage(value: unknown): CodexUsage | undefined {
     return undefined;
   }
 
-  const rawInputTokens = normalizeNonNegativeInteger(usage.input_tokens as NumberLike);
-  const cacheReadTokens = normalizeNonNegativeInteger(usage.cached_input_tokens as NumberLike);
-  const outputTokens = normalizeNonNegativeInteger(usage.output_tokens as NumberLike);
+  const rawInputTokens = normalizeNonNegativeInteger(toNumberLike(usage.input_tokens));
+  const cacheReadTokens = normalizeNonNegativeInteger(toNumberLike(usage.cached_input_tokens));
+  const outputTokens = normalizeNonNegativeInteger(toNumberLike(usage.output_tokens));
 
   const inputTokens = Math.max(0, rawInputTokens - cacheReadTokens);
 
@@ -68,7 +52,7 @@ function toUsage(value: unknown): CodexUsage | undefined {
     inputTokens,
     cacheReadTokens,
     outputTokens,
-    reasoningTokens: normalizeNonNegativeInteger(usage.reasoning_output_tokens as NumberLike),
+    reasoningTokens: normalizeNonNegativeInteger(toNumberLike(usage.reasoning_output_tokens)),
     // Match ccusage semantics: billable total excludes reasoning breakdown.
     totalTokens: inputTokens + outputTokens + cacheReadTokens,
   };
@@ -154,14 +138,14 @@ export class CodexSourceAdapter implements SourceAdapter {
     for await (const line of readJsonlObjects(filePath)) {
       if (line.type === 'session_meta') {
         const payload = asRecord(line.payload);
-        state.sessionId = asText(payload?.id) ?? state.sessionId;
-        state.provider = asText(payload?.model_provider) ?? state.provider;
+        state.sessionId = asTrimmedText(payload?.id) ?? state.sessionId;
+        state.provider = asTrimmedText(payload?.model_provider) ?? state.provider;
         continue;
       }
 
       if (line.type === 'turn_context') {
         const payload = asRecord(line.payload);
-        state.model = asText(payload?.model) ?? state.model;
+        state.model = asTrimmedText(payload?.model) ?? state.model;
         continue;
       }
 
@@ -188,7 +172,7 @@ export class CodexSourceAdapter implements SourceAdapter {
         continue;
       }
 
-      const timestamp = asText(line.timestamp);
+      const timestamp = asTrimmedText(line.timestamp);
 
       if (!timestamp) {
         state.previousTotalUsage = latestTotalUsage ?? state.previousTotalUsage;

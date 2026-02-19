@@ -121,8 +121,8 @@ flowchart TD
 
 - `types.ts`: pricing interfaces.
 - `cost-engine.ts`: cost estimation logic.
-- `static-pricing-source.ts`: built-in pricing source used when remote pricing is unavailable.
-- `litellm-pricing-fetcher.ts`: remote pricing loader with cache/offline support.
+- `static-pricing-source.ts`: static pricing source helper (used in tests/tooling).
+- `litellm-pricing-fetcher.ts`: LiteLLM pricing loader with cache/offline support.
 
 ### `src/update`
 
@@ -198,7 +198,7 @@ Parsing does not depend on pricing. Parsing produces usage events first; pricing
 Sorting rules are explicit:
 
 - periods are sorted ascending
-- sources are sorted with `pi` then `codex` then lexical order
+- sources follow adapter registration order, then lexical order for unknown ids
 - model names are deduplicated and sorted
 
 ### Terminal styling policy maps

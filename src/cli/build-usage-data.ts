@@ -8,7 +8,7 @@ import {
 import type { UsageEvent } from '../domain/usage-event.js';
 import { applyPricingToEvents } from '../pricing/cost-engine.js';
 import { LiteLLMPricingFetcher } from '../pricing/litellm-pricing-fetcher.js';
-import { createDefaultOpenAiPricingSource } from '../pricing/static-pricing-source.js';
+
 import type { PricingSource } from '../pricing/types.js';
 import { createDefaultAdapters } from '../sources/create-default-adapters.js';
 import type { SourceAdapter } from '../sources/source-adapter.js';
@@ -70,6 +70,24 @@ function normalizeSourceFilter(source: string | string[] | undefined): Set<strin
   return new Set(normalizedSources);
 }
 
+function normalizeModelFilter(model: string | string[] | undefined): string[] | undefined {
+  if (!model || (Array.isArray(model) && model.length === 0)) {
+    return undefined;
+  }
+
+  const modelCandidates = Array.isArray(model) ? model : [model];
+  const normalizedModels = modelCandidates
+    .flatMap((candidate) => candidate.split(','))
+    .map((candidate) => candidate.trim().toLowerCase())
+    .filter((candidate) => candidate.length > 0);
+
+  if (normalizedModels.length === 0) {
+    throw new Error('--model must contain at least one non-empty model filter');
+  }
+
+  return [...new Set(normalizedModels)];
+}
+
 function validateSourceFilterValues(
   sourceFilter: Set<string> | undefined,
   availableSourceIds: ReadonlySet<string>,
@@ -102,6 +120,50 @@ function matchesProvider(
   return provider?.toLowerCase().includes(providerFilter) ?? false;
 }
 
+type ModelFilterRule = {
+  value: string;
+  mode: 'exact' | 'substring';
+};
+
+function resolveModelFilterRules(
+  events: UsageEvent[],
+  modelFilter: string[] | undefined,
+): ModelFilterRule[] | undefined {
+  if (!modelFilter || modelFilter.length === 0) {
+    return undefined;
+  }
+
+  const availableModels = new Set(
+    events
+      .map((event) => event.model?.toLowerCase())
+      .filter((model): model is string => Boolean(model)),
+  );
+
+  return modelFilter.map((value) => ({
+    value,
+    mode: availableModels.has(value) ? 'exact' : 'substring',
+  }));
+}
+
+function matchesModel(
+  model: string | undefined,
+  modelRules: ModelFilterRule[] | undefined,
+): boolean {
+  if (!modelRules || modelRules.length === 0) {
+    return true;
+  }
+
+  if (!model) {
+    return false;
+  }
+
+  const normalizedModel = model.toLowerCase();
+
+  return modelRules.some((rule) =>
+    rule.mode === 'exact' ? normalizedModel === rule.value : normalizedModel.includes(rule.value),
+  );
+}
+
 type AdapterParseResult = {
   events: UsageEvent[];
   filesFound: number;
@@ -119,7 +181,7 @@ async function parseAdapterEvents(
 
   const safeMaxParallelFileParsing =
     Number.isFinite(maxParallelFileParsing) && maxParallelFileParsing > 0
-      ? Math.floor(maxParallelFileParsing)
+      ? Math.max(1, Math.floor(maxParallelFileParsing))
       : 1;
   const parsedByFile: UsageEvent[][] = Array.from({ length: files.length }, () => []);
   const workerCount = Math.min(safeMaxParallelFileParsing, files.length);
@@ -183,7 +245,6 @@ async function resolvePricingSource(
   options: ReportCommandOptions,
   runtimeConfig: PricingFetcherRuntimeConfig,
 ): Promise<PricingLoadResult> {
-  const fallbackPricingSource = createDefaultOpenAiPricingSource();
   const litellmPricingFetcher = new LiteLLMPricingFetcher({
     sourceUrl: options.pricingUrl,
     offline: options.pricingOffline,
@@ -204,12 +265,13 @@ async function resolvePricingSource(
       throw new Error('Offline pricing mode enabled but cached pricing is unavailable');
     }
 
+    const reason = error instanceof Error ? error.message : String(error);
+
     if (options.pricingUrl) {
-      const reason = error instanceof Error ? error.message : String(error);
       throw new Error(`Could not load pricing from --pricing-url: ${reason}`);
     }
 
-    return { source: fallbackPricingSource, origin: 'fallback' };
+    throw new Error(`Could not load LiteLLM pricing: ${reason}`);
   }
 }
 
@@ -218,7 +280,7 @@ function eventNeedsPricingLookup(event: UsageEvent): boolean {
     return false;
   }
 
-  return event.costMode !== 'explicit' || event.costUsd === undefined;
+  return event.costMode !== 'explicit' || event.costUsd === undefined || event.costUsd === 0;
 }
 
 function shouldLoadPricingSource(options: ReportCommandOptions, events: UsageEvent[]): boolean {
@@ -257,7 +319,7 @@ export async function buildUsageData(
 
   const providerFilter = normalizeProviderFilter(options.provider);
   const sourceFilter = normalizeSourceFilter(options.source);
-  const effectiveProviderFilter = providerFilter ?? 'openai';
+  const modelFilter = normalizeModelFilter(options.model);
 
   const readParsingRuntimeConfig = deps.getParsingRuntimeConfig ?? getParsingRuntimeConfig;
   const readPricingRuntimeConfig =
@@ -268,7 +330,7 @@ export async function buildUsageData(
 
   const parsingRuntimeConfig = readParsingRuntimeConfig();
   const pricingRuntimeConfig = readPricingRuntimeConfig();
-  const adapters = makeAdapters(options, effectiveProviderFilter);
+  const adapters = makeAdapters(options);
 
   const availableSourceIds = new Set(adapters.map((adapter) => adapter.id.toLowerCase()));
   validateSourceFilterValues(sourceFilter, availableSourceIds);
@@ -289,34 +351,39 @@ export async function buildUsageData(
     eventsParsed: result.events.length,
   }));
 
-  const parsedEventsByAdapter = parseResults.map((result) => result.events);
-  const providerFilteredEvents = parsedEventsByAdapter
-    .flat()
-    .filter((event) => matchesProvider(event.provider, effectiveProviderFilter));
+  const providerFilteredEvents = parseResults
+    .flatMap((result) => result.events)
+    .filter((event) => matchesProvider(event.provider, providerFilter));
 
-  const dateFilteredEvents = filterEventsByDateRange(
+  const providerAndDateFilteredEvents = filterEventsByDateRange(
     providerFilteredEvents,
     timezone,
     options.since,
     options.until,
   );
 
+  const modelFilterRules = resolveModelFilterRules(providerAndDateFilteredEvents, modelFilter);
+  const filteredEvents = providerAndDateFilteredEvents.filter((event) =>
+    matchesModel(event.model, modelFilterRules),
+  );
+
   let pricingOrigin: UsagePricingOrigin = 'none';
   let pricingSource: PricingSource | undefined;
 
-  if (shouldLoadPricingSource(options, dateFilteredEvents)) {
+  if (shouldLoadPricingSource(options, filteredEvents)) {
     const pricingResult = await loadPricingSource(options, pricingRuntimeConfig);
     pricingSource = pricingResult.source;
     pricingOrigin = pricingResult.origin;
   }
 
   const pricedEvents = pricingSource
-    ? applyPricingToEvents(dateFilteredEvents, pricingSource)
-    : dateFilteredEvents;
+    ? applyPricingToEvents(filteredEvents, pricingSource)
+    : filteredEvents;
 
   const rows = aggregateUsage(pricedEvents, {
     granularity,
     timezone,
+    sourceOrder: adaptersToParse.map((adapter) => adapter.id),
   });
 
   const diagnostics: UsageDiagnostics = {

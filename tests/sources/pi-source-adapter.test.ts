@@ -6,7 +6,6 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import {
   getDefaultPiSessionsDir,
-  isOpenAiProvider,
   PiSourceAdapter,
 } from '../../src/sources/pi/pi-source-adapter.js';
 
@@ -37,13 +36,13 @@ describe('PiSourceAdapter', () => {
     await expect(adapter.discoverFiles()).resolves.toEqual([first, second]);
   });
 
-  it('parses usage events and filters non-openai providers by default', async () => {
+  it('parses usage events without provider filtering by default', async () => {
     const fixturePath = path.resolve('tests/fixtures/pi/session-mixed.jsonl');
     const adapter = new PiSourceAdapter();
 
     const events = await adapter.parseFile(fixturePath);
 
-    expect(events).toHaveLength(2);
+    expect(events).toHaveLength(3);
     expect(events[0]).toMatchObject({
       source: 'pi',
       sessionId: 'session-pi-1',
@@ -62,6 +61,17 @@ describe('PiSourceAdapter', () => {
     expect(events[1]).toMatchObject({
       source: 'pi',
       sessionId: 'session-pi-1',
+      provider: 'anthropic',
+      model: 'claude-3.7-sonnet',
+      inputTokens: 10,
+      outputTokens: 10,
+      totalTokens: 20,
+      costMode: 'explicit',
+    });
+
+    expect(events[2]).toMatchObject({
+      source: 'pi',
+      sessionId: 'session-pi-1',
       provider: 'openai',
       model: 'gpt-4.1',
       inputTokens: 2,
@@ -70,20 +80,22 @@ describe('PiSourceAdapter', () => {
       costMode: 'estimated',
     });
 
-    expect(events[1]?.timestamp).toBe('2026-02-12T20:01:00.000Z');
+    expect(events[2]?.timestamp).toBe('2026-02-12T20:01:00.000Z');
   });
 
-  it('supports provider filter override for extensibility', async () => {
+  it('supports provider filter override for targeted parsing', async () => {
     const fixturePath = path.resolve('tests/fixtures/pi/session-mixed.jsonl');
-    const adapter = new PiSourceAdapter({ providerFilter: () => true });
+    const adapter = new PiSourceAdapter({
+      providerFilter: (provider) => provider?.toLowerCase().includes('openai') ?? false,
+    });
 
     const events = await adapter.parseFile(fixturePath);
 
-    expect(events).toHaveLength(3);
-    expect(events.some((event) => event.provider === 'anthropic')).toBe(true);
+    expect(events).toHaveLength(2);
+    expect(events.some((event) => event.provider === 'anthropic')).toBe(false);
   });
 
-  it('falls back to message.usage when line-level usage is malformed', async () => {
+  it('falls back to message.usage when line-level usage is malformed or empty', async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), 'pi-source-message-usage-'));
     tempDirs.push(root);
 
@@ -110,6 +122,65 @@ describe('PiSourceAdapter', () => {
             },
           },
         }),
+        JSON.stringify({
+          type: 'message',
+          timestamp: '2026-02-12T20:02:00.000Z',
+          provider: 'openai',
+          usage: {},
+          message: {
+            usage: {
+              input: 3,
+              output: 2,
+              totalTokens: 5,
+            },
+          },
+        }),
+      ].join('\n'),
+      'utf8',
+    );
+
+    const adapter = new PiSourceAdapter({ sessionsDir: root });
+    const events = await adapter.parseFile(filePath);
+
+    expect(events).toHaveLength(2);
+    expect(events[0]).toMatchObject({
+      inputTokens: 4,
+      outputTokens: 6,
+      totalTokens: 10,
+    });
+    expect(events[1]).toMatchObject({
+      inputTokens: 3,
+      outputTokens: 2,
+      totalTokens: 5,
+    });
+  });
+
+  it('falls back to message timestamp when line timestamp is malformed', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'pi-source-malformed-line-timestamp-'));
+    tempDirs.push(root);
+
+    const filePath = path.join(root, 'session.jsonl');
+
+    await writeFile(
+      filePath,
+      [
+        JSON.stringify({
+          type: 'session',
+          id: 'pi-malformed-line-timestamp',
+        }),
+        JSON.stringify({
+          type: 'message',
+          timestamp: 'not-a-date',
+          message: {
+            timestamp: '2026-02-12T20:01:00.000Z',
+          },
+          provider: 'openai',
+          usage: {
+            input: 1,
+            output: 2,
+            totalTokens: 3,
+          },
+        }),
       ].join('\n'),
       'utf8',
     );
@@ -118,11 +189,7 @@ describe('PiSourceAdapter', () => {
     const events = await adapter.parseFile(filePath);
 
     expect(events).toHaveLength(1);
-    expect(events[0]).toMatchObject({
-      inputTokens: 4,
-      outputTokens: 6,
-      totalTokens: 10,
-    });
+    expect(events[0]?.timestamp).toBe('2026-02-12T20:01:00.000Z');
   });
 
   it('supports unix-second timestamps in message events', async () => {
@@ -157,6 +224,40 @@ describe('PiSourceAdapter', () => {
 
     expect(events).toHaveLength(1);
     expect(events[0]?.timestamp).toBe('2024-02-12T20:00:00.000Z');
+  });
+
+  it('treats millisecond timestamps as milliseconds (without multiplying by 1000)', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'pi-source-unix-milliseconds-'));
+    tempDirs.push(root);
+
+    const filePath = path.join(root, 'session.jsonl');
+
+    await writeFile(
+      filePath,
+      [
+        JSON.stringify({
+          type: 'session',
+          id: 'pi-unix-milliseconds',
+        }),
+        JSON.stringify({
+          type: 'message',
+          timestamp: 946_684_800_000,
+          provider: 'openai',
+          usage: {
+            input: 1,
+            output: 2,
+            totalTokens: 3,
+          },
+        }),
+      ].join('\n'),
+      'utf8',
+    );
+
+    const adapter = new PiSourceAdapter({ sessionsDir: root });
+    const events = await adapter.parseFile(filePath);
+
+    expect(events).toHaveLength(1);
+    expect(events[0]?.timestamp).toBe('2000-01-01T00:00:00.000Z');
   });
 
   it('ignores out-of-range numeric timestamps instead of crashing', async () => {
@@ -194,13 +295,6 @@ describe('PiSourceAdapter', () => {
 });
 
 describe('pi source helpers', () => {
-  it('detects openai-like provider names', () => {
-    expect(isOpenAiProvider('openai')).toBe(true);
-    expect(isOpenAiProvider('OpenAI-Codex')).toBe(true);
-    expect(isOpenAiProvider('anthropic')).toBe(false);
-    expect(isOpenAiProvider(undefined)).toBe(false);
-  });
-
   it('returns the default pi sessions path', () => {
     expect(getDefaultPiSessionsDir()).toContain(path.join('.pi', 'agent', 'sessions'));
   });
