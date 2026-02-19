@@ -299,6 +299,109 @@ describe('renderTerminalTable', () => {
     expect(new Set(lineWidths)).toEqual(new Set([lineWidths[0]]));
   });
 
+  it('keeps borders aligned for text-presentation symbol model names', () => {
+    const rendered = renderTerminalTable(
+      [
+        {
+          rowType: 'period_source',
+          periodKey: '2026-01-01',
+          source: 'pi',
+          models: ['©™✈'],
+          modelBreakdown: [],
+          inputTokens: 100,
+          outputTokens: 20,
+          reasoningTokens: 0,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          totalTokens: 120,
+          costUsd: 1.23,
+        },
+        {
+          rowType: 'grand_total',
+          periodKey: 'ALL',
+          source: 'combined',
+          models: ['©™✈'],
+          modelBreakdown: [],
+          inputTokens: 100,
+          outputTokens: 20,
+          reasoningTokens: 0,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          totalTokens: 120,
+          costUsd: 1.23,
+        },
+      ],
+      { useColor: false },
+    );
+
+    const lineWidths = rendered
+      .trimEnd()
+      .split('\n')
+      .map((line) => visibleWidth(line));
+
+    expect(new Set(lineWidths)).toEqual(new Set([lineWidths[0]]));
+  });
+
+  it('normalizes CRLF content so terminal output does not contain carriage returns', () => {
+    const rendered = renderTerminalTable(
+      [
+        {
+          rowType: 'period_source',
+          periodKey: '2026-01-01',
+          source: 'pi',
+          models: ['model-a'],
+          modelBreakdown: [
+            {
+              model: 'gpt-4.1\r\ngpt-4.1-mini',
+              inputTokens: 10,
+              outputTokens: 5,
+              reasoningTokens: 0,
+              cacheReadTokens: 0,
+              cacheWriteTokens: 0,
+              totalTokens: 15,
+              costUsd: 0.02,
+            },
+          ],
+          inputTokens: 10,
+          outputTokens: 5,
+          reasoningTokens: 0,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          totalTokens: 15,
+          costUsd: 0.02,
+        },
+        {
+          rowType: 'grand_total',
+          periodKey: 'ALL',
+          source: 'combined',
+          models: ['model-a'],
+          modelBreakdown: [
+            {
+              model: 'gpt-4.1\r\ngpt-4.1-mini',
+              inputTokens: 10,
+              outputTokens: 5,
+              reasoningTokens: 0,
+              cacheReadTokens: 0,
+              cacheWriteTokens: 0,
+              totalTokens: 15,
+              costUsd: 0.02,
+            },
+          ],
+          inputTokens: 10,
+          outputTokens: 5,
+          reasoningTokens: 0,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          totalTokens: 15,
+          costUsd: 0.02,
+        },
+      ],
+      { useColor: false },
+    );
+
+    expect(rendered).not.toContain('\r');
+  });
+
   it('keeps structural separators stable when color is enabled', () => {
     const ansiPattern = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, 'gu');
     const stripAnsi = (value: string) => value.replaceAll(ansiPattern, '');

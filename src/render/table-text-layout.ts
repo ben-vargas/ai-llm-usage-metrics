@@ -5,6 +5,10 @@ const emojiPresentationPattern = /\p{Emoji_Presentation}/u;
 const regionalIndicatorPattern = /\p{Regional_Indicator}/u;
 const graphemeSegmenter = new Intl.Segmenter('en', { granularity: 'grapheme' });
 
+function normalizeLineBreaks(value: string): string {
+  return value.replace(/\r\n?/gu, '\n');
+}
+
 function stripAnsi(value: string): string {
   return value.replaceAll(ansiEscapePattern, '');
 }
@@ -76,12 +80,23 @@ function segmentGraphemes(value: string): string[] {
 }
 
 function isEmojiGrapheme(grapheme: string): boolean {
-  return (
-    extendedPictographicPattern.test(grapheme) ||
-    emojiPresentationPattern.test(grapheme) ||
-    regionalIndicatorPattern.test(grapheme) ||
-    grapheme.includes('\u20E3')
-  );
+  if (emojiPresentationPattern.test(grapheme)) {
+    return true;
+  }
+
+  if (regionalIndicatorPattern.test(grapheme)) {
+    return true;
+  }
+
+  if (grapheme.includes('\u20E3')) {
+    return true;
+  }
+
+  if (grapheme.includes('\uFE0F')) {
+    return true;
+  }
+
+  return grapheme.includes('\u200D') && extendedPictographicPattern.test(grapheme);
 }
 
 function graphemeDisplayWidth(grapheme: string): number {
@@ -109,7 +124,7 @@ export function visibleWidth(value: string): number {
 }
 
 export function splitCellLines(value: string): string[] {
-  return value.split('\n');
+  return normalizeLineBreaks(value).split('\n');
 }
 
 function sliceByVisibleWidth(value: string, maxWidth: number): string {

@@ -18,6 +18,13 @@ describe('table-text-layout', () => {
     expect(visibleWidth('1️⃣')).toBe(2);
   });
 
+  it('treats text-presentation symbols as width 1 unless emoji presentation is requested', () => {
+    expect(visibleWidth('©®™ℹ☺✈')).toBe(6);
+    expect(visibleWidth('©️')).toBe(2);
+    expect(visibleWidth('™️')).toBe(2);
+    expect(visibleWidth('✈️')).toBe(2);
+  });
+
   it('wraps at spaces when possible', () => {
     const wrappedRows = wrapTableColumn([['period', 'source', 'hello world']], {
       columnIndex: 2,
@@ -52,5 +59,14 @@ describe('table-text-layout', () => {
     });
 
     expect(wrappedRows[0][2]).toBe('👨‍👩‍👦\n👨‍👩‍👦');
+  });
+
+  it('normalizes CRLF and CR line breaks before wrapping', () => {
+    const wrappedRows = wrapTableColumn([['period', 'source', 'alpha\r\nbeta\rgamma']], {
+      columnIndex: 2,
+      width: 16,
+    });
+
+    expect(wrappedRows[0][2]).toBe('alpha\nbeta\ngamma');
   });
 });
