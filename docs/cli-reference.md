@@ -156,6 +156,13 @@ OpenCode DB override:
 llm-usage daily --opencode-db /path/to/opencode.db
 ```
 
+OpenCode path precedence:
+
+1. explicit `--opencode-db`
+2. deterministic OS-specific default OpenCode DB candidate paths
+
+When no default OpenCode DB is found, the source is treated as unavailable (no rows parsed).
+
 Offline pricing mode:
 
 ```bash
@@ -195,6 +202,17 @@ llm-usage monthly --model claude-sonnet-4.5
 llm-usage monthly --model claude,gpt-5
 ```
 
+Backfill and historical reruns:
+
+- use `--since` and `--until` to rerun a historical window from an OpenCode snapshot
+- keep point-in-time DB copies and pass them explicitly with `--opencode-db`
+
+Example:
+
+```bash
+llm-usage monthly --source opencode --opencode-db /archives/opencode-2026-01.db --since 2026-01-01 --until 2026-01-31
+```
+
 ## Validation rules
 
 - `--since` and `--until` must be valid calendar dates in `YYYY-MM-DD`
@@ -208,3 +226,12 @@ llm-usage monthly --model claude,gpt-5
 - `--pricing-url` must be `http` or `https`
 - `--markdown` and `--json` are mutually exclusive
 - if LiteLLM pricing cannot be loaded (or cache is unavailable in offline mode), report generation fails
+
+## OpenCode troubleshooting and safety
+
+- runtime parsing uses Node `node:sqlite` directly; OpenCode CLI is optional for troubleshooting only
+- OpenCode DB is opened in read-only mode
+- explicit `--opencode-db` paths are validated and fail fast when unreadable/missing
+- schema-drift failures report actionable guidance; inspect schema with OpenCode CLI helpers:
+  - `opencode db "select name from sqlite_master where type='table'"`
+  - `opencode db --format json "<sql>"`

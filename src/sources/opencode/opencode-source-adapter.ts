@@ -4,7 +4,7 @@ import { createUsageEvent } from '../../domain/usage-event.js';
 import type { UsageEvent } from '../../domain/usage-event.js';
 import { asRecord } from '../../utils/as-record.js';
 import { asTrimmedText, toNumberLike } from '../parsing-utils.js';
-import type { SourceAdapter } from '../source-adapter.js';
+import type { SourceAdapter, SourceParseFileDiagnostics } from '../source-adapter.js';
 import { getDefaultOpenCodeDbPathCandidates } from './opencode-db-path-resolver.js';
 
 const UNIX_SECONDS_ABS_CUTOFF = 10_000_000_000;
@@ -148,9 +148,9 @@ function isBusyOrLockedError(error: unknown): boolean {
   );
 }
 
-function isJsonExtractUnavailableError(error: unknown): boolean {
+function shouldFallbackToNonJsonExtractQuery(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
-  return /no such function:\s*json_extract/iu.test(message);
+  return /no such function:\s*json_extract|malformed JSON/iu.test(message);
 }
 
 function formatSqliteError(error: unknown): string {
@@ -344,6 +344,11 @@ export class OpenCodeSourceAdapter implements SourceAdapter {
   }
 
   public async parseFile(dbPath: string): Promise<UsageEvent[]> {
+    const parseDiagnostics = await this.parseFileWithDiagnostics(dbPath);
+    return parseDiagnostics.events;
+  }
+
+  public async parseFileWithDiagnostics(dbPath: string): Promise<SourceParseFileDiagnostics> {
     if (isBlankText(dbPath)) {
       throw new Error('OpenCode DB path must be a non-empty path');
     }
@@ -376,10 +381,10 @@ export class OpenCodeSourceAdapter implements SourceAdapter {
       }
     }
 
-    return [];
+    return { events: [], skippedRows: 0 };
   }
 
-  private async parseFileOnce(dbPath: string): Promise<UsageEvent[]> {
+  private async parseFileOnce(dbPath: string): Promise<SourceParseFileDiagnostics> {
     const sqlite = await this.loadSqliteModule();
     const database = new sqlite.DatabaseSync(dbPath, { readOnly: true, timeout: 0 });
 
@@ -412,7 +417,7 @@ export class OpenCodeSourceAdapter implements SourceAdapter {
       try {
         messageRows = database.prepare(primaryQuery).all();
       } catch (error) {
-        if (!isJsonExtractUnavailableError(error)) {
+        if (!shouldFallbackToNonJsonExtractQuery(error)) {
           throw error;
         }
 
@@ -420,11 +425,13 @@ export class OpenCodeSourceAdapter implements SourceAdapter {
       }
 
       const events: UsageEvent[] = [];
+      let skippedRows = 0;
 
       for (const row of messageRows) {
         const dataJson = asTrimmedText(row.data_json);
 
         if (!dataJson) {
+          skippedRows += 1;
           continue;
         }
 
@@ -433,6 +440,7 @@ export class OpenCodeSourceAdapter implements SourceAdapter {
         try {
           payload = asRecord(JSON.parse(dataJson)) ?? {};
         } catch {
+          skippedRows += 1;
           continue;
         }
 
@@ -445,6 +453,7 @@ export class OpenCodeSourceAdapter implements SourceAdapter {
         const timestamp = resolveTimestamp(row.row_time, payload);
 
         if (!timestamp) {
+          skippedRows += 1;
           continue;
         }
 
@@ -456,6 +465,7 @@ export class OpenCodeSourceAdapter implements SourceAdapter {
           asTrimmedText(row.row_id);
 
         if (!sessionId) {
+          skippedRows += 1;
           continue;
         }
 
@@ -484,6 +494,7 @@ export class OpenCodeSourceAdapter implements SourceAdapter {
             explicitCost,
           )
         ) {
+          skippedRows += 1;
           continue;
         }
 
@@ -506,11 +517,12 @@ export class OpenCodeSourceAdapter implements SourceAdapter {
             }),
           );
         } catch {
+          skippedRows += 1;
           continue;
         }
       }
 
-      return events;
+      return { events, skippedRows };
     } finally {
       database.close();
     }

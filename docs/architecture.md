@@ -188,6 +188,7 @@ Each source implements the same contract:
 
 - discover files
 - parse one file into normalized events
+- optionally expose parse diagnostics (`skippedRows`) per parsed file
 
 This keeps format-specific logic isolated and makes new sources straightforward to add.
 

@@ -143,6 +143,8 @@ Optional but recommended:
 
 1. Create `src/sources/<name>/<name>-source-adapter.ts`
 2. Implement `SourceAdapter`
+   - required: `discoverFiles()` and `parseFile(filePath)`
+   - optional: `parseFileWithDiagnostics(filePath)` when you need per-file skipped-row counters
 3. Normalize output through `createUsageEvent`
 4. Add fixture tests under `tests/sources`
 5. Register adapter in `src/sources/create-default-adapters.ts`

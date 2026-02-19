@@ -59,6 +59,29 @@ function createFailingAdapter(
   };
 }
 
+function createAdapterWithDiagnostics(
+  id: SourceAdapter['id'],
+  parseDiagnosticsByFile: Partial<
+    Record<
+      string,
+      {
+        events: ReturnType<typeof createUsageEvent>[];
+        skippedRows: number;
+      }
+    >
+  >,
+): SourceAdapter {
+  const files = Object.keys(parseDiagnosticsByFile);
+
+  return {
+    id,
+    discoverFiles: async () => files,
+    parseFile: async (filePath) => parseDiagnosticsByFile[filePath]?.events ?? [],
+    parseFileWithDiagnostics: async (filePath) =>
+      parseDiagnosticsByFile[filePath] ?? { events: [], skippedRows: 0 },
+  };
+}
+
 function createEvent(
   overrides: Partial<Parameters<typeof createUsageEvent>[0]> = {},
 ): ReturnType<typeof createUsageEvent> {
@@ -243,6 +266,31 @@ describe('buildUsageData', () => {
     const sourceRows = result.rows.filter((row) => row.rowType === 'period_source');
     expect(sourceRows).toHaveLength(1);
     expect(sourceRows[0].source).toBe('pi');
+  });
+
+  it('propagates adapter skipped-row diagnostics into usage diagnostics', async () => {
+    const result = await buildUsageData(
+      'daily',
+      {
+        timezone: 'UTC',
+      },
+      {
+        ...withDeterministicRuntimeDeps(),
+        createAdapters: () => [
+          createAdapterWithDiagnostics('opencode', {
+            '/tmp/opencode.db': {
+              events: [createEvent({ source: 'opencode', sessionId: 'opencode-session' })],
+              skippedRows: 2,
+            },
+          }),
+        ],
+      },
+    );
+
+    expect(result.diagnostics.sessionStats).toEqual([
+      { source: 'opencode', filesFound: 1, eventsParsed: 1 },
+    ]);
+    expect(result.diagnostics.skippedRows).toEqual([{ source: 'opencode', skippedRows: 2 }]);
   });
 
   it('fails when an explicitly selected source cannot be parsed', async () => {

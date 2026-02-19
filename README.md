@@ -138,6 +138,23 @@ OpenCode DB override:
 llm-usage daily --opencode-db /path/to/opencode.db
 ```
 
+OpenCode path precedence:
+
+1. explicit `--opencode-db`
+2. deterministic OS-specific default path candidates
+
+Backfill example from a historical DB snapshot:
+
+```bash
+llm-usage monthly --source opencode --opencode-db /archives/opencode-2026-01.db --since 2026-01-01 --until 2026-01-31
+```
+
+OpenCode safety notes:
+
+- OpenCode DB is opened in read-only mode
+- unreadable/missing explicit paths fail fast with actionable errors
+- OpenCode CLI is optional for troubleshooting and not required for runtime parsing
+
 ### Filter by source
 
 Only codex rows:

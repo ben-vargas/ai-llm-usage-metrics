@@ -157,10 +157,11 @@ describe('OpenCodeSourceAdapter', () => {
       }),
     });
 
-    const events = await adapter.parseFile('/tmp/opencode.db');
+    const parseDiagnostics = await adapter.parseFileWithDiagnostics('/tmp/opencode.db');
 
-    expect(events).toHaveLength(1);
-    expect(events[0]).toMatchObject({
+    expect(parseDiagnostics.events).toHaveLength(1);
+    expect(parseDiagnostics.skippedRows).toBe(2);
+    expect(parseDiagnostics.events[0]).toMatchObject({
       source: 'opencode',
       sessionId: 'session-1',
       timestamp: new Date(1_737_000_000 * 1000).toISOString(),

@@ -11,7 +11,7 @@ import { LiteLLMPricingFetcher } from '../pricing/litellm-pricing-fetcher.js';
 
 import type { PricingSource } from '../pricing/types.js';
 import { createDefaultAdapters } from '../sources/create-default-adapters.js';
-import type { SourceAdapter } from '../sources/source-adapter.js';
+import type { SourceAdapter, SourceParseFileDiagnostics } from '../sources/source-adapter.js';
 import { getPeriodKey, type ReportGranularity } from '../utils/time-buckets.js';
 import type {
   BuildUsageDataDeps,
@@ -173,6 +173,10 @@ type AdapterParseResult = {
   skippedRows: number;
 };
 
+function getDefaultParseFileDiagnostics(events: UsageEvent[]): SourceParseFileDiagnostics {
+  return { events, skippedRows: 0 };
+}
+
 async function parseAdapterEvents(
   adapter: SourceAdapter,
   maxParallelFileParsing: number,
@@ -188,6 +192,7 @@ async function parseAdapterEvents(
       ? Math.max(1, Math.floor(maxParallelFileParsing))
       : 1;
   const parsedByFile: UsageEvent[][] = Array.from({ length: files.length }, () => []);
+  const skippedRowsByFile: number[] = Array.from({ length: files.length }, () => 0);
   const workerCount = Math.min(safeMaxParallelFileParsing, files.length);
   let nextFileIndex = 0;
 
@@ -196,7 +201,12 @@ async function parseAdapterEvents(
       const fileIndex = nextFileIndex;
       nextFileIndex += 1;
 
-      parsedByFile[fileIndex] = await adapter.parseFile(files[fileIndex]);
+      const parseFileDiagnostics = adapter.parseFileWithDiagnostics
+        ? await adapter.parseFileWithDiagnostics(files[fileIndex])
+        : getDefaultParseFileDiagnostics(await adapter.parseFile(files[fileIndex]));
+
+      parsedByFile[fileIndex] = parseFileDiagnostics.events;
+      skippedRowsByFile[fileIndex] = parseFileDiagnostics.skippedRows;
     }
   });
 
@@ -206,7 +216,7 @@ async function parseAdapterEvents(
     source: adapter.id,
     events: parsedByFile.flat(),
     filesFound: files.length,
-    skippedRows: 0,
+    skippedRows: skippedRowsByFile.reduce((sum, skippedRowsCount) => sum + skippedRowsCount, 0),
   };
 }
 
