@@ -4,6 +4,24 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { DatabaseSync } from 'node:sqlite';
 
+function formatExecError(error) {
+  const message = error instanceof Error ? error.message : String(error);
+
+  if (typeof error !== 'object' || error === null) {
+    return message;
+  }
+
+  const stderrValue = Reflect.get(error, 'stderr');
+  const stderr =
+    typeof stderrValue === 'string'
+      ? stderrValue.trim()
+      : Buffer.isBuffer(stderrValue)
+        ? stderrValue.toString('utf8').trim()
+        : '';
+
+  return stderr.length > 0 ? `${message}\n${stderr}` : message;
+}
+
 async function main() {
   const tempDir = await mkdtemp(path.join(os.tmpdir(), 'llm-usage-dist-opencode-'));
   const dbPath = path.join(tempDir, 'opencode.db');
@@ -39,21 +57,30 @@ async function main() {
       database.close();
     }
 
-    const output = execFileSync(
-      process.execPath,
-      [
-        'dist/index.js',
-        'daily',
-        '--source',
-        'opencode',
-        '--opencode-db',
-        dbPath,
-        '--timezone',
-        'UTC',
-        '--json',
-      ],
-      { encoding: 'utf8' },
-    );
+    let output;
+
+    try {
+      output = execFileSync(
+        process.execPath,
+        [
+          'dist/index.js',
+          'daily',
+          '--source',
+          'opencode',
+          '--opencode-db',
+          dbPath,
+          '--timezone',
+          'UTC',
+          '--json',
+        ],
+        { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] },
+      );
+    } catch (error) {
+      throw new Error(
+        `Dist OpenCode smoke check failed while executing dist CLI: ${formatExecError(error)}`,
+      );
+    }
+
     const rows = JSON.parse(output);
     const totalRow = rows.find((row) => row.rowType === 'grand_total');
 
