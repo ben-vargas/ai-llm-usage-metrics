@@ -8,7 +8,7 @@ export interface SourceAdapter<Event extends UsageEvent = UsageEvent> {
 }
 
 export function isSourceAdapter(candidate: unknown): candidate is SourceAdapter {
-  const adapter = asRecord(candidate) as Partial<SourceAdapter> | undefined;
+  const adapter = asRecord(candidate);
 
   if (!adapter) {
     return false;

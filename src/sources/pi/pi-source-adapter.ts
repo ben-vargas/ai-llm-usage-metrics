@@ -35,9 +35,7 @@ export type PiSourceAdapterOptions = {
   providerFilter?: ProviderFilter;
 };
 
-function allowAllProviders(): boolean {
-  return true;
-}
+const allowAllProviders: ProviderFilter = () => true;
 
 export function isOpenAiProvider(provider: string | undefined): boolean {
   return provider?.toLowerCase().includes('openai') ?? false;
