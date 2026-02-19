@@ -29,8 +29,21 @@ export class StaticPricingSource implements PricingSource {
   }
 
   public resolveModelAlias(model: string): string {
-    const normalizedModel = normalizeKey(model);
-    return this.modelAliases.get(normalizedModel) ?? normalizedModel;
+    let resolvedModel = normalizeKey(model);
+    const visitedModels = new Set<string>();
+
+    while (!visitedModels.has(resolvedModel)) {
+      visitedModels.add(resolvedModel);
+      const nextModel = this.modelAliases.get(resolvedModel);
+
+      if (!nextModel) {
+        return resolvedModel;
+      }
+
+      resolvedModel = nextModel;
+    }
+
+    return resolvedModel;
   }
 
   public getPricing(model: string): ModelPricing | undefined {
