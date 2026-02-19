@@ -10,6 +10,7 @@ import type { SourceAdapter } from '../sources/source-adapter.js';
 export type ReportCommandOptions = {
   piDir?: string;
   codexDir?: string;
+  opencodeDb?: string;
   sourceDir?: string[];
   source?: string | string[];
   since?: string;

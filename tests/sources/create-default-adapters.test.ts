@@ -53,7 +53,19 @@ describe('createDefaultAdapters', () => {
 
   it('throws on unknown source ids in source directory overrides', () => {
     expect(() => createDefaultAdapters({ sourceDir: ['opencode=/tmp/opencode'] })).toThrow(
-      'Unknown --source-dir source id(s): opencode. Allowed values: codex, pi',
+      '--source-dir does not support "opencode". Use --opencode-db instead.',
+    );
+  });
+
+  it('throws when --opencode-db is provided before OpenCode source is available', () => {
+    expect(() => createDefaultAdapters({ opencodeDb: '/tmp/opencode.sqlite' })).toThrow(
+      'OpenCode source is not available yet in this version. Remove --opencode-db for now.',
+    );
+  });
+
+  it('throws when --opencode-db is blank', () => {
+    expect(() => createDefaultAdapters({ opencodeDb: '   ' })).toThrow(
+      '--opencode-db must be a non-empty path',
     );
   });
 });

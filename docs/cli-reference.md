@@ -22,7 +22,8 @@ Commands:
 
 - `--pi-dir <path>`: override `.pi` sessions directory
 - `--codex-dir <path>`: override `.codex` sessions directory
-- `--source-dir <source-id=path>`: override sessions directory for any source id (repeatable)
+- `--opencode-db <path>`: OpenCode SQLite DB path override (reserved until OpenCode source support is enabled)
+- `--source-dir <source-id=path>`: override sessions directory for directory-backed sources only (repeatable)
 - `--source <name>`: source filter (repeatable or comma-separated)
 - `--since <YYYY-MM-DD>`: inclusive start date (local to selected timezone)
 - `--until <YYYY-MM-DD>`: inclusive end date (local to selected timezone)
@@ -149,6 +150,12 @@ Generic source directory overrides:
 llm-usage daily --source-dir pi=/path/to/pi --source-dir codex=/path/to/codex
 ```
 
+OpenCode DB override (pre-wired; not yet active in current release):
+
+```bash
+llm-usage daily --opencode-db /path/to/opencode.sqlite
+```
+
 Offline pricing mode:
 
 ```bash
@@ -190,6 +197,9 @@ llm-usage monthly --model claude,gpt-5
 - `--source` values must be non-empty source ids and match known sources (`pi`, `codex`)
 - `--model` must contain at least one non-empty filter value
 - `--source-dir` values must use `<source-id>=<path>` with non-empty source id and path
+- `--source-dir` is currently directory-only (`pi`, `codex`)
+- `--source-dir opencode=...` is rejected; use `--opencode-db` for DB-based sources
+- `--opencode-db` is currently reserved and fails fast until OpenCode source parsing is released
 - `--pricing-url` must be `http` or `https`
 - `--markdown` and `--json` are mutually exclusive
 - if LiteLLM pricing cannot be loaded (or cache is unavailable in offline mode), report generation fails

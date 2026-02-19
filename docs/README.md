@@ -19,3 +19,8 @@ This folder contains the technical documentation for `llm-usage-metrics`.
 - `~/.codex/sessions`
 
 It normalizes events, estimates cost when needed, aggregates by period (daily/weekly/monthly), and renders the result as terminal table, markdown, or JSON.
+
+Override semantics:
+
+- use `--source-dir` for directory-backed sources
+- use dedicated flags for file/DB-backed sources (for example `--opencode-db`)

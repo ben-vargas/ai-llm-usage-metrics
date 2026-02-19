@@ -29,6 +29,7 @@ describe('createCli', () => {
       expect(command.options.some((option) => option.long === '--per-model-columns')).toBe(true);
       expect(command.options.some((option) => option.long === '--pricing-url')).toBe(true);
       expect(command.options.some((option) => option.long === '--pricing-offline')).toBe(true);
+      expect(command.options.some((option) => option.long === '--opencode-db')).toBe(true);
       expect(command.options.some((option) => option.long === '--source')).toBe(true);
       expect(command.options.some((option) => option.long === '--source-dir')).toBe(true);
       expect(command.options.some((option) => option.long === '--model')).toBe(true);

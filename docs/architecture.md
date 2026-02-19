@@ -102,7 +102,7 @@ flowchart TD
 ### `src/sources`
 
 - `source-adapter.ts`: adapter contract used by all sources.
-- `create-default-adapters.ts`: default adapter factory (`pi`, `codex`).
+- `create-default-adapters.ts`: default adapter factory (`pi`, `codex`) and override validation (`--source-dir` directory sources, dedicated flags for DB-backed sources).
 - `pi/pi-source-adapter.ts`: parser for `.pi` sessions.
 - `codex/codex-source-adapter.ts`: parser for `.codex` sessions.
 

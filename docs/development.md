@@ -146,6 +146,9 @@ Optional but recommended:
 3. Normalize output through `createUsageEvent`
 4. Add fixture tests under `tests/sources`
 5. Register adapter in `src/sources/create-default-adapters.ts`
-6. Verify CLI filtering with `--source <name>`
+6. Wire source-specific override semantics:
+   - directory-backed sources use `--source-dir <source-id=path>`
+   - file/DB-backed sources use dedicated flags (for example `--opencode-db`)
+7. Verify CLI filtering with `--source <name>`
 
 Keep parsing logic isolated to the adapter. Do not spread source-specific assumptions across aggregation or rendering.

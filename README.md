@@ -125,6 +125,12 @@ Or use generic source-id mapping (repeatable):
 llm-usage daily --source-dir pi=/path/to/pi/sessions --source-dir codex=/path/to/codex/sessions
 ```
 
+Directory override rules:
+
+- `--source-dir` is directory-only (currently `pi` and `codex`).
+- `--source-dir opencode=...` is invalid and points to `--opencode-db`.
+- `--opencode-db <path>` is reserved for upcoming OpenCode source support and currently fails fast with an explicit message.
+
 ### Filter by source
 
 Only codex rows:
