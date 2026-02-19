@@ -388,6 +388,7 @@ function isInteractiveSession(options: {
 
 export function shouldSkipUpdateCheckForArgv(argv: string[]): boolean {
   const executableArgs = argv.slice(2);
+  const commandNames = new Set(['daily', 'weekly', 'monthly', 'help', 'version']);
 
   if (executableArgs.length === 0) {
     return false;
@@ -397,9 +398,9 @@ export function shouldSkipUpdateCheckForArgv(argv: string[]): boolean {
     return true;
   }
 
-  const firstPositionalArg = executableArgs.find((arg) => !arg.startsWith('-'));
+  const firstRecognizedCommand = executableArgs.find((arg) => commandNames.has(arg));
 
-  return firstPositionalArg === 'help' || firstPositionalArg === 'version';
+  return firstRecognizedCommand === 'help' || firstRecognizedCommand === 'version';
 }
 
 export function isLikelyNpxExecution(argv: string[], env: NodeJS.ProcessEnv): boolean {

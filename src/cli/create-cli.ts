@@ -11,16 +11,22 @@ export type CreateCliOptions = {
 
 const defaultTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 
-function collectSourceOption(value: string, previous: string[]): string[] {
+function collectRepeatedOption(value: string, previous: string[]): string[] {
   return [...previous, value];
 }
 
-function getAllowedSourcesLabel(): string {
-  return getDefaultSourceIds().join(',');
+function getSupportedSourceIds(): string[] {
+  return getDefaultSourceIds();
+}
+
+function getAllowedSourcesLabel(supportedSourceIds: readonly string[]): string {
+  return supportedSourceIds.join(', ');
 }
 
 function addSharedOptions(command: Command): Command {
-  const allowedSourcesLabel = getAllowedSourcesLabel();
+  const supportedSourceIds = getSupportedSourceIds();
+  const allowedSourcesLabel = getAllowedSourcesLabel(supportedSourceIds);
+  const supportedSourcesSummary = `(${supportedSourceIds.length}): ${allowedSourcesLabel}`;
 
   return command
     .option('--pi-dir <path>', 'Path to .pi sessions directory')
@@ -29,13 +35,13 @@ function addSharedOptions(command: Command): Command {
     .option(
       '--source-dir <source-id=path>',
       'Override source directory for directory-backed sources (repeatable)',
-      collectSourceOption,
+      collectRepeatedOption,
       [],
     )
     .option(
       '--source <name>',
-      `Filter by source id (repeatable or comma-separated, allowed: ${allowedSourcesLabel})`,
-      collectSourceOption,
+      `Filter by source id (repeatable or comma-separated, supported sources ${supportedSourcesSummary})`,
+      collectRepeatedOption,
       [],
     )
     .option('--since <YYYY-MM-DD>', 'Inclusive start date filter')
@@ -44,8 +50,8 @@ function addSharedOptions(command: Command): Command {
     .option('--provider <name>', 'Provider filter (substring match, optional)')
     .option(
       '--model <name>',
-      'Filter by model (repeatable or comma-separated, exact when exact match exists; otherwise substring)',
-      collectSourceOption,
+      'Filter by model (repeatable/comma-separated; exact when exact match exists after source/provider/date filters, otherwise substring)',
+      collectRepeatedOption,
       [],
     )
     .option('--pricing-url <url>', 'Override LiteLLM pricing source URL')
@@ -82,10 +88,12 @@ function createCommand(granularity: ReportGranularity): Command {
 }
 
 function rootDescription(): string {
-  const allowedSourcesLabel = getAllowedSourcesLabel();
+  const supportedSourceIds = getSupportedSourceIds();
+  const allowedSourcesLabel = getAllowedSourcesLabel(supportedSourceIds);
 
   return [
     'Aggregate local LLM usage metrics from supported local session sources',
+    `Supported sources (${supportedSourceIds.length}): ${allowedSourcesLabel}`,
     '',
     'Run `llm-usage <command> --help` to see command options (e.g. --json, --source).',
     '',
@@ -93,7 +101,8 @@ function rootDescription(): string {
     '  $ llm-usage daily',
     '  $ llm-usage daily --help',
     '  $ llm-usage weekly --timezone Europe/Paris',
-    `  $ llm-usage monthly --since 2026-01-01 --until 2026-01-31 --source ${allowedSourcesLabel} --json`,
+    '  $ llm-usage monthly --since 2026-01-01 --until 2026-01-31 --source pi,codex --json',
+    '  $ llm-usage monthly --source opencode --opencode-db /path/to/opencode.db --json',
     '  $ llm-usage monthly --model claude --per-model-columns',
     '  $ llm-usage daily --source-dir pi=/tmp/pi-sessions',
     '  $ npx --yes llm-usage-metrics daily',

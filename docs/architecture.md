@@ -15,7 +15,7 @@ The runtime pipeline is split into clear reporting layers:
    - aggregation
    - diagnostics payload generation
 5. **Report rendering** (`src/render/render-usage-report.ts`)
-6. **Diagnostics emission** (`src/cli/emit-diagnostics.ts`, terminal format only)
+6. **Diagnostics emission** (`src/cli/emit-diagnostics.ts`)
 7. **Output write** (`stdout` for report body, `stderr` for diagnostics)
 
 ```mermaid
@@ -27,10 +27,8 @@ flowchart LR
     E --> F[UsageDataResult rows + diagnostics]
     F --> G[renderUsageReport]
     G --> H[stdout report]
-    D --> I{format = terminal?}
-    I -- yes --> J[emitDiagnostics]
+    D --> J[emitDiagnostics]
     J --> K[stderr diagnostics]
-    I -- no --> L[skip diagnostics emission]
 ```
 
 ## Runtime sequence
@@ -62,7 +60,7 @@ sequenceDiagram
     BLD-->>CLI: UsageDataResult
     CLI->>REN: renderUsageReport(data, format)
     REN-->>CLI: output string
-    CLI->>EM: emitDiagnostics(data.diagnostics) [terminal only]
+    CLI->>EM: emitDiagnostics(data.diagnostics)
     CLI-->>User: stderr diagnostics + stdout report
 ```
 
@@ -180,7 +178,7 @@ Reporting is split into:
 - **render** (`renderUsageReport`) for format-specific string output
 - **emit** (`emitDiagnostics`) for stderr diagnostics
 
-This keeps JSON/Markdown outputs data-only and makes each stage easier to test.
+This keeps report payloads data-only on stdout (for JSON/Markdown) while retaining stderr diagnostics, and makes each stage easier to test.
 
 ### Source adapter pattern
 
@@ -208,7 +206,7 @@ Sorting rules are explicit:
 
 Terminal styling is centralized into policy maps:
 
-- source policy (`pi`, `codex`, `opencode`, `combined`, `TOTAL`, unknown)
+- source policy (`pi`, `codex`, `opencode`, unknown)
 - row-type policy (`period_source`, `period_combined`, `grand_total`)
 
 This keeps styling behavior explicit and testable.

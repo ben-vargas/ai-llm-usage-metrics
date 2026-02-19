@@ -5,6 +5,7 @@ import type { SourceAdapter } from './source-adapter.js';
 
 type SourceRegistration = {
   id: string;
+  sourceDirOverride: { kind: 'directory' } | { kind: 'unsupported'; flag: string };
   create: (
     options: CreateDefaultAdaptersOptions,
     sourceDirectoryOverrides: ReadonlyMap<string, string>,
@@ -17,10 +18,6 @@ export type CreateDefaultAdaptersOptions = {
   opencodeDb?: string;
   sourceDir?: string[];
 };
-
-const DIRECTORY_SOURCE_IDS = ['pi', 'codex'] as const;
-
-const NON_DIRECTORY_SOURCE_FLAGS = new Map<string, string>([['opencode', '--opencode-db']]);
 
 function parseSourceDirectoryOverrides(entries: string[] | undefined): Map<string, string> {
   const overrides = new Map<string, string>();
@@ -56,6 +53,7 @@ function parseSourceDirectoryOverrides(entries: string[] | undefined): Map<strin
 const sourceRegistrations: readonly SourceRegistration[] = [
   {
     id: 'pi',
+    sourceDirOverride: { kind: 'directory' },
     create: (options, sourceDirectoryOverrides) =>
       new PiSourceAdapter({
         sessionsDir: resolveDirectoryOverride('pi', options.piDir, sourceDirectoryOverrides),
@@ -63,6 +61,7 @@ const sourceRegistrations: readonly SourceRegistration[] = [
   },
   {
     id: 'codex',
+    sourceDirOverride: { kind: 'directory' },
     create: (options, sourceDirectoryOverrides) =>
       new CodexSourceAdapter({
         sessionsDir: resolveDirectoryOverride('codex', options.codexDir, sourceDirectoryOverrides),
@@ -70,6 +69,7 @@ const sourceRegistrations: readonly SourceRegistration[] = [
   },
   {
     id: 'opencode',
+    sourceDirOverride: { kind: 'unsupported', flag: '--opencode-db' },
     create: (options) =>
       new OpenCodeSourceAdapter({
         dbPath: options.opencodeDb,
@@ -77,30 +77,52 @@ const sourceRegistrations: readonly SourceRegistration[] = [
   },
 ];
 
+const sourceDirUnsupportedFlags = new Map(
+  sourceRegistrations
+    .filter(
+      (
+        source,
+      ): source is SourceRegistration & {
+        sourceDirOverride: { kind: 'unsupported'; flag: string };
+      } => source.sourceDirOverride.kind === 'unsupported',
+    )
+    .map((source) => [source.id, source.sourceDirOverride.flag]),
+);
+
+const sourceDirSupportedIds = new Set(
+  sourceRegistrations
+    .filter(
+      (source): source is SourceRegistration & { sourceDirOverride: { kind: 'directory' } } =>
+        source.sourceDirOverride.kind === 'directory',
+    )
+    .map((source) => source.id),
+);
+
 function validateSourceDirectoryOverrideIds(
   sourceDirectoryOverrides: ReadonlyMap<string, string>,
 ): void {
   const nonDirectorySourceOverrides = [...sourceDirectoryOverrides.keys()].filter((sourceId) =>
-    NON_DIRECTORY_SOURCE_FLAGS.has(sourceId),
+    sourceDirUnsupportedFlags.has(sourceId),
   );
 
   if (nonDirectorySourceOverrides.length > 0) {
     const sourceId = nonDirectorySourceOverrides[0];
-    const flag = NON_DIRECTORY_SOURCE_FLAGS.get(sourceId);
+    const flag = sourceDirUnsupportedFlags.get(sourceId);
 
     throw new Error(`--source-dir does not support "${sourceId}". Use ${flag} instead.`);
   }
 
-  const directorySourceIds = new Set<string>(DIRECTORY_SOURCE_IDS);
   const unknownSourceIds = [...sourceDirectoryOverrides.keys()].filter(
-    (sourceId) => !directorySourceIds.has(sourceId),
+    (sourceId) => !sourceDirSupportedIds.has(sourceId),
   );
 
   if (unknownSourceIds.length === 0) {
     return;
   }
 
-  const allowedSourceIds = [...directorySourceIds].sort((left, right) => left.localeCompare(right));
+  const allowedSourceIds = [...sourceDirSupportedIds].sort((left, right) =>
+    left.localeCompare(right),
+  );
 
   throw new Error(
     `Unknown --source-dir source id(s): ${unknownSourceIds.join(', ')}. Allowed values: ${allowedSourceIds.join(', ')}`,

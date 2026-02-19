@@ -15,7 +15,7 @@ Reports are available for daily, weekly (Monday-start), and monthly periods.
 
 Project documentation is available in [`docs/`](./docs/README.md).
 
-Built-in adapters currently support `.pi`, `.codex`, and OpenCode SQLite. The codebase is structured to add more sources (for example Claude/Gemini exports) through the `SourceAdapter` pattern. See [`CONTRIBUTING.md`](./CONTRIBUTING.md).
+Built-in adapters currently support 3 sources: `.pi`, `.codex`, and OpenCode SQLite. The codebase is structured to add more sources (for example Claude/Gemini exports) through the `SourceAdapter` pattern. See [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
 ## Install
 
@@ -43,7 +43,7 @@ When installed globally, the CLI performs a lightweight npm update check on star
 
 Behavior:
 
-- uses a local cache (`~/.cache/llm-usage-metrics/update-check.json`) with a 1-hour default TTL
+- uses a local cache (`<platform-cache-root>/llm-usage-metrics/update-check.json`; defaults to `~/.cache/llm-usage-metrics/update-check.json` on Linux when `XDG_CACHE_HOME` is unset) with a 1-hour default TTL
 - optional session-scoped cache mode via `LLM_USAGE_UPDATE_CACHE_SCOPE=session`
 - skips checks for `--help` / `--version` invocations
 - skips checks when run through `npx`
@@ -166,47 +166,75 @@ OpenCode safety notes:
 - unreadable/missing explicit paths fail fast with actionable errors
 - OpenCode CLI is optional for troubleshooting and not required for runtime parsing
 
-### Filter by source
+### Filter by source (`--source`)
 
-Only codex rows:
+Use `--source` to limit reports to one or more source ids.
+
+Supported source ids:
+
+- `pi`
+- `codex`
+- `opencode`
+
+Behavior:
+
+- repeatable or comma-separated (`--source pi --source codex` or `--source pi,codex`)
+- case-insensitive source id matching
+- unknown ids fail fast with a validation error
+
+Examples:
 
 ```bash
+# only codex data
 llm-usage monthly --source codex
-```
 
-Only pi rows:
-
-```bash
+# only pi data
 llm-usage monthly --source pi
-```
 
-Only OpenCode rows:
-
-```bash
+# only OpenCode data
 llm-usage monthly --source opencode
-```
 
-Multiple sources (repeat or comma-separated):
-
-```bash
+# multiple sources
 llm-usage monthly --source pi --source codex
 llm-usage monthly --source pi,codex
+
+# OpenCode source with explicit DB path
+llm-usage monthly --source opencode --opencode-db /path/to/opencode.db
 ```
 
-### Filter by provider (optional)
+### Filter by provider (`--provider`)
+
+Use `--provider` to keep only events whose provider contains the filter text.
+
+Behavior:
+
+- case-insensitive substring match
+- optional flag (when omitted, all providers are included)
+- works together with `--source` and `--model`
+
+Examples:
 
 ```bash
+# all OpenAI-family providers
 llm-usage monthly --provider openai
+
+# GitHub Models providers
 llm-usage monthly --provider github
-llm-usage monthly --provider kimi
+
+# source + provider together
+llm-usage monthly --source codex --provider openai
 ```
 
-### Filter by model (optional)
+### Filter by model (`--model`)
 
-`--model` supports repeatable/comma-separated filters. Matching is case-insensitive.
+`--model` supports repeatable and comma-separated filters. Matching is case-insensitive.
 
-- if an exact model exists for a filter value, exact matching is used
+Per filter value:
+
+- if an exact model id exists in the currently selected event set (after source/provider/date filtering), exact matching is used
 - otherwise, substring matching is used
+
+Examples:
 
 ```bash
 # substring match (all Claude-family models)
@@ -215,9 +243,12 @@ llm-usage monthly --model claude
 # exact match when present
 llm-usage monthly --model claude-sonnet-4.5
 
-# multiple filters
+# multiple model filters
 llm-usage monthly --model claude --model gpt-5
 llm-usage monthly --model claude,gpt-5
+
+# source + provider + model together
+llm-usage monthly --source opencode --provider openai --model gpt-4.1
 ```
 
 ### Per-model columns (opt-in detailed table layout)

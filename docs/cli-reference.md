@@ -34,7 +34,7 @@ Commands:
 - `--until <YYYY-MM-DD>`: inclusive end date (local to selected timezone)
 - `--timezone <iana>`: IANA timezone for bucket boundaries
 - `--provider <name>`: provider filter (substring match, case-insensitive)
-- `--model <name>`: model filter (repeatable or comma-separated, case-insensitive; exact when an exact model exists, otherwise substring)
+- `--model <name>`: model filter (repeatable or comma-separated, case-insensitive; exact when an exact model exists in the selected event set after source/provider/date filtering, otherwise substring)
 - `--pricing-url <url>`: use custom LiteLLM pricing JSON source
 - `--pricing-offline`: use cache only (no network)
 - `--markdown`: render markdown table
@@ -54,7 +54,7 @@ Commands:
 
 When installed globally, the CLI checks npm for newer versions using a cached lookup (1-hour default TTL).
 
-- cache path: `~/.cache/llm-usage-metrics/update-check.json`
+- cache path: `<platform-cache-root>/llm-usage-metrics/update-check.json` (defaults to `~/.cache/llm-usage-metrics/update-check.json` on Linux when `XDG_CACHE_HOME` is unset)
 - check is skipped for `--help`, `help`, `--version`, and `version` invocations
 - check is skipped when the CLI appears to run via `npx`
 - interactive TTY sessions can prompt to install + restart
@@ -96,13 +96,14 @@ When outputting to terminal (default), the CLI emits:
 
 Row styling policy:
 
-- Source names are color-coded (`pi` = cyan, `codex` = magenta, `opencode` = blue, `combined` = yellow)
+- Period source names are color-coded (`pi` = cyan, `codex` = magenta, `opencode` = blue)
+- Combined subtotal label (`combined`) is bold yellow
 - Grand total source label (`TOTAL`) is bold green
 - Grand total numeric cells are bold
 - Combined subtotal rows are dimmed except the source cell
 - Unknown source labels are left unchanged
 
-For `--json` and `--markdown`, only data output is printed (no diagnostics).
+For `--json` and `--markdown`, report data is still data-only on `stdout`; diagnostics are emitted to `stderr`.
 
 ## Examples
 
@@ -199,7 +200,7 @@ llm-usage monthly --source pi --source codex
 llm-usage monthly --source pi,codex
 ```
 
-Model filtering (exact-when-exact-available, otherwise substring):
+Model filtering (exact-when-exact-available in the selected event set, otherwise substring):
 
 ```bash
 llm-usage monthly --model claude
@@ -237,6 +238,6 @@ llm-usage monthly --source opencode --opencode-db /archives/opencode-2026-01.db 
 - runtime parsing uses Node `node:sqlite` directly; OpenCode CLI is optional for troubleshooting only
 - OpenCode DB is opened in read-only mode
 - explicit `--opencode-db` paths are validated and fail fast when unreadable/missing
-- schema-drift failures report actionable guidance; inspect schema with OpenCode CLI helpers:
+- schema-drift failures report actionable guidance; inspect schema with the separate OpenCode CLI (`opencode`) helpers:
   - `opencode db "select name from sqlite_master where type='table'"`
   - `opencode db --format json "<sql>"`

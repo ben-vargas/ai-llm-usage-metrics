@@ -66,10 +66,7 @@ export async function runUsageReport(
   options: ReportCommandOptions,
 ): Promise<void> {
   const preparedReport = await prepareUsageReport(granularity, options);
-
-  if (preparedReport.format === 'terminal') {
-    emitDiagnostics(preparedReport.diagnostics, logger);
-  }
+  emitDiagnostics(preparedReport.diagnostics, logger);
 
   console.log(preparedReport.output);
 }

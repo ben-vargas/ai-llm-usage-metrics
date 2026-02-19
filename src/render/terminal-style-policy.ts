@@ -34,8 +34,6 @@ const sourceStylePolicies = new Map<string, SourceStylePolicy>([
   ['pi', (palette) => palette.cyan],
   ['codex', (palette) => palette.magenta],
   ['opencode', (palette) => palette.blue],
-  ['combined', (palette) => palette.yellow],
-  ['TOTAL', (palette) => (text) => palette.bold(palette.green(text))],
 ]);
 
 export function resolveSourceStyler(
@@ -65,7 +63,7 @@ const rowTypeStylePolicies: Record<UsageReportRow['rowType'], RowTypeStylePolicy
   period_combined: (cells, palette) =>
     cells.map((cell, cellIndex) => {
       if (cellIndex === 1) {
-        return palette.bold(cell);
+        return palette.bold(palette.yellow(cell));
       }
 
       return palette.dim(cell);
@@ -77,7 +75,7 @@ const rowTypeStylePolicies: Record<UsageReportRow['rowType'], RowTypeStylePolicy
       }
 
       if (cellIndex === 1) {
-        return cell;
+        return palette.bold(palette.green(cell));
       }
 
       return palette.bold(cell);
@@ -124,7 +122,10 @@ export function colorizeUsageBodyRows(
   const palette = options.palette ?? defaultTerminalStylePalette;
 
   return rows.map((row, index) => {
-    const sourceStyler = resolveSourceStyler(bodyRows[index][1], palette);
+    const sourceStyler =
+      row.rowType === 'period_source'
+        ? resolveSourceStyler(String(row.source), palette)
+        : passthroughStyler;
     const baseStyledCells = applyBaseCellStyle(bodyRows[index], palette, sourceStyler);
 
     return applyRowTypeStyle(row.rowType, baseStyledCells, palette);

@@ -24,12 +24,8 @@ describe('terminal-style-policy', () => {
     expect(resolveSourceStyler('pi', testPalette)('pi')).toBe('<cyan>pi</cyan>');
     expect(resolveSourceStyler('codex', testPalette)('codex')).toBe('<magenta>codex</magenta>');
     expect(resolveSourceStyler('opencode', testPalette)('opencode')).toBe('<blue>opencode</blue>');
-    expect(resolveSourceStyler('combined', testPalette)('combined')).toBe(
-      '<yellow>combined</yellow>',
-    );
-    expect(resolveSourceStyler('TOTAL', testPalette)('TOTAL')).toBe(
-      '<bold><green>TOTAL</green></bold>',
-    );
+    expect(resolveSourceStyler('combined', testPalette)('combined')).toBe('combined');
+    expect(resolveSourceStyler('TOTAL', testPalette)('TOTAL')).toBe('TOTAL');
     expect(resolveSourceStyler('other', testPalette)('other')).toBe('other');
   });
 
@@ -57,7 +53,7 @@ describe('terminal-style-policy', () => {
   it('applies row-type style policy for period_combined rows', () => {
     const styled = applyRowTypeStyle(
       'period_combined',
-      ['period', '<yellow>combined</yellow>', 'model', '1'],
+      ['period', 'combined', 'model', '1'],
       testPalette,
     );
 
@@ -70,15 +66,11 @@ describe('terminal-style-policy', () => {
   });
 
   it('applies row-type style policy for grand_total rows', () => {
-    const styled = applyRowTypeStyle(
-      'grand_total',
-      ['ALL', '<bold>TOTAL</bold>', 'model', '1'],
-      testPalette,
-    );
+    const styled = applyRowTypeStyle('grand_total', ['ALL', 'TOTAL', 'model', '1'], testPalette);
 
     expect(styled).toEqual([
       '<bold><white>ALL</white></bold>',
-      '<bold>TOTAL</bold>',
+      '<bold><green>TOTAL</green></bold>',
       '<bold>model</bold>',
       '<bold>1</bold>',
     ]);
@@ -195,5 +187,66 @@ describe('terminal-style-policy', () => {
       'model',
       '<yellow>$1</yellow>',
     ]);
+  });
+
+  it('does not treat period_source labels named combined/TOTAL as summary rows', () => {
+    const bodyRows = [
+      ['period', 'combined', 'model', '$1'],
+      ['period', 'TOTAL', 'model', '$2'],
+      ['ALL', 'TOTAL', 'model', '$3'],
+    ];
+    const rows: UsageReportRow[] = [
+      {
+        rowType: 'period_source',
+        periodKey: 'period',
+        source: 'combined' as UsageReportRow['source'],
+        models: ['model'],
+        modelBreakdown: [],
+        inputTokens: 1,
+        outputTokens: 0,
+        reasoningTokens: 0,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+        totalTokens: 1,
+        costUsd: 1,
+      },
+      {
+        rowType: 'period_source',
+        periodKey: 'period',
+        source: 'TOTAL' as UsageReportRow['source'],
+        models: ['model'],
+        modelBreakdown: [],
+        inputTokens: 2,
+        outputTokens: 0,
+        reasoningTokens: 0,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+        totalTokens: 2,
+        costUsd: 2,
+      },
+      {
+        rowType: 'grand_total',
+        periodKey: 'ALL',
+        source: 'combined',
+        models: ['model'],
+        modelBreakdown: [],
+        inputTokens: 3,
+        outputTokens: 0,
+        reasoningTokens: 0,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+        totalTokens: 3,
+        costUsd: 3,
+      },
+    ];
+
+    const styledRows = colorizeUsageBodyRows(bodyRows, rows, {
+      useColor: true,
+      palette: testPalette,
+    });
+
+    expect(styledRows[0][1]).toBe('combined');
+    expect(styledRows[1][1]).toBe('TOTAL');
+    expect(styledRows[2][1]).toBe('<bold><green>TOTAL</green></bold>');
   });
 });
