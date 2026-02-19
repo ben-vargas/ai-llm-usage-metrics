@@ -1,10 +1,16 @@
 import type { UsageEvent, SourceId } from '../domain/usage-event.js';
 import { asRecord } from '../utils/as-record.js';
 
+export type SourceParseFileDiagnostics<Event extends UsageEvent = UsageEvent> = {
+  events: Event[];
+  skippedRows: number;
+};
+
 export interface SourceAdapter<Event extends UsageEvent = UsageEvent> {
   readonly id: SourceId;
   discoverFiles(): Promise<string[]>;
   parseFile(filePath: string): Promise<Event[]>;
+  parseFileWithDiagnostics?(filePath: string): Promise<SourceParseFileDiagnostics<Event>>;
 }
 
 export function isSourceAdapter(candidate: unknown): candidate is SourceAdapter {

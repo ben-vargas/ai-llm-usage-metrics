@@ -106,6 +106,8 @@ const sampleUsageData: UsageDataResult = {
       { source: 'pi', filesFound: 1, eventsParsed: 2 },
       { source: 'codex', filesFound: 1, eventsParsed: 2 },
     ],
+    sourceFailures: [],
+    skippedRows: [],
     pricingOrigin: 'cache',
     activeEnvOverrides: [
       {

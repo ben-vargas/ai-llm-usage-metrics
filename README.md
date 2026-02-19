@@ -4,12 +4,13 @@ CLI to aggregate local LLM usage from:
 
 - `~/.pi/agent/sessions/**/*.jsonl`
 - `~/.codex/sessions/**/*.jsonl`
+- OpenCode SQLite DB (auto-discovered or provided via `--opencode-db`)
 
 Reports are available for daily, weekly (Monday-start), and monthly periods.
 
 Project documentation is available in [`docs/`](./docs/README.md).
 
-Built-in adapters currently support `.pi` and `.codex`. The codebase is structured to add more sources (for example Claude/Gemini exports) through the `SourceAdapter` pattern. See [`CONTRIBUTING.md`](./CONTRIBUTING.md).
+Built-in adapters currently support `.pi`, `.codex`, and OpenCode SQLite. The codebase is structured to add more sources (for example Claude/Gemini exports) through the `SourceAdapter` pattern. See [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
 ## Install
 
@@ -24,6 +25,12 @@ npx --yes llm-usage-metrics daily
 ```
 
 (`npx llm-usage daily` works when the project is already installed locally.)
+
+Runtime notes:
+
+- OpenCode parsing requires Node.js 24+ (`node:sqlite`).
+- Bun is supported for dependency/scripts workflow, but OpenCode report runs should use Node-based CLI execution.
+- Example local execution against built dist: `node dist/index.js daily --source opencode --opencode-db /path/to/opencode.db`
 
 ## Update checks
 
@@ -125,6 +132,35 @@ Or use generic source-id mapping (repeatable):
 llm-usage daily --source-dir pi=/path/to/pi/sessions --source-dir codex=/path/to/codex/sessions
 ```
 
+Directory override rules:
+
+- `--source-dir` is directory-only (currently `pi` and `codex`).
+- `--source-dir opencode=...` is invalid and points to `--opencode-db`.
+- `--opencode-db <path>` sets an explicit OpenCode SQLite DB path.
+
+OpenCode DB override:
+
+```bash
+llm-usage daily --opencode-db /path/to/opencode.db
+```
+
+OpenCode path precedence:
+
+1. explicit `--opencode-db`
+2. deterministic OS-specific default path candidates
+
+Backfill example from a historical DB snapshot:
+
+```bash
+llm-usage monthly --source opencode --opencode-db /archives/opencode-2026-01.db --since 2026-01-01 --until 2026-01-31
+```
+
+OpenCode safety notes:
+
+- OpenCode DB is opened in read-only mode
+- unreadable/missing explicit paths fail fast with actionable errors
+- OpenCode CLI is optional for troubleshooting and not required for runtime parsing
+
 ### Filter by source
 
 Only codex rows:
@@ -137,6 +173,12 @@ Only pi rows:
 
 ```bash
 llm-usage monthly --source pi
+```
+
+Only OpenCode rows:
+
+```bash
+llm-usage monthly --source opencode
 ```
 
 Multiple sources (repeat or comma-separated):
@@ -221,7 +263,7 @@ Example output:
 
 Each report includes:
 
-- source rows (`pi`, `codex`) for each period
+- source rows (`pi`, `codex`, `opencode`) for each period
 - a per-period combined subtotal row (only when multiple sources exist in that period)
 - a final grand total row across all periods
 

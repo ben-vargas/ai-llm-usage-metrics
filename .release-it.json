@@ -29,7 +29,7 @@
       "bun run pack:check"
     ],
     "after:bump": ["bunx prettier --write CHANGELOG.md", "bunx prettier --check CHANGELOG.md"],
-    "before:git:beforeRelease": [
+    "before:git:release": [
       "bunx prettier --write CHANGELOG.md",
       "bunx prettier --check CHANGELOG.md"
     ]

@@ -29,6 +29,7 @@ describe('createCli', () => {
       expect(command.options.some((option) => option.long === '--per-model-columns')).toBe(true);
       expect(command.options.some((option) => option.long === '--pricing-url')).toBe(true);
       expect(command.options.some((option) => option.long === '--pricing-offline')).toBe(true);
+      expect(command.options.some((option) => option.long === '--opencode-db')).toBe(true);
       expect(command.options.some((option) => option.long === '--source')).toBe(true);
       expect(command.options.some((option) => option.long === '--source-dir')).toBe(true);
       expect(command.options.some((option) => option.long === '--model')).toBe(true);
@@ -43,7 +44,17 @@ describe('createCli', () => {
     const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
 
     await cli.parseAsync(
-      ['daily', '--pi-dir', emptySessionsDir, '--codex-dir', emptySessionsDir, '--timezone', 'UTC'],
+      [
+        'daily',
+        '--pi-dir',
+        emptySessionsDir,
+        '--codex-dir',
+        emptySessionsDir,
+        '--source',
+        'pi,codex',
+        '--timezone',
+        'UTC',
+      ],
       { from: 'user' },
     );
 

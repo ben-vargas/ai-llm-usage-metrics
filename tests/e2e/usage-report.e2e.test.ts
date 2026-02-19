@@ -12,6 +12,7 @@ describe('usage report e2e', () => {
     const report = await buildUsageReport('daily', {
       piDir,
       codexDir,
+      source: 'pi,codex',
       timezone: 'UTC',
     });
 
@@ -28,6 +29,7 @@ describe('usage report e2e', () => {
     const report = await buildUsageReport('weekly', {
       piDir,
       codexDir,
+      source: 'pi,codex',
       timezone: 'UTC',
       markdown: true,
     });
@@ -42,6 +44,7 @@ describe('usage report e2e', () => {
     const report = await buildUsageReport('monthly', {
       piDir,
       codexDir,
+      source: 'pi,codex',
       timezone: 'UTC',
       json: true,
     });

@@ -14,6 +14,8 @@ function createLoggerSpy(): DiagnosticsLogger {
 function createDiagnostics(overrides: Partial<UsageDiagnostics> = {}): UsageDiagnostics {
   return {
     sessionStats: [],
+    sourceFailures: [],
+    skippedRows: [],
     pricingOrigin: 'none',
     activeEnvOverrides: [],
     timezone: 'UTC',
@@ -82,5 +84,38 @@ describe('emitDiagnostics', () => {
     );
 
     expect(diagnosticsLogger.info).toHaveBeenCalledWith(message);
+  });
+
+  it('emits source failure diagnostics when parsing failures are present', () => {
+    const diagnosticsLogger = createLoggerSpy();
+
+    emitDiagnostics(
+      createDiagnostics({
+        sourceFailures: [{ source: 'codex', reason: 'permission denied' }],
+      }),
+      diagnosticsLogger,
+    );
+
+    expect(diagnosticsLogger.warn).toHaveBeenCalledWith('No sessions found');
+    expect(diagnosticsLogger.warn).toHaveBeenCalledWith('Failed to parse 1 source');
+    expect(diagnosticsLogger.dim).toHaveBeenCalledWith('  codex: permission denied');
+  });
+
+  it('emits skipped-row diagnostics when row skips are present', () => {
+    const diagnosticsLogger = createLoggerSpy();
+
+    emitDiagnostics(
+      createDiagnostics({
+        skippedRows: [
+          { source: 'pi', skippedRows: 1 },
+          { source: 'codex', skippedRows: 2 },
+        ],
+      }),
+      diagnosticsLogger,
+    );
+
+    expect(diagnosticsLogger.warn).toHaveBeenCalledWith('Skipped 3 malformed rows');
+    expect(diagnosticsLogger.dim).toHaveBeenCalledWith('  pi: 1 skipped');
+    expect(diagnosticsLogger.dim).toHaveBeenCalledWith('  codex: 2 skipped');
   });
 });

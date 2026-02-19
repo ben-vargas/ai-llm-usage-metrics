@@ -58,6 +58,12 @@ Build CLI bundle:
 bun run build
 ```
 
+Smoke-test built OpenCode path:
+
+```bash
+bun run smoke:dist-opencode
+```
+
 Check npm package output:
 
 ```bash
@@ -83,6 +89,7 @@ Checks:
 - typecheck
 - format check
 - build
+- built dist OpenCode smoke test
 - npm pack check
 - test + coverage (`bun run test`, Node 24)
 
@@ -143,9 +150,14 @@ Optional but recommended:
 
 1. Create `src/sources/<name>/<name>-source-adapter.ts`
 2. Implement `SourceAdapter`
+   - required: `discoverFiles()` and `parseFile(filePath)`
+   - optional: `parseFileWithDiagnostics(filePath)` when you need per-file skipped-row counters
 3. Normalize output through `createUsageEvent`
 4. Add fixture tests under `tests/sources`
 5. Register adapter in `src/sources/create-default-adapters.ts`
-6. Verify CLI filtering with `--source <name>`
+6. Wire source-specific override semantics:
+   - directory-backed sources use `--source-dir <source-id=path>`
+   - file/DB-backed sources use dedicated flags (for example `--opencode-db`)
+7. Verify CLI filtering with `--source <name>`
 
 Keep parsing logic isolated to the adapter. Do not spread source-specific assumptions across aggregation or rendering.

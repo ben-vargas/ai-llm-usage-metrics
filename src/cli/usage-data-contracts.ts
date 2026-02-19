@@ -10,6 +10,7 @@ import type { SourceAdapter } from '../sources/source-adapter.js';
 export type ReportCommandOptions = {
   piDir?: string;
   codexDir?: string;
+  opencodeDb?: string;
   sourceDir?: string[];
   source?: string | string[];
   since?: string;
@@ -30,10 +31,22 @@ export type UsageSessionStats = {
   eventsParsed: number;
 };
 
+export type UsageSourceFailure = {
+  source: string;
+  reason: string;
+};
+
+export type UsageSkippedRowsStat = {
+  source: string;
+  skippedRows: number;
+};
+
 export type UsagePricingOrigin = 'cache' | 'network' | 'offline-cache' | 'none';
 
 export type UsageDiagnostics = {
   sessionStats: UsageSessionStats[];
+  sourceFailures: UsageSourceFailure[];
+  skippedRows: UsageSkippedRowsStat[];
   pricingOrigin: UsagePricingOrigin;
   activeEnvOverrides: EnvVarOverride[];
   timezone: string;

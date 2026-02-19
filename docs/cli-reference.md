@@ -12,6 +12,11 @@ Without global install, use:
 npx --yes llm-usage-metrics <command> [options]
 ```
 
+Runtime note:
+
+- OpenCode (`--source opencode` / `--opencode-db`) requires Node.js 24+ because it uses `node:sqlite`.
+- If you build locally, run OpenCode flows via `node dist/index.js ...`.
+
 Commands:
 
 - `daily`
@@ -22,7 +27,8 @@ Commands:
 
 - `--pi-dir <path>`: override `.pi` sessions directory
 - `--codex-dir <path>`: override `.codex` sessions directory
-- `--source-dir <source-id=path>`: override sessions directory for any source id (repeatable)
+- `--opencode-db <path>`: OpenCode SQLite DB path override
+- `--source-dir <source-id=path>`: override sessions directory for directory-backed sources only (repeatable)
 - `--source <name>`: source filter (repeatable or comma-separated)
 - `--since <YYYY-MM-DD>`: inclusive start date (local to selected timezone)
 - `--until <YYYY-MM-DD>`: inclusive end date (local to selected timezone)
@@ -90,7 +96,7 @@ When outputting to terminal (default), the CLI emits:
 
 Row styling policy:
 
-- Source names are color-coded (`pi` = cyan, `codex` = magenta, `combined` = yellow)
+- Source names are color-coded (`pi` = cyan, `codex` = magenta, `opencode` = blue, `combined` = yellow)
 - Grand total source label (`TOTAL`) is bold green
 - Grand total numeric cells are bold
 - Combined subtotal rows are dimmed except the source cell
@@ -149,6 +155,19 @@ Generic source directory overrides:
 llm-usage daily --source-dir pi=/path/to/pi --source-dir codex=/path/to/codex
 ```
 
+OpenCode DB override:
+
+```bash
+llm-usage daily --opencode-db /path/to/opencode.db
+```
+
+OpenCode path precedence:
+
+1. explicit `--opencode-db`
+2. deterministic OS-specific default OpenCode DB candidate paths
+
+When no default OpenCode DB is found, the source is treated as unavailable (no rows parsed).
+
 Offline pricing mode:
 
 ```bash
@@ -167,6 +186,12 @@ Only pi rows:
 llm-usage monthly --source pi
 ```
 
+Only OpenCode rows:
+
+```bash
+llm-usage monthly --source opencode
+```
+
 Multiple sources (repeat or comma-separated):
 
 ```bash
@@ -182,14 +207,36 @@ llm-usage monthly --model claude-sonnet-4.5
 llm-usage monthly --model claude,gpt-5
 ```
 
+Backfill and historical reruns:
+
+- use `--since` and `--until` to rerun a historical window from an OpenCode snapshot
+- keep point-in-time DB copies and pass them explicitly with `--opencode-db`
+
+Example:
+
+```bash
+llm-usage monthly --source opencode --opencode-db /archives/opencode-2026-01.db --since 2026-01-01 --until 2026-01-31
+```
+
 ## Validation rules
 
 - `--since` and `--until` must be valid calendar dates in `YYYY-MM-DD`
 - `--since` must be `<= --until`
 - `--timezone` must be a valid IANA timezone
-- `--source` values must be non-empty source ids and match known sources (`pi`, `codex`)
+- `--source` values must be non-empty source ids and match known sources (`pi`, `codex`, `opencode`)
 - `--model` must contain at least one non-empty filter value
 - `--source-dir` values must use `<source-id>=<path>` with non-empty source id and path
+- `--source-dir` is currently directory-only (`pi`, `codex`)
+- `--source-dir opencode=...` is rejected; use `--opencode-db` for DB-based sources
 - `--pricing-url` must be `http` or `https`
 - `--markdown` and `--json` are mutually exclusive
 - if LiteLLM pricing cannot be loaded (or cache is unavailable in offline mode), report generation fails
+
+## OpenCode troubleshooting and safety
+
+- runtime parsing uses Node `node:sqlite` directly; OpenCode CLI is optional for troubleshooting only
+- OpenCode DB is opened in read-only mode
+- explicit `--opencode-db` paths are validated and fail fast when unreadable/missing
+- schema-drift failures report actionable guidance; inspect schema with OpenCode CLI helpers:
+  - `opencode db "select name from sqlite_master where type='table'"`
+  - `opencode db --format json "<sql>"`

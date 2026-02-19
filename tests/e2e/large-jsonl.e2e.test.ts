@@ -33,6 +33,7 @@ describe('large jsonl fixture e2e', () => {
       const report = await buildUsageReport('daily', {
         piDir,
         codexDir,
+        source: 'pi,codex',
         timezone: 'UTC',
         json: true,
       });

@@ -102,9 +102,11 @@ flowchart TD
 ### `src/sources`
 
 - `source-adapter.ts`: adapter contract used by all sources.
-- `create-default-adapters.ts`: default adapter factory (`pi`, `codex`).
+- `create-default-adapters.ts`: default adapter factory (`pi`, `codex`, `opencode`) and override validation (`--source-dir` directory sources, dedicated flags for DB-backed sources).
 - `pi/pi-source-adapter.ts`: parser for `.pi` sessions.
 - `codex/codex-source-adapter.ts`: parser for `.codex` sessions.
+- `opencode/opencode-source-adapter.ts`: parser for OpenCode SQLite usage history.
+- `opencode/opencode-db-path-resolver.ts`: deterministic default OpenCode DB path candidates by OS.
 
 ### `src/domain`
 
@@ -164,7 +166,7 @@ Important guarantees:
 
 Aggregation produces rows in this order:
 
-1. one row per period/source (`pi`, `codex`, or future sources)
+1. one row per period/source (`pi`, `codex`, `opencode`, or future sources)
 2. one period combined row when there are multiple sources in that period
 3. one grand total row (`periodKey = ALL`)
 
@@ -186,6 +188,7 @@ Each source implements the same contract:
 
 - discover files
 - parse one file into normalized events
+- optionally expose parse diagnostics (`skippedRows`) per parsed file
 
 This keeps format-specific logic isolated and makes new sources straightforward to add.
 
@@ -205,7 +208,7 @@ Sorting rules are explicit:
 
 Terminal styling is centralized into policy maps:
 
-- source policy (`pi`, `codex`, `combined`, `TOTAL`, unknown)
+- source policy (`pi`, `codex`, `opencode`, `combined`, `TOTAL`, unknown)
 - row-type policy (`period_source`, `period_combined`, `grand_total`)
 
 This keeps styling behavior explicit and testable.
