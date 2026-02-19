@@ -14,12 +14,6 @@
     "publish": true,
     "skipChecks": true
   },
-  "plugins": {
-    "@release-it/conventional-changelog": {
-      "preset": "conventionalcommits",
-      "infile": "CHANGELOG.md"
-    }
-  },
   "hooks": {
     "before:init": [
       "bun run lint",
@@ -27,11 +21,6 @@
       "bun run test",
       "bun run build",
       "bun run pack:check"
-    ],
-    "after:bump": ["bunx prettier --write CHANGELOG.md", "bunx prettier --check CHANGELOG.md"],
-    "before:git:release": [
-      "bunx prettier --write CHANGELOG.md",
-      "bunx prettier --check CHANGELOG.md"
     ]
   }
 }
