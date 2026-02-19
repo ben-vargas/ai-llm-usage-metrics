@@ -1,5 +1,7 @@
 const ansiEscapePattern = new RegExp(String.raw`\u001B\[[0-9;]*m`, 'gu');
 const combiningMarkPattern = /\p{Mark}/u;
+const extendedPictographicPattern = /\p{Extended_Pictographic}/u;
+const graphemeSegmenter = new Intl.Segmenter('en', { granularity: 'grapheme' });
 
 function stripAnsi(value: string): string {
   return value.replaceAll(ansiEscapePattern, '');
@@ -67,11 +69,29 @@ function codePointDisplayWidth(character: string): number {
   return 1;
 }
 
+function segmentGraphemes(value: string): string[] {
+  return Array.from(graphemeSegmenter.segment(value), (segment) => segment.segment);
+}
+
+function graphemeDisplayWidth(grapheme: string): number {
+  if (extendedPictographicPattern.test(grapheme)) {
+    return 2;
+  }
+
+  let width = 0;
+
+  for (const character of grapheme) {
+    width = Math.max(width, codePointDisplayWidth(character));
+  }
+
+  return width;
+}
+
 export function visibleWidth(value: string): number {
   let width = 0;
 
-  for (const character of stripAnsi(value)) {
-    width += codePointDisplayWidth(character);
+  for (const grapheme of segmentGraphemes(stripAnsi(value))) {
+    width += graphemeDisplayWidth(grapheme);
   }
 
   return width;
@@ -89,18 +109,26 @@ function sliceByVisibleWidth(value: string, maxWidth: number): string {
   let width = 0;
   let endOffset = 0;
 
-  for (const character of value) {
-    const characterWidth = codePointDisplayWidth(character);
+  for (const grapheme of segmentGraphemes(value)) {
+    const graphemeWidth = graphemeDisplayWidth(grapheme);
 
-    if (width + characterWidth > maxWidth) {
+    if (width + graphemeWidth > maxWidth) {
       break;
     }
 
-    width += characterWidth;
-    endOffset += character.length;
+    width += graphemeWidth;
+    endOffset += grapheme.length;
   }
 
   return value.slice(0, endOffset);
+}
+
+function getFirstGrapheme(value: string): string {
+  for (const grapheme of segmentGraphemes(value)) {
+    return grapheme;
+  }
+
+  return '';
 }
 
 function wrapPlainLine(line: string, width: number): string[] {
@@ -129,12 +157,7 @@ function wrapPlainLine(line: string, width: number): string[] {
       continue;
     }
 
-    let firstCharacter = '';
-
-    for (const character of remaining) {
-      firstCharacter = character;
-      break;
-    }
+    const firstCharacter = getFirstGrapheme(remaining);
 
     wrappedLines.push(firstCharacter);
     remaining = remaining.slice(firstCharacter.length);

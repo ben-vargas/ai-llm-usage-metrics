@@ -11,6 +11,11 @@ describe('table-text-layout', () => {
     expect(visibleWidth('漢字')).toBe(4);
   });
 
+  it('counts emoji graphemes as width 2', () => {
+    expect(visibleWidth('😀')).toBe(2);
+    expect(visibleWidth('👨‍👩‍👦')).toBe(2);
+  });
+
   it('wraps at spaces when possible', () => {
     const wrappedRows = wrapTableColumn([['period', 'source', 'hello world']], {
       columnIndex: 2,
@@ -36,5 +41,14 @@ describe('table-text-layout', () => {
         width: 0,
       }),
     ).toThrow('wrapTableColumn width must be greater than 0');
+  });
+
+  it('does not split emoji grapheme clusters while wrapping', () => {
+    const wrappedRows = wrapTableColumn([['period', 'source', '👨‍👩‍👦👨‍👩‍👦']], {
+      columnIndex: 2,
+      width: 2,
+    });
+
+    expect(wrappedRows[0][2]).toBe('👨‍👩‍👦\n👨‍👩‍👦');
   });
 });
