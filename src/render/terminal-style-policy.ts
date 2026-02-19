@@ -28,6 +28,13 @@ export const defaultTerminalStylePalette: TerminalStylePalette = {
 
 const passthroughStyler: TextStyler = (text) => text;
 
+function styleCellLines(cell: string, styler: TextStyler): string {
+  return cell
+    .split('\n')
+    .map((line) => (line.length === 0 ? '' : styler(line)))
+    .join('\n');
+}
+
 type SourceStylePolicy = (palette: TerminalStylePalette) => TextStyler;
 
 const sourceStylePolicies = new Map<string, SourceStylePolicy>([
@@ -56,29 +63,29 @@ const rowTypeStylePolicies: Record<UsageReportRow['rowType'], RowTypeStylePolicy
     const styledCells = [...cells];
     const costColumnIndex = styledCells.length - 1;
 
-    styledCells[costColumnIndex] = palette.yellow(styledCells[costColumnIndex]);
+    styledCells[costColumnIndex] = styleCellLines(styledCells[costColumnIndex], palette.yellow);
 
     return styledCells;
   },
   period_combined: (cells, palette) =>
     cells.map((cell, cellIndex) => {
       if (cellIndex === 1) {
-        return palette.bold(palette.yellow(cell));
+        return styleCellLines(cell, (line) => palette.bold(palette.yellow(line)));
       }
 
-      return palette.dim(cell);
+      return styleCellLines(cell, palette.dim);
     }),
   grand_total: (cells, palette) =>
     cells.map((cell, cellIndex) => {
       if (cellIndex === 0) {
-        return palette.bold(palette.white(cell));
+        return styleCellLines(cell, (line) => palette.bold(palette.white(line)));
       }
 
       if (cellIndex === 1) {
-        return palette.bold(palette.green(cell));
+        return styleCellLines(cell, (line) => palette.bold(palette.green(line)));
       }
 
-      return palette.bold(cell);
+      return styleCellLines(cell, palette.bold);
     }),
 };
 
@@ -101,8 +108,8 @@ function applyBaseCellStyle(
 
   const styledCells = [...cells];
 
-  styledCells[0] = palette.white(styledCells[0]);
-  styledCells[1] = sourceStyler(styledCells[1]);
+  styledCells[0] = styleCellLines(styledCells[0], palette.white);
+  styledCells[1] = styleCellLines(styledCells[1], sourceStyler);
 
   return styledCells;
 }
