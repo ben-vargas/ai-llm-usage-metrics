@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import type { UsageReportRow } from '../../src/domain/usage-report-row.js';
+import { visibleWidth } from '../../src/render/table-text-layout.js';
 import { renderTerminalTable, shouldUseColorByDefault } from '../../src/render/terminal-table.js';
 
 const sampleRows: UsageReportRow[] = [
@@ -167,6 +168,238 @@ describe('renderTerminalTable', () => {
     `);
     expect(rendered).toContain('Σ TOTAL');
     expect(rendered).toContain('│   766 │    179 │       120 │         70 │');
+  });
+
+  it('keeps compact-layout numeric columns vertically centered on odd model line counts', () => {
+    const rendered = renderTerminalTable(
+      [
+        {
+          rowType: 'period_source',
+          periodKey: '2026-01-01',
+          source: 'pi',
+          models: ['a', 'b', 'c'],
+          modelBreakdown: [],
+          inputTokens: 100,
+          outputTokens: 20,
+          reasoningTokens: 0,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          totalTokens: 120,
+          costUsd: 1.23,
+        },
+        {
+          rowType: 'grand_total',
+          periodKey: 'ALL',
+          source: 'combined',
+          models: ['a', 'b', 'c'],
+          modelBreakdown: [],
+          inputTokens: 100,
+          outputTokens: 20,
+          reasoningTokens: 0,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          totalTokens: 120,
+          costUsd: 1.23,
+        },
+      ],
+      { useColor: false },
+    );
+
+    expect(rendered).toContain(
+      '│            │        │ • a                              │       │',
+    );
+    expect(rendered).toContain(
+      '│ 2026-01-01 │ pi     │ • b                              │   100 │',
+    );
+    expect(rendered).toContain(
+      '│            │        │ • c                              │       │',
+    );
+  });
+
+  it('wraps long model words in the fixed-width models column', () => {
+    const rendered = renderTerminalTable(
+      [
+        {
+          rowType: 'period_source',
+          periodKey: '2026-01-01',
+          source: 'pi',
+          models: ['superlongmodelnamewithoutspacesabcdefghijklmno1234567890'],
+          modelBreakdown: [],
+          inputTokens: 100,
+          outputTokens: 20,
+          reasoningTokens: 0,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          totalTokens: 120,
+          costUsd: 1.23,
+        },
+        {
+          rowType: 'grand_total',
+          periodKey: 'ALL',
+          source: 'combined',
+          models: ['superlongmodelnamewithoutspacesabcdefghijklmno1234567890'],
+          modelBreakdown: [],
+          inputTokens: 100,
+          outputTokens: 20,
+          reasoningTokens: 0,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          totalTokens: 120,
+          costUsd: 1.23,
+        },
+      ],
+      { useColor: false },
+    );
+
+    expect(rendered).toContain('│ •                                │');
+    expect(rendered).toContain('superlongmodelnamewithoutspacesa');
+    expect(rendered).toContain('bcdefghijklmno1234567890');
+  });
+
+  it('keeps borders aligned for full-width unicode model names', () => {
+    const rendered = renderTerminalTable(
+      [
+        {
+          rowType: 'period_source',
+          periodKey: '2026-01-01',
+          source: 'pi',
+          models: ['漢字モデル'],
+          modelBreakdown: [],
+          inputTokens: 100,
+          outputTokens: 20,
+          reasoningTokens: 0,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          totalTokens: 120,
+          costUsd: 1.23,
+        },
+        {
+          rowType: 'grand_total',
+          periodKey: 'ALL',
+          source: 'combined',
+          models: ['漢字モデル'],
+          modelBreakdown: [],
+          inputTokens: 100,
+          outputTokens: 20,
+          reasoningTokens: 0,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          totalTokens: 120,
+          costUsd: 1.23,
+        },
+      ],
+      { useColor: false },
+    );
+
+    const lineWidths = rendered
+      .trimEnd()
+      .split('\n')
+      .map((line) => visibleWidth(line));
+
+    expect(new Set(lineWidths)).toEqual(new Set([lineWidths[0]]));
+  });
+
+  it('keeps borders aligned for text-presentation symbol model names', () => {
+    const rendered = renderTerminalTable(
+      [
+        {
+          rowType: 'period_source',
+          periodKey: '2026-01-01',
+          source: 'pi',
+          models: ['©™✈'],
+          modelBreakdown: [],
+          inputTokens: 100,
+          outputTokens: 20,
+          reasoningTokens: 0,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          totalTokens: 120,
+          costUsd: 1.23,
+        },
+        {
+          rowType: 'grand_total',
+          periodKey: 'ALL',
+          source: 'combined',
+          models: ['©™✈'],
+          modelBreakdown: [],
+          inputTokens: 100,
+          outputTokens: 20,
+          reasoningTokens: 0,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          totalTokens: 120,
+          costUsd: 1.23,
+        },
+      ],
+      { useColor: false },
+    );
+
+    const lineWidths = rendered
+      .trimEnd()
+      .split('\n')
+      .map((line) => visibleWidth(line));
+
+    expect(new Set(lineWidths)).toEqual(new Set([lineWidths[0]]));
+  });
+
+  it('normalizes CRLF content so terminal output does not contain carriage returns', () => {
+    const rendered = renderTerminalTable(
+      [
+        {
+          rowType: 'period_source',
+          periodKey: '2026-01-01',
+          source: 'pi',
+          models: ['model-a'],
+          modelBreakdown: [
+            {
+              model: 'gpt-4.1\r\ngpt-4.1-mini',
+              inputTokens: 10,
+              outputTokens: 5,
+              reasoningTokens: 0,
+              cacheReadTokens: 0,
+              cacheWriteTokens: 0,
+              totalTokens: 15,
+              costUsd: 0.02,
+            },
+          ],
+          inputTokens: 10,
+          outputTokens: 5,
+          reasoningTokens: 0,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          totalTokens: 15,
+          costUsd: 0.02,
+        },
+        {
+          rowType: 'grand_total',
+          periodKey: 'ALL',
+          source: 'combined',
+          models: ['model-a'],
+          modelBreakdown: [
+            {
+              model: 'gpt-4.1\r\ngpt-4.1-mini',
+              inputTokens: 10,
+              outputTokens: 5,
+              reasoningTokens: 0,
+              cacheReadTokens: 0,
+              cacheWriteTokens: 0,
+              totalTokens: 15,
+              costUsd: 0.02,
+            },
+          ],
+          inputTokens: 10,
+          outputTokens: 5,
+          reasoningTokens: 0,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          totalTokens: 15,
+          costUsd: 0.02,
+        },
+      ],
+      { useColor: false },
+    );
+
+    expect(rendered).not.toContain('\r');
   });
 
   it('keeps structural separators stable when color is enabled', () => {
