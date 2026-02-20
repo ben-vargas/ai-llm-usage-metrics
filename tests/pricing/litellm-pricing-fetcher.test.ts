@@ -294,8 +294,8 @@ describe('LiteLLMPricingFetcher', () => {
     expect(fetcher.getPricing('claude sonnet 4.6')?.outputPer1MUsd).toBeCloseTo(15, 10);
   });
 
-  it('does not incorrectly map gpt-5.3-codex to gpt-5.2-codex pricing', async () => {
-    const rootDir = await mkdtemp(path.join(os.tmpdir(), 'litellm-pricing-no-cross-version-'));
+  it('maps gpt-5.3-codex through a temporary gpt-5.2-codex fallback alias until upstream direct pricing exists', async () => {
+    const rootDir = await mkdtemp(path.join(os.tmpdir(), 'litellm-pricing-codex-fallback-'));
     tempDirs.push(rootDir);
 
     const fetcher = createFetcher({
@@ -319,7 +319,8 @@ describe('LiteLLMPricingFetcher', () => {
 
     await fetcher.load();
 
-    expect(fetcher.getPricing('gpt-5.3-codex')).toBeUndefined();
+    expect(fetcher.resolveModelAlias('gpt-5.3-codex')).toBe('gpt-5.2-codex');
+    expect(fetcher.getPricing('gpt-5.3-codex')?.inputPer1MUsd).toBeCloseTo(1.5, 10);
   });
 
   it('matches provider-prefixed LiteLLM keys from bare model names', async () => {

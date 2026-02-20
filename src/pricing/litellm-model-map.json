@@ -10,7 +10,12 @@
     "claude-sonnet-4.6": "claude-sonnet-4.6",
     "claude-sonnet-4-6": "claude-sonnet-4.6",
     "anthropic/claude-sonnet-4.6": "claude-sonnet-4.6",
-    "anthropic.claude-sonnet-4-6": "claude-sonnet-4.6"
+    "anthropic.claude-sonnet-4-6": "claude-sonnet-4.6",
+
+    "gpt-5.3-codex": "gpt-5.2-codex"
+  },
+  "notes": {
+    "gpt-5.3-codex": "Temporary fallback to gpt-5.2-codex until upstream publishes direct gpt-5.3-codex token pricing"
   },
   "preferredPricingKeyByCanonicalModel": {
     "kimi-k2.5": "moonshot/kimi-k2.5",
