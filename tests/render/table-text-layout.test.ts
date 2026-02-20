@@ -25,6 +25,10 @@ describe('table-text-layout', () => {
     expect(visibleWidth('✈️')).toBe(2);
   });
 
+  it('treats common format zero-width code points as width 0', () => {
+    expect(visibleWidth('a\u200Bb\u2060c\uFEFFd')).toBe(4);
+  });
+
   it('wraps at spaces when possible', () => {
     const wrappedRows = wrapTableColumn([['period', 'source', 'hello world']], {
       columnIndex: 2,

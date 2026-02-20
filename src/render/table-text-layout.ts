@@ -18,7 +18,13 @@ function isControlCodePoint(codePoint: number): boolean {
 }
 
 function isZeroWidthCodePoint(codePoint: number): boolean {
-  return codePoint === 0x200d || (codePoint >= 0xfe00 && codePoint <= 0xfe0f);
+  return (
+    codePoint === 0x200b ||
+    codePoint === 0x200d ||
+    codePoint === 0x2060 ||
+    codePoint === 0xfeff ||
+    (codePoint >= 0xfe00 && codePoint <= 0xfe0f)
+  );
 }
 
 // Adapted from the is-fullwidth-code-point package to preserve table alignment
