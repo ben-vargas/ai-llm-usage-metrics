@@ -63,6 +63,10 @@ LiteLLM model lookup tries, in order:
 
 Resolved aliases are cached in memory per process run.
 
+Temporary compatibility alias currently configured:
+
+- `gpt-5.3-codex` -> `gpt-5.2-codex` (used only while upstream direct `gpt-5.3-codex` token pricing is unavailable)
+
 ## Cost engine
 
 Source file: `src/pricing/cost-engine.ts`
