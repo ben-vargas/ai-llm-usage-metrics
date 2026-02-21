@@ -286,9 +286,9 @@ Example output:
 •   codex: 4 file(s), 13 events
 ℹ Loaded pricing from cache
 
-┌──────────────────────────┐
+┌────────────────────────────┐
 │ Monthly Token Usage Report │
-└──────────────────────────┘
+└────────────────────────────┘
 
 ╭────────────┬──────────┬──────────────────────╮
 │ Period     │ Source   │ Models               │
