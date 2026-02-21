@@ -17,13 +17,22 @@ export function isSqliteExperimentalWarning(
 export function withSuppressedSqliteExperimentalWarning<T>(load: () => T): T {
   const originalEmitWarning = process.emitWarning.bind(process);
   const patchedEmitWarning = ((warning: unknown, ...args: unknown[]): void => {
-    const warningType = typeof args[0] === 'string' ? args[0] : undefined;
+    const firstArgument = args[0];
+    const warningType =
+      typeof firstArgument === 'string'
+        ? firstArgument
+        : typeof firstArgument === 'object' &&
+            firstArgument !== null &&
+            'type' in firstArgument &&
+            typeof firstArgument.type === 'string'
+          ? firstArgument.type
+          : undefined;
 
     if (isSqliteExperimentalWarning(warning, warningType)) {
       return;
     }
 
-    originalEmitWarning(warning as never, ...(args as never[]));
+    Reflect.apply(originalEmitWarning, process, [warning, ...args]);
   }) as typeof process.emitWarning;
 
   process.emitWarning = patchedEmitWarning;

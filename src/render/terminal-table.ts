@@ -3,7 +3,7 @@ import pc from 'picocolors';
 import type { UsageReportRow } from '../domain/usage-report-row.js';
 import { colorizeUsageBodyRows } from './terminal-style-policy.js';
 import { toUsageTableCells, type UsageTableLayout, usageTableHeaders } from './row-cells.js';
-import { visibleWidth, wrapTableColumn } from './table-text-layout.js';
+import { resolveTtyColumns, visibleWidth, wrapTableColumn } from './table-text-layout.js';
 import { renderUnicodeTable } from './unicode-table.js';
 
 const modelsColumnIndex = 2;
@@ -44,17 +44,7 @@ function resolveTerminalWidth(override: number | undefined): number | undefined 
     return Math.floor(override);
   }
 
-  const stdoutState = process.stdout as { isTTY?: unknown; columns?: unknown };
-
-  if (stdoutState.isTTY !== true) {
-    return undefined;
-  }
-
-  return typeof stdoutState.columns === 'number' &&
-    Number.isFinite(stdoutState.columns) &&
-    stdoutState.columns > 0
-    ? Math.floor(stdoutState.columns)
-    : undefined;
+  return resolveTtyColumns(process.stdout as { isTTY?: unknown; columns?: unknown });
 }
 
 function measureTableWidth(tableOutput: string): number {

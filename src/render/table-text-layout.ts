@@ -5,8 +5,29 @@ const emojiPresentationPattern = /\p{Emoji_Presentation}/u;
 const regionalIndicatorPattern = /\p{Regional_Indicator}/u;
 const graphemeSegmenter = new Intl.Segmenter('en', { granularity: 'grapheme' });
 
+type TerminalColumnsSource = {
+  isTTY?: unknown;
+  columns?: unknown;
+};
+
 function normalizeLineBreaks(value: string): string {
   return value.replace(/\r\n?/gu, '\n');
+}
+
+export function resolveTtyColumns(source: TerminalColumnsSource): number | undefined {
+  if (source.isTTY !== true) {
+    return undefined;
+  }
+
+  if (
+    typeof source.columns !== 'number' ||
+    !Number.isFinite(source.columns) ||
+    source.columns <= 0
+  ) {
+    return undefined;
+  }
+
+  return Math.floor(source.columns);
 }
 
 function stripAnsi(value: string): string {

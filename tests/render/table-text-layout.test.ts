@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { visibleWidth, wrapTableColumn } from '../../src/render/table-text-layout.js';
+import {
+  resolveTtyColumns,
+  visibleWidth,
+  wrapTableColumn,
+} from '../../src/render/table-text-layout.js';
 
 describe('table-text-layout', () => {
   it('measures visible width while ignoring ansi sequences', () => {
@@ -72,5 +76,17 @@ describe('table-text-layout', () => {
     });
 
     expect(wrappedRows[0][2]).toBe('alpha\nbeta\ngamma');
+  });
+
+  it('resolves tty columns only when stream is a tty and width is valid', () => {
+    expect(resolveTtyColumns({ isTTY: true, columns: 132 })).toBe(132);
+    expect(resolveTtyColumns({ isTTY: true, columns: 80.9 })).toBe(80);
+  });
+
+  it('returns undefined for non-tty or invalid tty columns', () => {
+    expect(resolveTtyColumns({ isTTY: false, columns: 120 })).toBeUndefined();
+    expect(resolveTtyColumns({ isTTY: true, columns: 0 })).toBeUndefined();
+    expect(resolveTtyColumns({ isTTY: true, columns: Number.NaN })).toBeUndefined();
+    expect(resolveTtyColumns({ isTTY: true, columns: undefined })).toBeUndefined();
   });
 });

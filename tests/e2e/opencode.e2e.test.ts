@@ -6,12 +6,19 @@ import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { buildUsageReport, runUsageReport } from '../../src/cli/run-usage-report.js';
+import { withSuppressedSqliteExperimentalWarning } from '../../src/sources/opencode/sqlite-warning-suppression.js';
 
 type OpenCodeMessageFixture = {
   id: string;
   sessionId: string;
   timeCreated: number;
   data: string;
+};
+
+type FixtureDatabaseSync = new (filePath: string) => {
+  exec: (sql: string) => void;
+  prepare: (sql: string) => { run: (...args: unknown[]) => void };
+  close: () => void;
 };
 
 const tempDirs: string[] = [];
@@ -238,47 +245,34 @@ describe('opencode e2e', () => {
 });
 const require = createRequire(import.meta.url);
 
-function withSuppressedSqliteExperimentalWarning<T>(load: () => T): T {
-  const originalEmitWarning = process.emitWarning.bind(process);
-  const patchedEmitWarning = ((warning: unknown, ...args: unknown[]): void => {
-    const warningType = typeof args[0] === 'string' ? args[0] : undefined;
-    const message =
-      warning instanceof Error ? warning.message : typeof warning === 'string' ? warning : '';
-    const derivedType =
-      warningType ??
-      (warning instanceof Error ? warning.name : typeof warning === 'string' ? '' : '');
-
-    if (
-      derivedType === 'ExperimentalWarning' &&
-      message.includes('SQLite is an experimental feature and might change at any time')
-    ) {
-      return;
-    }
-
-    originalEmitWarning(warning as never, ...(args as never[]));
-  }) as typeof process.emitWarning;
-
-  process.emitWarning = patchedEmitWarning;
-
-  try {
-    return load();
-  } finally {
-    process.emitWarning = originalEmitWarning;
-  }
+function createNodeSqliteFixtureError(reason: string): Error {
+  return new Error(
+    [
+      'OpenCode e2e fixtures require node:sqlite DatabaseSync support.',
+      'Use Node.js v22.5.0+.',
+      'For Node.js v22.5.0-v22.12.x and v23.0.0-v23.3.x, start with --experimental-sqlite.',
+      `Runtime load failure: ${reason}`,
+    ].join(' '),
+  );
 }
 
-function loadDatabaseSync(): new (filePath: string) => {
-  exec: (sql: string) => void;
-  prepare: (sql: string) => { run: (...args: unknown[]) => void };
-  close: () => void;
-} {
-  const sqliteModule = withSuppressedSqliteExperimentalWarning(
-    () => require('node:sqlite') as { DatabaseSync: new (filePath: string) => unknown },
-  );
+function loadDatabaseSync(): FixtureDatabaseSync {
+  let sqliteModule: unknown;
 
-  return sqliteModule.DatabaseSync as new (filePath: string) => {
-    exec: (sql: string) => void;
-    prepare: (sql: string) => { run: (...args: unknown[]) => void };
-    close: () => void;
-  };
+  try {
+    sqliteModule = withSuppressedSqliteExperimentalWarning(() => require('node:sqlite') as unknown);
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    throw createNodeSqliteFixtureError(reason);
+  }
+
+  const moduleRecord = sqliteModule as { DatabaseSync?: unknown } | undefined;
+
+  if (typeof moduleRecord?.DatabaseSync !== 'function') {
+    throw createNodeSqliteFixtureError(
+      'node:sqlite loaded but did not expose a DatabaseSync constructor.',
+    );
+  }
+
+  return moduleRecord.DatabaseSync as FixtureDatabaseSync;
 }

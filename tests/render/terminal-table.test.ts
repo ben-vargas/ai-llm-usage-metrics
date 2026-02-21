@@ -105,8 +105,28 @@ const sampleRows: UsageReportRow[] = [
 const originalNoColor = process.env.NO_COLOR;
 const originalForceColor = process.env.FORCE_COLOR;
 const stdout = process.stdout as NodeJS.WriteStream;
-const originalStdoutIsTTY = stdout.isTTY;
-const originalStdoutColumns = stdout.columns;
+const stdoutRestoreStack: Array<() => void> = [];
+
+function overrideStdoutProperty<Key extends 'isTTY' | 'columns'>(
+  property: Key,
+  value: NodeJS.WriteStream[Key],
+): void {
+  const previousDescriptor = Object.getOwnPropertyDescriptor(stdout, property);
+
+  Object.defineProperty(stdout, property, {
+    configurable: true,
+    value,
+  });
+
+  stdoutRestoreStack.push(() => {
+    if (previousDescriptor) {
+      Object.defineProperty(stdout, property, previousDescriptor);
+      return;
+    }
+
+    Reflect.deleteProperty(stdout, property);
+  });
+}
 
 afterEach(() => {
   if (originalNoColor === undefined) {
@@ -121,8 +141,10 @@ afterEach(() => {
     process.env.FORCE_COLOR = originalForceColor;
   }
 
-  stdout.isTTY = originalStdoutIsTTY;
-  stdout.columns = originalStdoutColumns;
+  while (stdoutRestoreStack.length > 0) {
+    const restore = stdoutRestoreStack.pop();
+    restore?.();
+  }
 });
 
 describe('renderTerminalTable', () => {
@@ -604,8 +626,8 @@ describe('renderTerminalTable', () => {
   });
 
   it('ignores invalid tty width metadata when no explicit terminal width override is set', () => {
-    stdout.isTTY = true;
-    stdout.columns = 0;
+    overrideStdoutProperty('isTTY', true);
+    overrideStdoutProperty('columns', 0);
 
     const withInvalidColumns = renderTerminalTable(sampleRows, { useColor: false });
     const withExplicitWidth = renderTerminalTable(sampleRows, {
@@ -644,7 +666,7 @@ describe('shouldUseColorByDefault', () => {
   it('returns false when FORCE_COLOR=0', () => {
     delete process.env.NO_COLOR;
     process.env.FORCE_COLOR = '0';
-    stdout.isTTY = true;
+    overrideStdoutProperty('isTTY', true);
 
     expect(shouldUseColorByDefault()).toBe(false);
   });
@@ -652,7 +674,7 @@ describe('shouldUseColorByDefault', () => {
   it('returns true when FORCE_COLOR is a non-zero value', () => {
     delete process.env.NO_COLOR;
     process.env.FORCE_COLOR = '1';
-    stdout.isTTY = false;
+    overrideStdoutProperty('isTTY', false);
 
     expect(shouldUseColorByDefault()).toBe(true);
   });
@@ -660,7 +682,7 @@ describe('shouldUseColorByDefault', () => {
   it('returns false when stdout is not a tty and no color env override is set', () => {
     delete process.env.NO_COLOR;
     delete process.env.FORCE_COLOR;
-    stdout.isTTY = false;
+    overrideStdoutProperty('isTTY', false);
 
     expect(shouldUseColorByDefault()).toBe(false);
   });

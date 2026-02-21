@@ -3,7 +3,7 @@ import { emitDiagnostics } from './emit-diagnostics.js';
 import type { ReportCommandOptions, UsageDiagnostics } from './usage-data-contracts.js';
 import { renderUsageReport, type UsageReportFormat } from '../render/render-usage-report.js';
 import type { UsageTableLayout } from '../render/row-cells.js';
-import { visibleWidth } from '../render/table-text-layout.js';
+import { resolveTtyColumns, visibleWidth } from '../render/table-text-layout.js';
 import { logger } from '../utils/logger.js';
 import type { ReportGranularity } from '../utils/time-buckets.js';
 
@@ -37,20 +37,11 @@ function resolveTableLayout(options: ReportCommandOptions): UsageTableLayout {
 
 function detectTerminalOverflowColumns(reportOutput: string): number | undefined {
   const stdoutState = process.stdout as { isTTY?: unknown; columns?: unknown };
+  const terminalColumns = resolveTtyColumns(stdoutState);
 
-  if (stdoutState.isTTY !== true) {
+  if (terminalColumns === undefined) {
     return undefined;
   }
-
-  if (
-    typeof stdoutState.columns !== 'number' ||
-    !Number.isFinite(stdoutState.columns) ||
-    stdoutState.columns <= 0
-  ) {
-    return undefined;
-  }
-
-  const terminalColumns = Math.floor(stdoutState.columns);
   const maxLineWidth = reportOutput
     .trimEnd()
     .split('\n')
