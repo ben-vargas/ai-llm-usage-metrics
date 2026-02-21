@@ -238,7 +238,8 @@ describe('buildUsageReport', () => {
 
     expect(report).toContain('Active environment overrides:');
     expect(report).toContain('LLM_USAGE_PARSE_MAX_PARALLEL=8');
-    expect(report).toContain('Monthly Token Usage Report (Timezone: UTC)');
+    expect(report).toContain('Monthly Token Usage Report');
+    expect(report).not.toContain('Timezone');
     expect(report).toContain('│ Period');
     expect(report).toContain('│ ALL');
     expect(report.startsWith('\n')).toBe(false);
@@ -260,7 +261,8 @@ describe('buildUsageReport', () => {
     });
 
     expect(report.startsWith('\n')).toBe(false);
-    expect(report).toContain('Daily Token Usage Report (Timezone: UTC)');
+    expect(report).toContain('Daily Token Usage Report');
+    expect(report).not.toContain('Timezone');
   });
 
   it('validates date flags, range ordering and pricing URL', async () => {
@@ -389,7 +391,8 @@ describe('buildUsageReport', () => {
         timezone: 'UTC',
       });
 
-      expect(report).toContain('Daily Token Usage Report (Timezone: UTC)');
+      expect(report).toContain('Daily Token Usage Report');
+      expect(report).not.toContain('Timezone');
       expect(errorSpy).not.toHaveBeenCalled();
     } finally {
       errorSpy.mockRestore();
@@ -415,6 +418,43 @@ describe('buildUsageReport', () => {
       expect(logSpy).toHaveBeenCalledTimes(1);
       expect(errorSpy.mock.invocationCallOrder[0]).toBeLessThan(logSpy.mock.invocationCallOrder[0]);
     } finally {
+      errorSpy.mockRestore();
+      logSpy.mockRestore();
+    }
+  });
+
+  it('emits a fullscreen hint only when terminal width cannot fit the table', async () => {
+    const emptyDir = await mkdtemp(path.join(os.tmpdir(), 'usage-run-overflow-hint-'));
+    tempDirs.push(emptyDir);
+
+    const stdout = process.stdout as NodeJS.WriteStream & { columns?: number };
+    const originalStdoutIsTTY = stdout.isTTY;
+    const originalStdoutColumns = stdout.columns;
+
+    stdout.isTTY = true;
+    stdout.columns = 60;
+
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+
+    try {
+      await runUsageReport('daily', {
+        piDir: emptyDir,
+        codexDir: emptyDir,
+        source: directoryBackedSources,
+        timezone: 'UTC',
+      });
+
+      expect(
+        errorSpy.mock.calls.some((call) => String(call[0]).includes('No sessions found')),
+      ).toBe(true);
+      expect(
+        errorSpy.mock.calls.some((call) => String(call[0]).includes('wider than terminal')),
+      ).toBe(true);
+      expect(logSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      stdout.isTTY = originalStdoutIsTTY;
+      stdout.columns = originalStdoutColumns;
       errorSpy.mockRestore();
       logSpy.mockRestore();
     }

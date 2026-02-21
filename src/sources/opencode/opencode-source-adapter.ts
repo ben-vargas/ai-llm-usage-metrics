@@ -283,9 +283,43 @@ function createFallbackQuery(
   ].join('\n');
 }
 
+function isSqliteExperimentalWarning(warning: unknown, warningType: string | undefined): boolean {
+  const message =
+    warning instanceof Error ? warning.message : typeof warning === 'string' ? warning : '';
+  const derivedType =
+    warningType ??
+    (warning instanceof Error ? warning.name : typeof warning === 'string' ? '' : '');
+
+  return (
+    derivedType === 'ExperimentalWarning' &&
+    message.includes('SQLite is an experimental feature and might change at any time')
+  );
+}
+
+function withSuppressedSqliteExperimentalWarning<T>(load: () => T): T {
+  const originalEmitWarning = process.emitWarning.bind(process);
+  const patchedEmitWarning = ((warning: unknown, ...args: unknown[]): void => {
+    const warningType = typeof args[0] === 'string' ? args[0] : undefined;
+
+    if (isSqliteExperimentalWarning(warning, warningType)) {
+      return;
+    }
+
+    originalEmitWarning(warning as never, ...(args as never[]));
+  }) as typeof process.emitWarning;
+
+  process.emitWarning = patchedEmitWarning;
+
+  try {
+    return load();
+  } finally {
+    process.emitWarning = originalEmitWarning;
+  }
+}
+
 async function loadNodeSqliteModule(): Promise<SqliteModule> {
   try {
-    return require('node:sqlite') as SqliteModule;
+    return withSuppressedSqliteExperimentalWarning(() => require('node:sqlite') as SqliteModule);
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
     throw new Error(

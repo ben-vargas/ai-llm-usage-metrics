@@ -600,6 +600,29 @@ describe('renderTerminalTable', () => {
     expect(rendered).toContain('│    - │');
     expect(rendered).not.toContain('NaN');
   });
+
+  it('shrinks models column when terminal width is constrained', () => {
+    const unconstrained = renderTerminalTable(sampleRows, {
+      useColor: false,
+      terminalWidth: 200,
+    });
+    const constrained = renderTerminalTable(sampleRows, {
+      useColor: false,
+      terminalWidth: 118,
+    });
+
+    const unconstrainedWidth = unconstrained
+      .trimEnd()
+      .split('\n')
+      .reduce((maxWidth, line) => Math.max(maxWidth, visibleWidth(line)), 0);
+    const constrainedWidth = constrained
+      .trimEnd()
+      .split('\n')
+      .reduce((maxWidth, line) => Math.max(maxWidth, visibleWidth(line)), 0);
+
+    expect(constrainedWidth).toBeLessThan(unconstrainedWidth);
+    expect(constrainedWidth).toBeLessThanOrEqual(118);
+  });
 });
 
 describe('shouldUseColorByDefault', () => {

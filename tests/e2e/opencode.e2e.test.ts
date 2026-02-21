@@ -1,7 +1,7 @@
 import { mkdtemp, rm } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -54,6 +54,7 @@ afterEach(async () => {
 });
 
 function createOpenCodeFixtureDb(dbPath: string, messages: OpenCodeMessageFixture[]): void {
+  const DatabaseSync = loadDatabaseSync();
   const database = new DatabaseSync(dbPath);
 
   try {
@@ -171,6 +172,7 @@ describe('opencode e2e', () => {
     tempDirs.push(tempDir);
 
     const opencodeDbPath = path.join(tempDir, 'opencode-bad.db');
+    const DatabaseSync = loadDatabaseSync();
     const database = new DatabaseSync(opencodeDbPath);
     database.exec('CREATE TABLE session (id TEXT PRIMARY KEY);');
     database.close();
@@ -234,3 +236,49 @@ describe('opencode e2e', () => {
     }
   });
 });
+const require = createRequire(import.meta.url);
+
+function withSuppressedSqliteExperimentalWarning<T>(load: () => T): T {
+  const originalEmitWarning = process.emitWarning.bind(process);
+  const patchedEmitWarning = ((warning: unknown, ...args: unknown[]): void => {
+    const warningType = typeof args[0] === 'string' ? args[0] : undefined;
+    const message =
+      warning instanceof Error ? warning.message : typeof warning === 'string' ? warning : '';
+    const derivedType =
+      warningType ??
+      (warning instanceof Error ? warning.name : typeof warning === 'string' ? '' : '');
+
+    if (
+      derivedType === 'ExperimentalWarning' &&
+      message.includes('SQLite is an experimental feature and might change at any time')
+    ) {
+      return;
+    }
+
+    originalEmitWarning(warning as never, ...(args as never[]));
+  }) as typeof process.emitWarning;
+
+  process.emitWarning = patchedEmitWarning;
+
+  try {
+    return load();
+  } finally {
+    process.emitWarning = originalEmitWarning;
+  }
+}
+
+function loadDatabaseSync(): new (filePath: string) => {
+  exec: (sql: string) => void;
+  prepare: (sql: string) => { run: (...args: unknown[]) => void };
+  close: () => void;
+} {
+  const sqliteModule = withSuppressedSqliteExperimentalWarning(
+    () => require('node:sqlite') as { DatabaseSync: new (filePath: string) => unknown },
+  );
+
+  return sqliteModule.DatabaseSync as new (filePath: string) => {
+    exec: (sql: string) => void;
+    prepare: (sql: string) => { run: (...args: unknown[]) => void };
+    close: () => void;
+  };
+}

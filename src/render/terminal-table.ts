@@ -3,15 +3,17 @@ import pc from 'picocolors';
 import type { UsageReportRow } from '../domain/usage-report-row.js';
 import { colorizeUsageBodyRows } from './terminal-style-policy.js';
 import { toUsageTableCells, type UsageTableLayout, usageTableHeaders } from './row-cells.js';
-import { wrapTableColumn } from './table-text-layout.js';
+import { visibleWidth, wrapTableColumn } from './table-text-layout.js';
 import { renderUnicodeTable } from './unicode-table.js';
 
 const modelsColumnIndex = 2;
-const modelsColumnWidth = 32;
+const defaultModelsColumnWidth = 32;
+const minimumModelsColumnWidth = 12;
 
 type TerminalRenderOptions = {
   useColor?: boolean;
   tableLayout?: UsageTableLayout;
+  terminalWidth?: number;
 };
 
 export function shouldUseColorByDefault(): boolean {
@@ -37,12 +39,37 @@ function colorizeHeader(useColor: boolean): string[] {
   return headerCells.map((header) => pc.bold(pc.white(header)));
 }
 
-export function renderTerminalTable(
+function resolveTerminalWidth(override: number | undefined): number | undefined {
+  if (typeof override === 'number' && Number.isFinite(override) && override > 0) {
+    return Math.floor(override);
+  }
+
+  const stdoutState = process.stdout as { isTTY?: unknown; columns?: unknown };
+
+  if (stdoutState.isTTY !== true) {
+    return undefined;
+  }
+
+  return typeof stdoutState.columns === 'number' &&
+    Number.isFinite(stdoutState.columns) &&
+    stdoutState.columns > 0
+    ? Math.floor(stdoutState.columns)
+    : undefined;
+}
+
+function measureTableWidth(tableOutput: string): number {
+  return tableOutput
+    .trimEnd()
+    .split('\n')
+    .reduce((maxWidth, line) => Math.max(maxWidth, visibleWidth(line)), 0);
+}
+
+function renderTableWithModelsWidth(
   rows: UsageReportRow[],
-  options: TerminalRenderOptions = {},
+  tableLayout: UsageTableLayout,
+  useColor: boolean,
+  modelsColumnWidth: number,
 ): string {
-  const useColor = options.useColor ?? shouldUseColorByDefault();
-  const tableLayout = options.tableLayout ?? 'compact';
   const uncoloredBodyRows = toUsageTableCells(rows, { layout: tableLayout });
   const wrappedBodyRows = wrapTableColumn(uncoloredBodyRows, {
     columnIndex: modelsColumnIndex,
@@ -60,4 +87,30 @@ export function renderTerminalTable(
     modelsColumnIndex,
     modelsColumnWidth,
   });
+}
+
+export function renderTerminalTable(
+  rows: UsageReportRow[],
+  options: TerminalRenderOptions = {},
+): string {
+  const useColor = options.useColor ?? shouldUseColorByDefault();
+  const tableLayout = options.tableLayout ?? 'compact';
+  const terminalWidth = resolveTerminalWidth(options.terminalWidth);
+  let modelsColumnWidth = defaultModelsColumnWidth;
+  let renderedTable = renderTableWithModelsWidth(rows, tableLayout, useColor, modelsColumnWidth);
+
+  if (terminalWidth !== undefined) {
+    const renderedTableWidth = measureTableWidth(renderedTable);
+
+    if (renderedTableWidth > terminalWidth) {
+      const overflowColumns = renderedTableWidth - terminalWidth;
+      modelsColumnWidth = Math.max(minimumModelsColumnWidth, modelsColumnWidth - overflowColumns);
+
+      if (modelsColumnWidth !== defaultModelsColumnWidth) {
+        renderedTable = renderTableWithModelsWidth(rows, tableLayout, useColor, modelsColumnWidth);
+      }
+    }
+  }
+
+  return renderedTable;
 }

@@ -42,7 +42,6 @@ function renderTerminalUsageReport(
   outputLines.push(
     renderReportHeader({
       title: getReportTitle(options.granularity),
-      timezone: usageData.diagnostics.timezone,
       useColor,
     }),
   );

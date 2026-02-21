@@ -3,7 +3,6 @@ import { visibleWidth } from './table-text-layout.js';
 
 export type ReportHeaderOptions = {
   title: string;
-  timezone: string;
   useColor?: boolean;
 };
 
@@ -23,17 +22,15 @@ function padLine(content: string, width: number): string {
 }
 
 export function renderReportHeader(options: ReportHeaderOptions): string {
-  const { title, timezone, useColor = true } = options;
-
-  const fullTitle = `${title} (Timezone: ${timezone})`;
-  const boxWidth = getBoxWidth(fullTitle);
+  const { title, useColor = true } = options;
+  const boxWidth = getBoxWidth(title);
 
   const lines: string[] = [];
 
   const topBorder = drawBoxLine(boxWidth, '┌', '─', '┐');
   lines.push(useColor ? pc.gray(topBorder) : topBorder);
 
-  const titleLine = padLine(fullTitle, boxWidth);
+  const titleLine = padLine(title, boxWidth);
   lines.push(useColor ? pc.white(titleLine) : titleLine);
 
   const bottomBorder = drawBoxLine(boxWidth, '└', '─', '┘');
