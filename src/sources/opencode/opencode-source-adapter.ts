@@ -1,5 +1,4 @@
 import { access, constants } from 'node:fs/promises';
-import { createRequire } from 'node:module';
 
 import { createUsageEvent } from '../../domain/usage-event.js';
 import type { UsageEvent } from '../../domain/usage-event.js';
@@ -7,6 +6,7 @@ import { asRecord } from '../../utils/as-record.js';
 import { asTrimmedText, toNumberLike } from '../parsing-utils.js';
 import type { SourceAdapter, SourceParseFileDiagnostics } from '../source-adapter.js';
 import { getDefaultOpenCodeDbPathCandidates } from './opencode-db-path-resolver.js';
+import { loadNodeSqliteModule, type SqliteModule } from './node-sqlite-loader.js';
 
 const UNIX_SECONDS_ABS_CUTOFF = 10_000_000_000;
 const DEFAULT_BUSY_RETRY_COUNT = 2;
@@ -14,28 +14,8 @@ const DEFAULT_BUSY_RETRY_DELAY_MS = 50;
 
 type SqliteRow = Record<string, unknown>;
 
-type SqliteStatement = {
-  all: (...anonymousParameters: unknown[]) => SqliteRow[];
-};
-
-type SqliteDatabase = {
-  prepare: (sql: string) => SqliteStatement;
-  close: () => void;
-};
-
-type SqliteModule = {
-  DatabaseSync: new (
-    filePath: string,
-    options?: {
-      readOnly?: boolean;
-      timeout?: number;
-    },
-  ) => SqliteDatabase;
-};
-
 type PathPredicate = (filePath: string) => Promise<boolean>;
 type SleepFn = (delayMs: number) => Promise<void>;
-const require = createRequire(import.meta.url);
 
 export type OpenCodeSourceAdapterOptions = {
   dbPath?: string;
@@ -281,51 +261,6 @@ function createFallbackQuery(
     `FROM ${escapeIdentifier(tableName)}`,
     `ORDER BY ${escapeIdentifier(columns.timestampColumn)} ASC, ${escapeIdentifier(columns.idColumn)} ASC`,
   ].join('\n');
-}
-
-function isSqliteExperimentalWarning(warning: unknown, warningType: string | undefined): boolean {
-  const message =
-    warning instanceof Error ? warning.message : typeof warning === 'string' ? warning : '';
-  const derivedType =
-    warningType ??
-    (warning instanceof Error ? warning.name : typeof warning === 'string' ? '' : '');
-
-  return (
-    derivedType === 'ExperimentalWarning' &&
-    message.includes('SQLite is an experimental feature and might change at any time')
-  );
-}
-
-function withSuppressedSqliteExperimentalWarning<T>(load: () => T): T {
-  const originalEmitWarning = process.emitWarning.bind(process);
-  const patchedEmitWarning = ((warning: unknown, ...args: unknown[]): void => {
-    const warningType = typeof args[0] === 'string' ? args[0] : undefined;
-
-    if (isSqliteExperimentalWarning(warning, warningType)) {
-      return;
-    }
-
-    originalEmitWarning(warning as never, ...(args as never[]));
-  }) as typeof process.emitWarning;
-
-  process.emitWarning = patchedEmitWarning;
-
-  try {
-    return load();
-  } finally {
-    process.emitWarning = originalEmitWarning;
-  }
-}
-
-async function loadNodeSqliteModule(): Promise<SqliteModule> {
-  try {
-    return withSuppressedSqliteExperimentalWarning(() => require('node:sqlite') as SqliteModule);
-  } catch (error) {
-    const reason = error instanceof Error ? error.message : String(error);
-    throw new Error(
-      `OpenCode source requires Node.js 24+ runtime with node:sqlite support: ${reason}`,
-    );
-  }
 }
 
 async function pathExists(filePath: string): Promise<boolean> {

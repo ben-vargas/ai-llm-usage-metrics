@@ -106,6 +106,7 @@ const originalNoColor = process.env.NO_COLOR;
 const originalForceColor = process.env.FORCE_COLOR;
 const stdout = process.stdout as NodeJS.WriteStream;
 const originalStdoutIsTTY = stdout.isTTY;
+const originalStdoutColumns = stdout.columns;
 
 afterEach(() => {
   if (originalNoColor === undefined) {
@@ -121,6 +122,7 @@ afterEach(() => {
   }
 
   stdout.isTTY = originalStdoutIsTTY;
+  stdout.columns = originalStdoutColumns;
 });
 
 describe('renderTerminalTable', () => {
@@ -599,6 +601,19 @@ describe('renderTerminalTable', () => {
 
     expect(rendered).toContain('│    - │');
     expect(rendered).not.toContain('NaN');
+  });
+
+  it('ignores invalid tty width metadata when no explicit terminal width override is set', () => {
+    stdout.isTTY = true;
+    stdout.columns = 0;
+
+    const withInvalidColumns = renderTerminalTable(sampleRows, { useColor: false });
+    const withExplicitWidth = renderTerminalTable(sampleRows, {
+      useColor: false,
+      terminalWidth: 200,
+    });
+
+    expect(withInvalidColumns).toBe(withExplicitWidth);
   });
 
   it('shrinks models column when terminal width is constrained', () => {

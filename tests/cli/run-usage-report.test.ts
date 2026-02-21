@@ -460,6 +460,74 @@ describe('buildUsageReport', () => {
     }
   });
 
+  it('does not emit a fullscreen hint when terminal column metadata is invalid', async () => {
+    const emptyDir = await mkdtemp(path.join(os.tmpdir(), 'usage-run-invalid-columns-'));
+    tempDirs.push(emptyDir);
+
+    const stdout = process.stdout as NodeJS.WriteStream & { columns?: number };
+    const originalStdoutIsTTY = stdout.isTTY;
+    const originalStdoutColumns = stdout.columns;
+
+    stdout.isTTY = true;
+    stdout.columns = 0;
+
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+
+    try {
+      await runUsageReport('daily', {
+        piDir: emptyDir,
+        codexDir: emptyDir,
+        source: directoryBackedSources,
+        timezone: 'UTC',
+      });
+
+      expect(
+        errorSpy.mock.calls.some((call) => String(call[0]).includes('wider than terminal')),
+      ).toBe(false);
+      expect(logSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      stdout.isTTY = originalStdoutIsTTY;
+      stdout.columns = originalStdoutColumns;
+      errorSpy.mockRestore();
+      logSpy.mockRestore();
+    }
+  });
+
+  it('does not emit a fullscreen hint when table already fits terminal width', async () => {
+    const emptyDir = await mkdtemp(path.join(os.tmpdir(), 'usage-run-table-fits-'));
+    tempDirs.push(emptyDir);
+
+    const stdout = process.stdout as NodeJS.WriteStream & { columns?: number };
+    const originalStdoutIsTTY = stdout.isTTY;
+    const originalStdoutColumns = stdout.columns;
+
+    stdout.isTTY = true;
+    stdout.columns = 300;
+
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+
+    try {
+      await runUsageReport('daily', {
+        piDir: emptyDir,
+        codexDir: emptyDir,
+        source: directoryBackedSources,
+        timezone: 'UTC',
+      });
+
+      expect(
+        errorSpy.mock.calls.some((call) => String(call[0]).includes('wider than terminal')),
+      ).toBe(false);
+      expect(logSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      stdout.isTTY = originalStdoutIsTTY;
+      stdout.columns = originalStdoutColumns;
+      errorSpy.mockRestore();
+      logSpy.mockRestore();
+    }
+  });
+
   it('keeps runUsageReport JSON output data-only on stdout while still emitting diagnostics', async () => {
     const emptyDir = await mkdtemp(path.join(os.tmpdir(), 'usage-run-json-no-logs-'));
     tempDirs.push(emptyDir);
