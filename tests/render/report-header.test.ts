@@ -39,6 +39,6 @@ describe('renderReportHeader', () => {
 
     const lineWidths = rendered.split('\n').map((line) => visibleWidth(line));
 
-    expect(new Set(lineWidths)).toEqual(new Set([lineWidths[0]]));
+    expect(new Set(lineWidths).size).toBe(1);
   });
 });

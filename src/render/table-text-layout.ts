@@ -5,7 +5,7 @@ const emojiPresentationPattern = /\p{Emoji_Presentation}/u;
 const regionalIndicatorPattern = /\p{Regional_Indicator}/u;
 const graphemeSegmenter = new Intl.Segmenter('en', { granularity: 'grapheme' });
 
-type TerminalColumnsSource = {
+export type TerminalColumnsSource = {
   isTTY?: unknown;
   columns?: unknown;
 };

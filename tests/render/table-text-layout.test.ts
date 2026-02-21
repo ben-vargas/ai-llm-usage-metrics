@@ -86,6 +86,7 @@ describe('table-text-layout', () => {
   it('returns undefined for non-tty or invalid tty columns', () => {
     expect(resolveTtyColumns({ isTTY: false, columns: 120 })).toBeUndefined();
     expect(resolveTtyColumns({ isTTY: true, columns: 0 })).toBeUndefined();
+    expect(resolveTtyColumns({ isTTY: true, columns: -1 })).toBeUndefined();
     expect(resolveTtyColumns({ isTTY: true, columns: Number.NaN })).toBeUndefined();
     expect(resolveTtyColumns({ isTTY: true, columns: undefined })).toBeUndefined();
   });

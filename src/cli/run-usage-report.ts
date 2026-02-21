@@ -42,10 +42,19 @@ function detectTerminalOverflowColumns(reportOutput: string): number | undefined
   if (terminalColumns === undefined) {
     return undefined;
   }
-  const maxLineWidth = reportOutput
-    .trimEnd()
-    .split('\n')
-    .reduce((maxWidth, line) => Math.max(maxWidth, visibleWidth(line)), 0);
+
+  const allLines = reportOutput.trimEnd().split('\n');
+  const tableLikeLinePattern = /[│╭╮╰╯├┼┬┴┌┐└┘]|^\s*\|.*\|\s*$/u;
+  const tableLines = allLines.filter((line) => tableLikeLinePattern.test(line));
+
+  if (tableLines.length === 0) {
+    return undefined;
+  }
+
+  const maxLineWidth = tableLines.reduce(
+    (maxWidth, line) => Math.max(maxWidth, visibleWidth(line)),
+    0,
+  );
 
   if (maxLineWidth <= terminalColumns) {
     return undefined;
