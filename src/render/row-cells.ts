@@ -31,11 +31,15 @@ function formatSource(row: UsageReportRow): string {
   return row.source;
 }
 
-function formatTokenCount(value: number): string {
-  return integerFormatter.format(value);
+function formatTokenCount(value: number | undefined): string {
+  return integerFormatter.format(value ?? 0);
 }
 
-function formatUsd(value: number): string {
+function formatUsd(value: number | undefined): string {
+  if (value === undefined) {
+    return '-';
+  }
+
   return usdFormatter.format(value);
 }
 
@@ -63,8 +67,8 @@ function formatModels(row: UsageReportRow, layout: UsageTableLayout): string {
 
 function formatModelMetric(
   row: UsageReportRow,
-  selector: (value: ModelUsageBreakdown | UsageReportRow) => number,
-  formatter: (value: number) => string,
+  selector: (value: ModelUsageBreakdown | UsageReportRow) => number | undefined,
+  formatter: (value: number | undefined) => string,
   layout: UsageTableLayout,
 ): string {
   if (layout !== 'per_model_columns' || row.modelBreakdown.length === 0) {

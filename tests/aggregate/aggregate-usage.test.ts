@@ -98,18 +98,18 @@ describe('aggregateUsage', () => {
       periodKey: '2026-02-11',
       source: 'pi',
       totalTokens: 5,
-      costUsd: 0,
+      costUsd: undefined,
     });
     expect(rows[4]).toMatchObject({
       rowType: 'grand_total',
       periodKey: 'ALL',
       totalTokens: 58,
-      costUsd: 1.5,
+      costUsd: undefined,
       modelBreakdown: [
         {
           model: 'gpt-4.1',
           totalTokens: 21,
-          costUsd: 1,
+          costUsd: undefined,
         },
         {
           model: 'gpt-5-codex',
@@ -155,7 +155,7 @@ describe('aggregateUsage', () => {
     expect(rows[2]).toMatchObject({ rowType: 'grand_total', totalTokens: 6 });
   });
 
-  it('normalizes model keys before aggregating model breakdown totals', () => {
+  it('normalizes model keys case-insensitively before aggregating model totals', () => {
     const events = [
       createUsageEvent({
         source: 'pi',
@@ -172,7 +172,7 @@ describe('aggregateUsage', () => {
         source: 'pi',
         sessionId: 's2',
         timestamp: '2026-02-10T11:00:00Z',
-        model: '  gpt-4.1  ',
+        model: '  GPT-4.1  ',
         inputTokens: 20,
         outputTokens: 10,
         totalTokens: 30,

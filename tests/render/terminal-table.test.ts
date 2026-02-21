@@ -561,6 +561,45 @@ describe('renderTerminalTable', () => {
 
     expect(separatorLines).toHaveLength(2);
   });
+
+  it('renders unknown cost values as "-" instead of NaN', () => {
+    const rendered = renderTerminalTable(
+      [
+        {
+          rowType: 'period_source',
+          periodKey: '2026-01-01',
+          source: 'pi',
+          models: ['gpt-4.1'],
+          modelBreakdown: [],
+          inputTokens: 10,
+          outputTokens: 5,
+          reasoningTokens: 0,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          totalTokens: 15,
+          costUsd: undefined,
+        },
+        {
+          rowType: 'grand_total',
+          periodKey: 'ALL',
+          source: 'combined',
+          models: ['gpt-4.1'],
+          modelBreakdown: [],
+          inputTokens: 10,
+          outputTokens: 5,
+          reasoningTokens: 0,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          totalTokens: 15,
+          costUsd: undefined,
+        },
+      ],
+      { useColor: false },
+    );
+
+    expect(rendered).toContain('│    - │');
+    expect(rendered).not.toContain('NaN');
+  });
 });
 
 describe('shouldUseColorByDefault', () => {

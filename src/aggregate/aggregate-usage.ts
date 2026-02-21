@@ -46,6 +46,17 @@ function createRowAccumulator(): RowAccumulator {
   };
 }
 
+function mergeCostUsd(
+  targetCostUsd: number | undefined,
+  sourceCostUsd: number | undefined,
+): number | undefined {
+  if (targetCostUsd === undefined || sourceCostUsd === undefined) {
+    return undefined;
+  }
+
+  return addUsd(targetCostUsd, sourceCostUsd);
+}
+
 function addEventToTotals(target: UsageTotals, event: UsageEvent): void {
   target.inputTokens += event.inputTokens;
   target.outputTokens += event.outputTokens;
@@ -53,7 +64,7 @@ function addEventToTotals(target: UsageTotals, event: UsageEvent): void {
   target.cacheReadTokens += event.cacheReadTokens;
   target.cacheWriteTokens += event.cacheWriteTokens;
   target.totalTokens += event.totalTokens;
-  target.costUsd = addUsd(target.costUsd, event.costUsd ?? 0);
+  target.costUsd = mergeCostUsd(target.costUsd, event.costUsd);
 }
 
 function normalizeModelKey(model: string | undefined): string | undefined {
@@ -61,7 +72,7 @@ function normalizeModelKey(model: string | undefined): string | undefined {
     return undefined;
   }
 
-  const normalized = model.trim();
+  const normalized = model.trim().toLowerCase();
   return normalized || undefined;
 }
 
@@ -86,7 +97,7 @@ function addTotals(target: UsageTotals, source: UsageTotals): void {
   target.cacheReadTokens += source.cacheReadTokens;
   target.cacheWriteTokens += source.cacheWriteTokens;
   target.totalTokens += source.totalTokens;
-  target.costUsd = addUsd(target.costUsd, source.costUsd);
+  target.costUsd = mergeCostUsd(target.costUsd, source.costUsd);
 }
 
 function mergeModelTotals(

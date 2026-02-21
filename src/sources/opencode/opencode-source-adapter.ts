@@ -177,35 +177,48 @@ function escapeIdentifier(identifier: string): string {
   return `"${identifier.replaceAll('"', '""')}"`;
 }
 
-function resolveRequiredMessageColumns(messageColumns: ReadonlySet<string>): {
+function resolveIdentifierCaseInsensitive(
+  identifiers: readonly string[],
+  candidates: readonly string[],
+): string | undefined {
+  for (const candidate of candidates) {
+    const normalizedCandidate = candidate.toLowerCase();
+    const matchedIdentifier = identifiers.find(
+      (identifier) => identifier.toLowerCase() === normalizedCandidate,
+    );
+
+    if (matchedIdentifier) {
+      return matchedIdentifier;
+    }
+  }
+
+  return undefined;
+}
+
+function resolveRequiredMessageColumns(messageColumns: readonly string[]): {
   idColumn: string;
   timestampColumn: string;
   dataColumn: string;
   sessionIdColumn: string | undefined;
 } {
-  if (!messageColumns.has('data')) {
+  const dataColumn = resolveIdentifierCaseInsensitive(messageColumns, ['data']);
+
+  if (!dataColumn) {
     throw new Error(
       'OpenCode schema drift: "message.data" column not found. Inspect schema with `opencode db` commands.',
     );
   }
 
-  const idColumn = messageColumns.has('id')
-    ? 'id'
-    : messageColumns.has('message_id')
-      ? 'message_id'
-      : undefined;
-  const timestampColumn = messageColumns.has('time_created')
-    ? 'time_created'
-    : messageColumns.has('created_at')
-      ? 'created_at'
-      : messageColumns.has('timestamp')
-        ? 'timestamp'
-        : undefined;
-  const sessionIdColumn = messageColumns.has('session_id')
-    ? 'session_id'
-    : messageColumns.has('sessionId')
-      ? 'sessionId'
-      : undefined;
+  const idColumn = resolveIdentifierCaseInsensitive(messageColumns, ['id', 'message_id']);
+  const timestampColumn = resolveIdentifierCaseInsensitive(messageColumns, [
+    'time_created',
+    'created_at',
+    'timestamp',
+  ]);
+  const sessionIdColumn = resolveIdentifierCaseInsensitive(messageColumns, [
+    'session_id',
+    'sessionid',
+  ]);
 
   if (!idColumn || !timestampColumn) {
     throw new Error(
@@ -216,17 +229,20 @@ function resolveRequiredMessageColumns(messageColumns: ReadonlySet<string>): {
   return {
     idColumn,
     timestampColumn,
-    dataColumn: 'data',
+    dataColumn,
     sessionIdColumn,
   };
 }
 
-function createPrimaryQuery(columns: {
-  idColumn: string;
-  timestampColumn: string;
-  dataColumn: string;
-  sessionIdColumn: string | undefined;
-}): string {
+function createPrimaryQuery(
+  tableName: string,
+  columns: {
+    idColumn: string;
+    timestampColumn: string;
+    dataColumn: string;
+    sessionIdColumn: string | undefined;
+  },
+): string {
   const rowSessionId = columns.sessionIdColumn
     ? `${escapeIdentifier(columns.sessionIdColumn)} AS row_session_id`
     : 'NULL AS row_session_id';
@@ -237,18 +253,21 @@ function createPrimaryQuery(columns: {
     `  ${escapeIdentifier(columns.timestampColumn)} AS row_time,`,
     `  ${rowSessionId},`,
     `  ${escapeIdentifier(columns.dataColumn)} AS data_json`,
-    `FROM ${escapeIdentifier('message')}`,
-    `WHERE json_extract(${escapeIdentifier(columns.dataColumn)}, '$.role') = 'assistant'`,
+    `FROM ${escapeIdentifier(tableName)}`,
+    `WHERE lower(trim(coalesce(json_extract(${escapeIdentifier(columns.dataColumn)}, '$.role'), json_extract(${escapeIdentifier(columns.dataColumn)}, '$.type')))) = 'assistant'`,
     `ORDER BY ${escapeIdentifier(columns.timestampColumn)} ASC, ${escapeIdentifier(columns.idColumn)} ASC`,
   ].join('\n');
 }
 
-function createFallbackQuery(columns: {
-  idColumn: string;
-  timestampColumn: string;
-  dataColumn: string;
-  sessionIdColumn: string | undefined;
-}): string {
+function createFallbackQuery(
+  tableName: string,
+  columns: {
+    idColumn: string;
+    timestampColumn: string;
+    dataColumn: string;
+    sessionIdColumn: string | undefined;
+  },
+): string {
   const rowSessionId = columns.sessionIdColumn
     ? `${escapeIdentifier(columns.sessionIdColumn)} AS row_session_id`
     : 'NULL AS row_session_id';
@@ -259,7 +278,7 @@ function createFallbackQuery(columns: {
     `  ${escapeIdentifier(columns.timestampColumn)} AS row_time,`,
     `  ${rowSessionId},`,
     `  ${escapeIdentifier(columns.dataColumn)} AS data_json`,
-    `FROM ${escapeIdentifier('message')}`,
+    `FROM ${escapeIdentifier(tableName)}`,
     `ORDER BY ${escapeIdentifier(columns.timestampColumn)} ASC, ${escapeIdentifier(columns.idColumn)} ASC`,
   ].join('\n');
 }
@@ -409,23 +428,22 @@ export class OpenCodeSourceAdapter implements SourceAdapter {
         .all()
         .map((row) => asTrimmedText(row.name))
         .filter((value): value is string => Boolean(value));
-      const tables = new Set(tablesResult);
+      const messageTableName = resolveIdentifierCaseInsensitive(tablesResult, ['message']);
 
-      if (!tables.has('message')) {
+      if (!messageTableName) {
         throw new Error(
           'OpenCode schema drift: required "message" table not found. Inspect schema with `opencode db` commands.',
         );
       }
 
-      const messageColumns = new Set(
-        database
-          .prepare("PRAGMA table_info('message')")
-          .all()
-          .map((row) => asTrimmedText(row.name))
-          .filter((value): value is string => Boolean(value)),
-      );
+      const escapedMessageTableName = messageTableName.replaceAll("'", "''");
+      const messageColumns = database
+        .prepare(`PRAGMA table_info('${escapedMessageTableName}')`)
+        .all()
+        .map((row) => asTrimmedText(row.name))
+        .filter((value): value is string => Boolean(value));
       const columns = resolveRequiredMessageColumns(messageColumns);
-      const primaryQuery = createPrimaryQuery(columns);
+      const primaryQuery = createPrimaryQuery(messageTableName, columns);
 
       let messageRows: SqliteRow[];
 
@@ -436,7 +454,7 @@ export class OpenCodeSourceAdapter implements SourceAdapter {
           throw error;
         }
 
-        messageRows = database.prepare(createFallbackQuery(columns)).all();
+        messageRows = database.prepare(createFallbackQuery(messageTableName, columns)).all();
       }
 
       const events: UsageEvent[] = [];

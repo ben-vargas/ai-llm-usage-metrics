@@ -125,6 +125,7 @@ Pricing behavior notes:
 
 - LiteLLM is the active pricing source.
 - explicit `costUsd: 0` events are re-priced from LiteLLM when model pricing is available.
+- if any events in a row have unresolved cost, the row `Cost` is rendered as `-`.
 - when pricing cannot be loaded from LiteLLM (or cache in offline mode), report generation fails fast.
 
 ### Custom session directories

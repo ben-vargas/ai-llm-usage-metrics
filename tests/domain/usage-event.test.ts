@@ -86,4 +86,17 @@ describe('createUsageEvent', () => {
       }),
     ).toThrow('sessionId');
   });
+
+  it('normalizes model identifiers to lowercase', () => {
+    const event = createUsageEvent({
+      source: 'pi',
+      sessionId: 'session-model-normalization',
+      timestamp: '2026-02-12T10:00:00Z',
+      model: ' GPT-4.1 ',
+      inputTokens: 1,
+      outputTokens: 1,
+    });
+
+    expect(event.model).toBe('gpt-4.1');
+  });
 });

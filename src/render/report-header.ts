@@ -1,4 +1,5 @@
 import pc from 'picocolors';
+import { visibleWidth } from './table-text-layout.js';
 
 export type ReportHeaderOptions = {
   title: string;
@@ -7,7 +8,7 @@ export type ReportHeaderOptions = {
 };
 
 function getBoxWidth(content: string): number {
-  return content.length + 4;
+  return visibleWidth(content) + 4;
 }
 
 function drawBoxLine(width: number, left: string, middle: string, right: string): string {
@@ -15,7 +16,7 @@ function drawBoxLine(width: number, left: string, middle: string, right: string)
 }
 
 function padLine(content: string, width: number): string {
-  const padding = width - 2 - content.length;
+  const padding = width - 2 - visibleWidth(content);
   const leftPad = Math.floor(padding / 2);
   const rightPad = padding - leftPad;
   return '│' + ' '.repeat(leftPad) + content + ' '.repeat(rightPad) + '│';
