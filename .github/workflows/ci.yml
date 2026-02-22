@@ -57,6 +57,9 @@ jobs:
       - name: Generate CLI reference docs
         run: pnpm run site:docs:generate
 
+      - name: Verify generated CLI reference is up to date
+        run: git diff --exit-code -- site/src/content/docs/cli-reference.mdx
+
       - name: Site check
         run: pnpm run site:check
 

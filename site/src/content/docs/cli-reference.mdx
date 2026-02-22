@@ -1,139 +1,54 @@
 ---
 title: CLI Reference
-description: Complete reference for llm-usage-metrics command-line options and usage patterns.
+description: Command-line options and usage for llm-usage-metrics.
 ---
 
-# CLI Reference
-
-:::caution[Auto-generated]
-This reference was automatically generated from CLI version `0.2.1`.
-For the most up-to-date information, run `llm-usage --help` in your terminal.
+:::note[Auto-generated reference]
+Generated from CLI version `0.2.1` via `scripts/generate-cli-reference.mjs`.
+For behavioral details and examples, see the other documentation pages.
 :::
 
-## Global Options
-
-| Option | Short | Description | Default |
-|--------|-------|-------------|---------|
-| `--codex-dir` |  | Path to .codex sessions directory `path` | - |
-| `--json` |  | Render output as JSON | - |
-| `--markdown` |  | Render output as markdown table | - |
-| `--model` |  | Filter by model (repeatable/comma-separated; exact when exact match exists after source/provider/date filters, otherwise substring) (default: []) `name` | - |
-| `--opencode-db` |  | Path to OpenCode SQLite DB `path` | - |
-| `--per-model-columns` |  | Render per-model metrics as multiline aligned table columns (terminal/markdown) | - |
-| `--pi-dir` |  | Path to .pi sessions directory `path` | - |
-| `--pricing-offline` |  | Use cached LiteLLM pricing only (no network fetch) | - |
-| `--pricing-url` |  | Override LiteLLM pricing source URL `url` | - |
-| `--provider` |  | Provider filter (substring match, optional) `name` | - |
-| `--since` |  | Inclusive start date filter `YYYY-MM-DD` | - |
-| `--source` |  | Filter by source id (repeatable or comma-separated, supported sources (3): pi, codex, opencode) (default: []) `name` | - |
-| `--source-dir` |  | Override source directory for directory-backed sources (repeatable) (default: []) `source-id=path` | - |
-| `--timezone` |  | Timezone for bucketing (default: "Africa/Casablanca") `iana` | - |
-| `--until` |  | Inclusive end date filter `YYYY-MM-DD` | - |
-| `--version` | `-V` | output the version number | - |
-| `--help` | `-h` | display help for command | - |
-
-## Commands
-
-### Default (aggregate and display)
-
-Run without arguments to aggregate usage data and display formatted metrics for the current day.
+## Command structure
 
 ```bash
-llm-usage
+llm-usage <command> [options]
 ```
 
-### Temporal Periods
+Commands:
 
-#### Daily Report
+- `daily`
+- `weekly`
+- `monthly`
+
+## Shared options
+
+| Option | Short | Argument | Description |
+| --- | --- | --- | --- |
+| `--codex-dir` | - | `<path>` | Path to .codex sessions directory |
+| `--json` | - | - | Render output as JSON |
+| `--markdown` | - | - | Render output as markdown table |
+| `--model` | - | `<name>` | Filter by model (repeatable/comma-separated; exact when exact match exists after source/provider/date filters, otherwise substring) (default: []) |
+| `--opencode-db` | - | `<path>` | Path to OpenCode SQLite DB |
+| `--per-model-columns` | - | - | Render per-model metrics as multiline aligned table columns (terminal/markdown) |
+| `--pi-dir` | - | `<path>` | Path to .pi sessions directory |
+| `--pricing-offline` | - | - | Use cached LiteLLM pricing only (no network fetch) |
+| `--pricing-url` | - | `<url>` | Override LiteLLM pricing source URL |
+| `--provider` | - | `<name>` | Provider filter (substring match, optional) |
+| `--since` | - | `<YYYY-MM-DD>` | Inclusive start date filter |
+| `--source` | - | `<name>` | Filter by source id (repeatable or comma-separated, supported sources (3): pi, codex, opencode) (default: []) |
+| `--source-dir` | - | `<source-id=path>` | Override source directory for directory-backed sources (repeatable) (default: []) |
+| `--timezone` | - | `<iana>` | Timezone for bucketing (default: local system timezone) |
+| `--until` | - | `<YYYY-MM-DD>` | Inclusive end date filter |
+| `--help` | `-h` | - | display help for command |
+| `--version` | `-V` | - | output the version number |
+
+## Examples
 
 ```bash
 llm-usage daily
-```
-
-#### Weekly Report
-
-```bash
-llm-usage weekly
 llm-usage weekly --timezone Europe/Paris
-```
-
-#### Monthly Report
-
-```bash
-llm-usage monthly
 llm-usage monthly --since 2026-01-01 --until 2026-01-31
-```
-
-## Filtering
-
-### By Source
-
-Isolate telemetry to specific coding agents:
-
-```bash
-llm-usage daily --source pi
-llm-usage daily --source pi,codex
-```
-
-### By Model
-
-Filter by model family or name:
-
-```bash
-llm-usage monthly --model claude
-llm-usage monthly --model gpt-4
-```
-
-### By Provider
-
-Filter by upstream LLM provider:
-
-```bash
-llm-usage monthly --provider openai
-llm-usage monthly --provider anthropic
-```
-
-## Output Formats
-
-### Terminal (Default)
-
-Rich formatted tables with ANSI colors, optimized for terminal display:
-
-```bash
-llm-usage daily
-```
-
-### JSON
-
-Machine-readable JSON for piping to other tools:
-
-```bash
+llm-usage monthly --source opencode --opencode-db /path/to/opencode.db
 llm-usage daily --json
-llm-usage weekly --json | jq '.totalCost'
+llm-usage daily --markdown
 ```
-
-### Markdown
-
-Formatted markdown tables suitable for documentation:
-
-```bash
-llm-usage monthly --markdown > usage-report.md
-```
-
-## Environment Variables
-
-| Variable | Description |
-|----------|-------------|
-| `LLM_USAGE_DATA_DIR` | Override default data directory path |
-| `TZ` | Timezone for date calculations |
-| `LLM_USAGE_SKIP_UPDATE_CHECK` | Skip startup update check |
-| `LLM_USAGE_PARSE_MAX_PARALLEL` | Max concurrent file parses (1-64) |
-
-## Exit Codes
-
-| Code | Meaning |
-|------|---------|
-| `0` | Success |
-| `1` | General error |
-| `2` | Invalid arguments |
-| `3` | No data found |
