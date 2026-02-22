@@ -95,7 +95,7 @@ function hasUsageSignal(usageFields: Array<unknown>, explicitCost: number | unde
 }
 
 export function parseOpenCodeMessageRows(
-  rows: readonly OpenCodeSqliteRow[],
+  rows: Iterable<OpenCodeSqliteRow>,
   sourceId: UsageEvent['source'],
 ): SourceParseFileDiagnostics {
   const events: UsageEvent[] = [];

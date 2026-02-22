@@ -35,12 +35,13 @@ function formatTokenCount(value: number | undefined): string {
   return integerFormatter.format(value ?? 0);
 }
 
-function formatUsd(value: number | undefined): string {
+function formatUsd(value: number | undefined, options: { incomplete?: boolean } = {}): string {
   if (value === undefined) {
     return '-';
   }
 
-  return usdFormatter.format(value);
+  const formattedUsd = usdFormatter.format(value);
+  return options.incomplete ? `~${formattedUsd}` : formattedUsd;
 }
 
 function buildModelLines(row: UsageReportRow): string[] {
@@ -84,6 +85,22 @@ function formatModelMetric(
   return lines.join('\n');
 }
 
+function formatModelCostMetric(row: UsageReportRow, layout: UsageTableLayout): string {
+  if (layout !== 'per_model_columns' || row.modelBreakdown.length === 0) {
+    return formatUsd(row.costUsd, { incomplete: row.costIncomplete });
+  }
+
+  const lines = row.modelBreakdown.map((modelUsage) =>
+    formatUsd(modelUsage.costUsd, { incomplete: modelUsage.costIncomplete }),
+  );
+
+  if (row.modelBreakdown.length > 1) {
+    lines.push(formatUsd(row.costUsd, { incomplete: row.costIncomplete }));
+  }
+
+  return lines.join('\n');
+}
+
 export function toUsageTableCells(
   rows: UsageReportRow[],
   options: { layout?: UsageTableLayout } = {},
@@ -100,6 +117,6 @@ export function toUsageTableCells(
     formatModelMetric(row, (value) => value.cacheReadTokens, formatTokenCount, layout),
     formatModelMetric(row, (value) => value.cacheWriteTokens, formatTokenCount, layout),
     formatModelMetric(row, (value) => value.totalTokens, formatTokenCount, layout),
-    formatModelMetric(row, (value) => value.costUsd, formatUsd, layout),
+    formatModelCostMetric(row, layout),
   ]);
 }

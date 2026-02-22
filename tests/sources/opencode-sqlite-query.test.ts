@@ -142,4 +142,46 @@ describe('opencode sqlite query', () => {
 
     expect(seenQueries.some((query) => query.includes('NULL AS row_session_id'))).toBe(true);
   });
+
+  it('streams result rows via iterate() when sqlite statements support it', () => {
+    const database = {
+      prepare(sql: string): {
+        all: () => Record<string, unknown>[];
+        iterate?: () => IterableIterator<Record<string, unknown>>;
+      } {
+        if (sql.includes('sqlite_master')) {
+          return {
+            all: () => [{ name: 'message' }],
+          };
+        }
+
+        if (/PRAGMA\s+table_info\(/iu.test(sql)) {
+          return {
+            all: () => [
+              { name: 'id' },
+              { name: 'time_created' },
+              { name: 'session_id' },
+              { name: 'data' },
+            ],
+          };
+        }
+
+        return {
+          all: () => {
+            throw new Error('all() should not be used when iterate() is available');
+          },
+          iterate: function* iterateRows(): IterableIterator<Record<string, unknown>> {
+            yield { row_id: 'iter-1', data_json: '{}' };
+            yield { row_id: 'iter-2', data_json: '{}' };
+          },
+        };
+      },
+    };
+
+    const rows = [...queryOpenCodeMessageRows(database)];
+    expect(rows).toEqual([
+      { row_id: 'iter-1', data_json: '{}' },
+      { row_id: 'iter-2', data_json: '{}' },
+    ]);
+  });
 });

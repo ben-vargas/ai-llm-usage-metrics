@@ -8,6 +8,7 @@ import type {
   UsageTotals,
 } from '../domain/usage-report-row.js';
 import { normalizeModelList } from '../domain/normalization.js';
+import { compareByCodePoint } from '../utils/compare-by-code-point.js';
 import { getPeriodKey, type ReportGranularity } from '../utils/time-buckets.js';
 
 export type AggregateUsageOptions = {
@@ -46,17 +47,6 @@ function createRowAccumulator(): RowAccumulator {
   };
 }
 
-function mergeCostUsd(
-  targetCostUsd: number | undefined,
-  sourceCostUsd: number | undefined,
-): number | undefined {
-  if (targetCostUsd === undefined || sourceCostUsd === undefined) {
-    return undefined;
-  }
-
-  return addUsd(targetCostUsd, sourceCostUsd);
-}
-
 function addEventToTotals(target: UsageTotals, event: UsageEvent): void {
   target.inputTokens += event.inputTokens;
   target.outputTokens += event.outputTokens;
@@ -64,7 +54,13 @@ function addEventToTotals(target: UsageTotals, event: UsageEvent): void {
   target.cacheReadTokens += event.cacheReadTokens;
   target.cacheWriteTokens += event.cacheWriteTokens;
   target.totalTokens += event.totalTokens;
-  target.costUsd = mergeCostUsd(target.costUsd, event.costUsd);
+
+  if (event.costUsd === undefined) {
+    target.costIncomplete = true;
+    return;
+  }
+
+  target.costUsd = addUsd(target.costUsd ?? 0, event.costUsd);
 }
 
 function normalizeModelKey(model: string | undefined): string | undefined {
@@ -97,7 +93,14 @@ function addTotals(target: UsageTotals, source: UsageTotals): void {
   target.cacheReadTokens += source.cacheReadTokens;
   target.cacheWriteTokens += source.cacheWriteTokens;
   target.totalTokens += source.totalTokens;
-  target.costUsd = mergeCostUsd(target.costUsd, source.costUsd);
+
+  if (source.costUsd !== undefined) {
+    target.costUsd = addUsd(target.costUsd ?? 0, source.costUsd);
+  }
+
+  if (source.costIncomplete) {
+    target.costIncomplete = true;
+  }
 }
 
 function mergeModelTotals(
@@ -138,7 +141,7 @@ function sourceSortComparator(
     return leftWeight - rightWeight;
   }
 
-  return left.localeCompare(right);
+  return compareByCodePoint(left, right);
 }
 
 export function aggregateUsage(

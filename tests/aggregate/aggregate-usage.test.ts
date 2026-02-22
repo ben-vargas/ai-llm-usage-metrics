@@ -98,18 +98,21 @@ describe('aggregateUsage', () => {
       periodKey: '2026-02-11',
       source: 'pi',
       totalTokens: 5,
-      costUsd: undefined,
+      costUsd: 0,
+      costIncomplete: true,
     });
     expect(rows[4]).toMatchObject({
       rowType: 'grand_total',
       periodKey: 'ALL',
       totalTokens: 58,
-      costUsd: undefined,
+      costUsd: 1.5,
+      costIncomplete: true,
       modelBreakdown: [
         {
           model: 'gpt-4.1',
           totalTokens: 21,
-          costUsd: undefined,
+          costUsd: 1,
+          costIncomplete: true,
         },
         {
           model: 'gpt-5-codex',
@@ -225,5 +228,84 @@ describe('aggregateUsage', () => {
       totalTokens: 20_000,
       costUsd: 10,
     });
+  });
+
+  it('preserves known cost totals while flagging incomplete pricing', () => {
+    const rows = aggregateUsage(
+      [
+        createUsageEvent({
+          source: 'pi',
+          sessionId: 'known',
+          timestamp: '2026-02-10T10:00:00Z',
+          model: 'gpt-4.1',
+          inputTokens: 10,
+          outputTokens: 10,
+          totalTokens: 20,
+          costUsd: 1.25,
+          costMode: 'explicit',
+        }),
+        createUsageEvent({
+          source: 'pi',
+          sessionId: 'unknown',
+          timestamp: '2026-02-10T11:00:00Z',
+          model: 'gpt-4.1',
+          inputTokens: 5,
+          outputTokens: 5,
+          totalTokens: 10,
+          costMode: 'estimated',
+          costUsd: undefined,
+        }),
+      ],
+      { granularity: 'daily', timezone: 'UTC' },
+    );
+
+    expect(rows[0]).toMatchObject({
+      rowType: 'period_source',
+      source: 'pi',
+      totalTokens: 30,
+      costUsd: 1.25,
+      costIncomplete: true,
+      modelBreakdown: [
+        {
+          model: 'gpt-4.1',
+          totalTokens: 30,
+          costUsd: 1.25,
+          costIncomplete: true,
+        },
+      ],
+    });
+    expect(rows[1]).toMatchObject({
+      rowType: 'grand_total',
+      totalTokens: 30,
+      costUsd: 1.25,
+      costIncomplete: true,
+    });
+  });
+
+  it('sorts same-weight sources deterministically by code-point order', () => {
+    const rows = aggregateUsage(
+      [
+        createUsageEvent({
+          source: 'ä-source',
+          sessionId: 's1',
+          timestamp: '2026-02-10T10:00:00Z',
+          model: 'model-a',
+          inputTokens: 1,
+          outputTokens: 1,
+        }),
+        createUsageEvent({
+          source: 'z-source',
+          sessionId: 's2',
+          timestamp: '2026-02-10T10:10:00Z',
+          model: 'model-z',
+          inputTokens: 1,
+          outputTokens: 1,
+        }),
+      ],
+      { granularity: 'daily', timezone: 'UTC' },
+    );
+
+    const periodSourceRows = rows.filter((row) => row.rowType === 'period_source');
+    expect(periodSourceRows.map((row) => row.source)).toEqual(['z-source', 'ä-source']);
   });
 });

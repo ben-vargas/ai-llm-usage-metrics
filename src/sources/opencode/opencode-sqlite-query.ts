@@ -5,6 +5,7 @@ export type OpenCodeSqliteRow = Record<string, unknown>;
 type OpenCodeSqliteDatabase = {
   prepare: (sql: string) => {
     all: (...anonymousParameters: unknown[]) => OpenCodeSqliteRow[];
+    iterate?: (...anonymousParameters: unknown[]) => IterableIterator<OpenCodeSqliteRow>;
   };
 };
 
@@ -88,7 +89,13 @@ function createPrimaryQuery(tableName: string, columns: MessageQueryColumns): st
     `  ${rowSessionId},`,
     `  ${escapeIdentifier(columns.dataColumn)} AS data_json`,
     `FROM ${escapeIdentifier(tableName)}`,
-    `WHERE lower(trim(coalesce(json_extract(${escapeIdentifier(columns.dataColumn)}, '$.role'), json_extract(${escapeIdentifier(columns.dataColumn)}, '$.type')))) = 'assistant'`,
+    [
+      'WHERE CASE',
+      `  WHEN json_valid(${escapeIdentifier(columns.dataColumn)}) = 1`,
+      `    THEN lower(trim(coalesce(json_extract(${escapeIdentifier(columns.dataColumn)}, '$.role'), json_extract(${escapeIdentifier(columns.dataColumn)}, '$.type'))))`,
+      "  ELSE 'assistant'",
+      "END = 'assistant'",
+    ].join('\n'),
     `ORDER BY ${escapeIdentifier(columns.timestampColumn)} ASC, ${escapeIdentifier(columns.idColumn)} ASC`,
   ].join('\n');
 }
@@ -140,18 +147,33 @@ function resolveMessageQueryColumns(
   return resolveRequiredMessageColumns(messageColumns);
 }
 
-export function queryOpenCodeMessageRows(database: OpenCodeSqliteDatabase): OpenCodeSqliteRow[] {
+function executeQueryRows(
+  database: OpenCodeSqliteDatabase,
+  query: string,
+): Iterable<OpenCodeSqliteRow> {
+  const statement = database.prepare(query);
+
+  if (statement.iterate) {
+    return statement.iterate();
+  }
+
+  return statement.all();
+}
+
+export function queryOpenCodeMessageRows(
+  database: OpenCodeSqliteDatabase,
+): Iterable<OpenCodeSqliteRow> {
   const messageTableName = resolveMessageTableName(database);
   const columns = resolveMessageQueryColumns(database, messageTableName);
   const primaryQuery = createPrimaryQuery(messageTableName, columns);
 
   try {
-    return database.prepare(primaryQuery).all();
+    return executeQueryRows(database, primaryQuery);
   } catch (error) {
     if (!shouldFallbackToNonJsonExtractQuery(error)) {
       throw error;
     }
 
-    return database.prepare(createFallbackQuery(messageTableName, columns)).all();
+    return executeQueryRows(database, createFallbackQuery(messageTableName, columns));
   }
 }

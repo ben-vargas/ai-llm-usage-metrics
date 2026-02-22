@@ -12,6 +12,7 @@ export type SqliteModule = {
   ) => {
     prepare: (sql: string) => {
       all: (...anonymousParameters: unknown[]) => Record<string, unknown>[];
+      iterate?: (...anonymousParameters: unknown[]) => IterableIterator<Record<string, unknown>>;
     };
     close: () => void;
   };
