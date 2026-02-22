@@ -224,9 +224,7 @@ export function aggregateUsage(
   }
 
   const finalizedGrandTotals =
-    events.length === 0 &&
-    grandTotals.costUsd === undefined &&
-    grandTotals.costIncomplete !== true
+    events.length === 0 && grandTotals.costUsd === undefined && grandTotals.costIncomplete !== true
       ? { ...grandTotals, costUsd: 0 }
       : grandTotals;
 

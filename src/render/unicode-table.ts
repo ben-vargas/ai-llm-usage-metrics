@@ -198,8 +198,7 @@ function normalizeRenderableUsageRows(options: {
   usageRows: UsageReportRow[];
   bodyRows: string[][];
   measureBodyRows: string[][];
-  bodyColumnCount: number;
-  measureColumnCount: number;
+  columnCount: number;
 }): RenderableUsageRow[] {
   const hasAlignedRowCounts =
     options.usageRows.length === options.bodyRows.length &&
@@ -208,11 +207,8 @@ function normalizeRenderableUsageRows(options: {
   if (!hasAlignedRowCounts) {
     return options.usageRows.map((usageRow, index) => ({
       usageRow,
-      bodyRow: padRowToColumnCount(options.bodyRows[index], options.bodyColumnCount),
-      measureBodyRow: padRowToColumnCount(
-        options.measureBodyRows[index],
-        options.measureColumnCount,
-      ),
+      bodyRow: padRowToColumnCount(options.bodyRows[index], options.columnCount),
+      measureBodyRow: padRowToColumnCount(options.measureBodyRows[index], options.columnCount),
       originalIndex: index,
     }));
   }
@@ -220,11 +216,8 @@ function normalizeRenderableUsageRows(options: {
   return options.usageRows
     .map((usageRow, index) => ({
       usageRow,
-      bodyRow: padRowToColumnCount(options.bodyRows[index], options.bodyColumnCount),
-      measureBodyRow: padRowToColumnCount(
-        options.measureBodyRows[index],
-        options.measureColumnCount,
-      ),
+      bodyRow: padRowToColumnCount(options.bodyRows[index], options.columnCount),
+      measureBodyRow: padRowToColumnCount(options.measureBodyRows[index], options.columnCount),
       originalIndex: index,
     }))
     .sort((left, right) => {
@@ -267,17 +260,17 @@ export function renderUnicodeTable(options: RenderUnicodeTableOptions): string {
     options.measureBodyRows,
     options.measureHeaderCells.length,
   );
-  const normalizedHeaderCells = padRowToColumnCount([...options.headerCells], bodyColumnCount);
+  const sharedColumnCount = Math.max(bodyColumnCount, measureColumnCount);
+  const normalizedHeaderCells = padRowToColumnCount([...options.headerCells], sharedColumnCount);
   const normalizedMeasureHeaderCells = padRowToColumnCount(
     [...options.measureHeaderCells],
-    measureColumnCount,
+    sharedColumnCount,
   );
   const normalizedRenderableRows = normalizeRenderableUsageRows({
     usageRows: options.usageRows,
     bodyRows: options.bodyRows,
     measureBodyRows: options.measureBodyRows,
-    bodyColumnCount,
-    measureColumnCount,
+    columnCount: sharedColumnCount,
   });
   const normalizedBodyRows = normalizedRenderableRows.map((row) => row.bodyRow);
   const normalizedMeasureBodyRows = normalizedRenderableRows.map((row) => row.measureBodyRow);

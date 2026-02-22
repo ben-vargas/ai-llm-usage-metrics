@@ -73,4 +73,21 @@ describe('renderUnicodeTable', () => {
 
     expect(rendered).toContain('extra-cell');
   });
+
+  it('uses a shared column count when body has more columns than measure rows', () => {
+    const rendered = renderUnicodeTable({
+      headerCells: ['Period', 'Source'],
+      bodyRows: [['2026-02-22', 'opencode', 'extra']],
+      measureHeaderCells: ['Period', 'Source'],
+      measureBodyRows: [['2026-02-22', 'opencode']],
+      usageRows: [createUsageRow({ source: 'opencode' })],
+      tableLayout: 'compact',
+      modelsColumnIndex: 1,
+      modelsColumnWidth: 12,
+    });
+    const topBorder = rendered.split('\n')[0] ?? '';
+
+    expect((topBorder.match(/┬/g) ?? []).length).toBe(2);
+    expect(rendered).not.toContain('undefined');
+  });
 });
