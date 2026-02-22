@@ -57,11 +57,11 @@ sequenceDiagram
     Entry->>Run: execute command
     Run->>Build: buildUsageData(granularity, options)
     Build->>Adapter: discoverFiles() + parseFile()
-    Adapter-->>Build: UsageEvent[]
+    Adapter-->>Build: UsageEvent list
     Build->>Pricing: resolvePricingSource(...)
     Pricing-->>Build: pricing source + origin
     Build->>Agg: aggregateUsage(events)
-    Agg-->>Build: UsageReportRow[]
+    Agg-->>Build: UsageReportRow list
     Build-->>Run: UsageDataResult
     Run->>Render: renderUsageReport(data, format)
     Render-->>Run: report string
