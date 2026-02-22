@@ -1,0 +1,96 @@
+import type { UsageEvent } from '../domain/usage-event.js';
+import {
+  getPricingFetcherRuntimeConfig,
+  type PricingFetcherRuntimeConfig,
+} from '../config/runtime-overrides.js';
+import { applyPricingToEvents } from '../pricing/cost-engine.js';
+import { LiteLLMPricingFetcher } from '../pricing/litellm-pricing-fetcher.js';
+
+import type {
+  PricingLoadResult,
+  ReportCommandOptions,
+  UsagePricingOrigin,
+} from './usage-data-contracts.js';
+
+export async function resolvePricingSource(
+  options: ReportCommandOptions,
+  runtimeConfig: PricingFetcherRuntimeConfig,
+): Promise<PricingLoadResult> {
+  const litellmPricingFetcher = new LiteLLMPricingFetcher({
+    sourceUrl: options.pricingUrl,
+    offline: options.pricingOffline,
+    cacheTtlMs: runtimeConfig.cacheTtlMs,
+    fetchTimeoutMs: runtimeConfig.fetchTimeoutMs,
+  });
+
+  try {
+    const fromCache = await litellmPricingFetcher.load();
+
+    if (options.pricingOffline) {
+      return { source: litellmPricingFetcher, origin: 'offline-cache' };
+    }
+
+    return { source: litellmPricingFetcher, origin: fromCache ? 'cache' : 'network' };
+  } catch (error) {
+    if (options.pricingOffline) {
+      throw new Error('Offline pricing mode enabled but cached pricing is unavailable');
+    }
+
+    const reason = error instanceof Error ? error.message : String(error);
+
+    if (options.pricingUrl) {
+      throw new Error(`Could not load pricing from --pricing-url: ${reason}`);
+    }
+
+    throw new Error(`Could not load LiteLLM pricing: ${reason}`);
+  }
+}
+
+export function eventNeedsPricingLookup(event: UsageEvent): boolean {
+  if (!event.model) {
+    return false;
+  }
+
+  if (event.totalTokens <= 0) {
+    return false;
+  }
+
+  return event.costMode !== 'explicit' || event.costUsd === undefined || event.costUsd === 0;
+}
+
+export function shouldLoadPricingSource(events: UsageEvent[]): boolean {
+  if (events.length === 0) {
+    return false;
+  }
+
+  return events.some((event) => eventNeedsPricingLookup(event));
+}
+
+type PricingSourceResolver = (
+  options: ReportCommandOptions,
+  runtimeConfig: PricingFetcherRuntimeConfig,
+) => Promise<PricingLoadResult>;
+
+export async function resolveAndApplyPricingToEvents(
+  events: UsageEvent[],
+  options: ReportCommandOptions,
+  runtimeConfig: PricingFetcherRuntimeConfig = getPricingFetcherRuntimeConfig(),
+  loadPricingSource: PricingSourceResolver = resolvePricingSource,
+): Promise<{ pricedEvents: UsageEvent[]; pricingOrigin: UsagePricingOrigin }> {
+  let pricingOrigin: UsagePricingOrigin = 'none';
+
+  if (!shouldLoadPricingSource(events)) {
+    return {
+      pricedEvents: events,
+      pricingOrigin,
+    };
+  }
+
+  const pricingResult = await loadPricingSource(options, runtimeConfig);
+  pricingOrigin = pricingResult.origin;
+
+  return {
+    pricedEvents: applyPricingToEvents(events, pricingResult.source),
+    pricingOrigin,
+  };
+}
