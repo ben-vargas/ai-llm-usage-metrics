@@ -158,4 +158,40 @@ describe('parseSelectedAdapters file cache', () => {
     const cacheFileContent = await readFile(cacheFilePath, 'utf8');
     expect(Buffer.byteLength(cacheFileContent, 'utf8')).toBeLessThanOrEqual(300);
   });
+
+  it('bypasses cache fingerprinting when discoverFiles returns virtual identifiers', async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), 'parse-cache-virtual-paths-'));
+    tempDirs.push(tempDir);
+
+    const cacheFilePath = path.join(tempDir, 'parse-cache.json');
+    const parseCalls = { count: 0 };
+    const virtualAdapter: SourceAdapter = {
+      id: 'virtual',
+      discoverFiles: async () => ['/virtual/source-entry'],
+      parseFile: async () => {
+        parseCalls.count += 1;
+        return [
+          createUsageEvent({
+            source: 'virtual',
+            sessionId: 'virtual-session',
+            timestamp: '2026-02-01T00:00:00.000Z',
+            totalTokens: 1,
+          }),
+        ];
+      },
+    };
+
+    const firstRun = await parseSelectedAdapters([virtualAdapter], 8, {
+      ...parseCacheOptions,
+      parseCacheFilePath: cacheFilePath,
+    });
+    const secondRun = await parseSelectedAdapters([virtualAdapter], 8, {
+      ...parseCacheOptions,
+      parseCacheFilePath: cacheFilePath,
+    });
+
+    expect(firstRun.sourceFailures).toEqual([]);
+    expect(secondRun.sourceFailures).toEqual([]);
+    expect(parseCalls.count).toBe(2);
+  });
 });

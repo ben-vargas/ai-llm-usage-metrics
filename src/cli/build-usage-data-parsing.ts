@@ -119,12 +119,16 @@ export async function parseAdapterEvents(
       let parseFileDiagnostics: SourceParseFileDiagnostics | undefined;
 
       if (parseFileCache) {
-        const fileStat = await stat(filePath);
-        fileFingerprint = {
-          size: fileStat.size,
-          mtimeMs: Math.trunc(fileStat.mtimeMs),
-        };
-        parseFileDiagnostics = parseFileCache.get(adapter.id, filePath, fileFingerprint);
+        try {
+          const fileStat = await stat(filePath);
+          fileFingerprint = {
+            size: fileStat.size,
+            mtimeMs: Math.trunc(fileStat.mtimeMs),
+          };
+          parseFileDiagnostics = parseFileCache.get(adapter.id, filePath, fileFingerprint);
+        } catch {
+          // Some adapters may return virtual/non-file identifiers. In that case, bypass cache.
+        }
       }
 
       if (!parseFileDiagnostics) {

@@ -33,7 +33,6 @@ type ParseFileCacheEntry = {
 
 type ParseFileCachePayload = {
   version: number;
-  writtenAt: number;
   entries: ParseFileCacheEntry[];
 };
 
@@ -342,7 +341,6 @@ export class ParseFileCache {
   private toPayload(entries: ParseFileCacheEntry[]): ParseFileCachePayload {
     return {
       version: PARSE_FILE_CACHE_VERSION,
-      writtenAt: this.now(),
       entries: entries.map((entry) => ({
         source: entry.source,
         filePath: entry.filePath,
