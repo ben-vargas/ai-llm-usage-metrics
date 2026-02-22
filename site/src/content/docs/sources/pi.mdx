@@ -1,0 +1,19 @@
+---
+title: pi Source
+---
+
+## Default location
+
+- `~/.pi/agent/sessions/**/*.jsonl`
+
+## Override
+
+```bash
+llm-usage daily --pi-dir /path/to/pi/sessions
+# or
+llm-usage daily --source-dir pi=/path/to/pi/sessions
+```
+
+## Parsing notes
+
+The adapter reads `session`, `model_change`, and `message` records and extracts token/cost usage from message usage payloads.

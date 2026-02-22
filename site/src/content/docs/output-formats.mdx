@@ -1,0 +1,47 @@
+---
+title: Output Formats
+description: Terminal, JSON, and Markdown output modes.
+---
+
+## Terminal (default)
+
+```bash
+llm-usage daily
+```
+
+Terminal output includes:
+
+- boxed report header + timezone
+- source-aware row styling
+- diagnostics on `stderr`
+- data table on `stdout`
+
+## JSON
+
+```bash
+llm-usage daily --json
+```
+
+Use for scripting and automation pipelines.
+
+## Markdown
+
+```bash
+llm-usage daily --markdown
+```
+
+Use for docs, changelogs, and issue/PR reporting.
+
+## Per-model columns
+
+Detailed multiline metrics per model:
+
+```bash
+llm-usage monthly --per-model-columns
+llm-usage monthly --markdown --per-model-columns
+```
+
+## stdout/stderr behavior
+
+- `stdout`: report body (`terminal`, `json`, or `markdown`)
+- `stderr`: diagnostics (session summary, parse failures, skipped rows, pricing source)

@@ -1,27 +1,20 @@
 # Project Documentation
 
-This folder contains the technical documentation for `llm-usage-metrics`.
+This folder contains internal technical documentation for `llm-usage-metrics` contributors.
 
-## Start here
+## User Documentation
 
-- [Architecture](./architecture.md)
-- [CLI reference](./cli-reference.md)
-- [Parsing and normalization](./parsing-and-normalization.md)
-- [Pricing and cost calculation](./pricing-and-costs.md)
-- [Development guide](./development.md)
-- [Contributing](../CONTRIBUTING.md)
+**For usage guides and API reference, see the [project website](https://ayagmar.github.io/llm-usage-metrics/).**
 
-## Quick summary
+## Contributor Documentation
 
-`llm-usage-metrics` reads local usage data from:
+- [Architecture](./architecture.md) - Runtime flow and module boundaries
+- [Development Guide](./development.md) - Setup, build, test workflows
+- [Contributing Guide](../CONTRIBUTING.md) - Contribution guidelines
 
-- `~/.pi/agent/sessions`
-- `~/.codex/sessions`
-- OpenCode SQLite DB (auto-discovered or via `--opencode-db`)
+## Documentation Structure
 
-It normalizes events, estimates cost when needed, aggregates by period (daily/weekly/monthly), and renders the result as terminal table, markdown, or JSON.
+- `docs/` - Internal contributor docs (this folder)
+- `site/src/content/docs/` - User-facing documentation (canonical source)
 
-Override semantics:
-
-- use `--source-dir` for directory-backed sources
-- use dedicated flags for file/DB-backed sources (for example `--opencode-db`)
+The project follows a "docs in code" approach where user-facing documentation is authored alongside the website and deployed automatically.

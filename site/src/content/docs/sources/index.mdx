@@ -1,0 +1,26 @@
+---
+title: Data Sources
+---
+
+`llm-usage-metrics` supports three built-in sources:
+
+- `pi`
+- `codex`
+- `opencode`
+
+Each source is parsed by a dedicated adapter and normalized into the same `UsageEvent` schema before pricing/aggregation.
+
+## Discovery model
+
+- `pi` and `codex`: recursive JSONL discovery in their session directories
+- `opencode`: single SQLite DB (auto-discovered or explicit `--opencode-db`)
+
+## Source filtering
+
+```bash
+llm-usage monthly --source pi
+llm-usage monthly --source pi,codex
+llm-usage monthly --source opencode --opencode-db /path/to/opencode.db
+```
+
+See per-source pages for details.

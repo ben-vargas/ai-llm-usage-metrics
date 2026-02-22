@@ -1,0 +1,19 @@
+---
+const basePath = import.meta.env.BASE_URL.endsWith('/')
+  ? import.meta.env.BASE_URL
+  : `${import.meta.env.BASE_URL}/`;
+const target = `${basePath}getting-started/`;
+const canonicalTarget = Astro.site ? new URL(target, Astro.site).toString() : target;
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="refresh" content={`0;url=${target}`} />
+    <link rel="canonical" href={canonicalTarget} />
+    <title>Redirecting to docs…</title>
+  </head>
+  <body>
+    <p>Redirecting to <a href={target}>documentation</a>…</p>
+  </body>
+</html>

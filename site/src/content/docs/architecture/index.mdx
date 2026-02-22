@@ -1,0 +1,41 @@
+---
+title: Architecture
+description: High-level runtime architecture and data flow.
+---
+
+`llm-usage-metrics` is organized as a reporting pipeline:
+
+1. parse source data (`pi`, `codex`, `opencode`)
+2. normalize events into shared domain objects
+3. resolve pricing and estimate unresolved costs
+4. aggregate by period/source/model
+5. render (`terminal`, `json`, `markdown`)
+
+## Runtime flow
+
+1. `CLI entrypoint` → `Update notifier`
+2. `Update notifier` → `Command parser`
+3. `Command parser` → `buildUsageData`
+4. `buildUsageData` → `Source adapters`
+5. `Source adapters` → `Normalized UsageEvent stream`
+6. `Normalized UsageEvent stream` → `Pricing resolution`
+7. `Pricing resolution` → `Aggregation`
+8. `Aggregation` → `renderUsageReport`
+9. `renderUsageReport` → `stdout report`
+10. `buildUsageData` → `emitDiagnostics` → `stderr diagnostics`
+
+## Module boundaries
+
+- `src/cli`: orchestration, option handling, diagnostics emission
+- `src/sources`: source adapters + discovery/parsing concerns
+- `src/domain`: normalized contracts and constructors
+- `src/pricing`: pricing loader + cost engine
+- `src/aggregate`: period/source bucketing and totals
+- `src/render`: output formatters
+
+## Design principles
+
+- source-specific parsing is isolated per adapter
+- stdout remains data-only for JSON/Markdown modes
+- diagnostics are emitted to stderr
+- sorting and aggregation are deterministic

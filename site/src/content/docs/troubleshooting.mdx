@@ -1,0 +1,60 @@
+---
+title: Troubleshooting
+description: Common problems and practical checks.
+---
+
+## No sessions found
+
+Run a scoped check first:
+
+```bash
+llm-usage daily --source pi
+llm-usage daily --source codex
+llm-usage daily --source opencode
+```
+
+If OpenCode is expected, provide an explicit DB path:
+
+```bash
+llm-usage daily --source opencode --opencode-db /path/to/opencode.db
+```
+
+## Path override errors
+
+- `--source-dir` supports only `pi` and `codex`.
+- For OpenCode, use `--opencode-db`.
+
+Correct examples:
+
+```bash
+llm-usage daily --source-dir pi=/path/to/pi --source-dir codex=/path/to/codex
+llm-usage daily --opencode-db /path/to/opencode.db
+```
+
+## Pricing load failures
+
+If pricing resolution fails:
+
+1. retry with network enabled
+2. or use a cache that already exists with `--pricing-offline`
+
+```bash
+llm-usage monthly --pricing-offline
+```
+
+## Schema drift / OpenCode parsing errors
+
+OpenCode runtime parsing is read-only and CLI-independent. For schema inspection, use OpenCode CLI tooling:
+
+```bash
+opencode db "select name from sqlite_master where type='table'"
+opencode db --format json "<sql>"
+```
+
+## Need a reproducible report
+
+Pin source and date range explicitly:
+
+```bash
+llm-usage monthly --source opencode --opencode-db /archives/opencode-2026-01.db --since 2026-01-01 --until 2026-01-31
+```

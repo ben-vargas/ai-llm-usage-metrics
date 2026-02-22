@@ -1,0 +1,41 @@
+---
+title: Pricing
+description: How pricing is loaded and how row costs are computed.
+---
+
+`llm-usage-metrics` uses LiteLLM pricing data to estimate costs when events do not include explicit cost.
+
+## Pricing source
+
+- primary source: LiteLLM pricing JSON
+- cache: local pricing cache is used when available
+- offline mode: `--pricing-offline` uses cache only
+
+```bash
+llm-usage monthly --pricing-offline
+```
+
+If pricing cannot be loaded (or offline cache is unavailable), report generation fails.
+
+For cache lifecycle and tuning knobs, see [Caching](/caching/).
+
+## Cost modes
+
+Each event is either:
+
+- `explicit`: source included a valid cost
+- `estimated`: cost derived from pricing data
+
+Explicit `costUsd: 0` events are re-priced from LiteLLM when model pricing exists.
+
+## Row cost rendering
+
+- `-` when all contributing events are unresolved
+- `~$...` when only part of the row cost is known
+- `$...` when row cost is fully resolved
+
+## Override pricing URL
+
+```bash
+llm-usage monthly --pricing-url https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json
+```

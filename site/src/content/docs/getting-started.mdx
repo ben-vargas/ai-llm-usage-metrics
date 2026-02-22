@@ -1,0 +1,61 @@
+---
+title: Getting Started
+description: Install llm-usage-metrics and run your first reports.
+---
+
+## Install
+
+```bash
+npm install -g llm-usage-metrics
+```
+
+Run without global install:
+
+```bash
+npx --yes llm-usage-metrics daily
+```
+
+## Requirements
+
+- Node.js 24+
+- At least one supported source:
+  - `.pi` sessions (`~/.pi/agent/sessions/**/*.jsonl`)
+  - `.codex` sessions (`~/.codex/sessions/**/*.jsonl`)
+  - OpenCode SQLite DB (auto-discovered or explicit `--opencode-db`)
+
+## First report
+
+```bash
+llm-usage daily
+```
+
+Useful next commands:
+
+```bash
+llm-usage weekly --timezone Europe/Paris
+llm-usage monthly --since 2026-01-01 --until 2026-01-31
+```
+
+## Common filters
+
+```bash
+llm-usage monthly --source pi,codex
+llm-usage monthly --provider openai
+llm-usage monthly --model claude
+```
+
+## Output modes
+
+```bash
+llm-usage daily --json
+llm-usage daily --markdown
+llm-usage monthly --per-model-columns
+```
+
+## OpenCode explicit DB path
+
+```bash
+llm-usage monthly --source opencode --opencode-db /path/to/opencode.db
+```
+
+If no default OpenCode DB is found and no explicit path is given, OpenCode is treated as unavailable for that run.

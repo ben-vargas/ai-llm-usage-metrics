@@ -385,11 +385,13 @@ describe('update-notifier', () => {
   });
 
   it('continues without notifying when the latest version is not newer', async () => {
+    const cacheFilePath = await createTempCachePath('update-non-newer-');
     const notify = vi.fn();
 
     const result = await checkForUpdatesAndMaybeRestart({
       packageName: 'llm-usage-metrics',
       currentVersion: '0.2.0',
+      cacheFilePath,
       fetchImpl: vi.fn(
         async () => new Response(JSON.stringify({ version: '0.2.0' }), { status: 200 }),
       ),

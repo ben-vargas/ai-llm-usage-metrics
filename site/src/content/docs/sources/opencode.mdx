@@ -1,0 +1,23 @@
+---
+title: opencode Source
+---
+
+## Data format
+
+- SQLite database
+
+## Path selection
+
+1. explicit `--opencode-db`
+2. deterministic OS-specific default candidates
+
+```bash
+llm-usage daily --source opencode --opencode-db /path/to/opencode.db
+```
+
+## Parsing notes
+
+- database is opened in read-only mode
+- assistant message rows are parsed into normalized events
+- malformed rows are skipped and surfaced in diagnostics
+- busy/locked DB errors use bounded retry before failing with actionable guidance

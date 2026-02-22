@@ -1,0 +1,56 @@
+---
+title: CLI Reference
+description: Command-line options and usage for llm-usage-metrics.
+---
+
+:::note[Auto-generated reference]
+Generated from CLI version `0.2.1` via `scripts/generate-cli-reference.mjs`.
+For behavioral details and examples, see the other documentation pages.
+:::
+
+## Command structure
+
+```bash
+llm-usage <command> [options]
+```
+
+Commands:
+
+- `daily`
+- `weekly`
+- `monthly`
+
+## Options
+
+Generated from root + daily/weekly/monthly help output.
+
+| Option | Short | Argument | Description |
+| --- | --- | --- | --- |
+| `--codex-dir` | - | `<path>` | Path to .codex sessions directory |
+| `--json` | - | - | Render output as JSON |
+| `--markdown` | - | - | Render output as Markdown table |
+| `--model` | - | `<name>` | Filter by model (repeatable/comma-separated; exact when exact match exists after source/provider/date filters, otherwise substring) (default: []) |
+| `--opencode-db` | - | `<path>` | Path to OpenCode SQLite DB |
+| `--per-model-columns` | - | - | Render per-model metrics as multiline aligned table columns (terminal/Markdown) |
+| `--pi-dir` | - | `<path>` | Path to .pi sessions directory |
+| `--pricing-offline` | - | - | Use cached LiteLLM pricing only (no network fetch) |
+| `--pricing-url` | - | `<url>` | Override LiteLLM pricing source URL |
+| `--provider` | - | `<name>` | Provider filter (substring match, optional) |
+| `--since` | - | `<YYYY-MM-DD>` | Inclusive start date filter |
+| `--source` | - | `<name>` | Filter by source id (repeatable or comma-separated, supported sources (3): pi, codex, opencode) (default: []) |
+| `--source-dir` | - | `<source-id=path>` | Override source directory for directory-backed sources (repeatable) (default: []) |
+| `--timezone` | - | `<iana>` | Timezone for bucketing (default: local system timezone) |
+| `--until` | - | `<YYYY-MM-DD>` | Inclusive end date filter |
+| `--help` | `-h` | - | display help for command |
+| `--version` | `-V` | - | output the version number |
+
+## Examples
+
+```bash
+llm-usage daily
+llm-usage weekly --timezone Europe/Paris
+llm-usage monthly --since 2026-01-01 --until 2026-01-31
+llm-usage monthly --source opencode --opencode-db /path/to/opencode.db
+llm-usage daily --json
+llm-usage daily --markdown
+```

@@ -54,6 +54,18 @@ jobs:
       - name: Build
         run: pnpm run build
 
+      - name: Generate CLI reference docs
+        run: pnpm run site:docs:generate -- --rebuild
+
+      - name: Verify generated CLI reference is up to date
+        run: git diff --exit-code -- site/src/content/docs/cli-reference.mdx
+
+      - name: Site check
+        run: pnpm run site:check
+
+      - name: Site build
+        run: pnpm run site:build
+
       - name: Smoke test built dist (OpenCode)
         run: pnpm run smoke:dist-opencode
 
