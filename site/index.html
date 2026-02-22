@@ -59,44 +59,9 @@
       </div>
     </div>
 
-    <!-- ── TERMINAL VISUAL ──────────────────────────── -->
-    <div class="terminal-container">
-      <div class="terminal liquid-glass">
-        <div class="term-bar">
-          <div class="term-dots">
-            <span class="dot dot-r"></span>
-            <span class="dot dot-y"></span>
-            <span class="dot dot-g"></span>
-          </div>
-          <span class="term-title">~ / dev / llm-usage — Node.js</span>
-        </div>
-        <pre class="term-body">
-<span class="td">$</span> <span class="tb">llm-usage monthly</span>
-
-<span class="ti">ℹ</span> Discovered 24 session log(s) containing 156 completion event(s)
-  <span class="tc">pi</span>: 14 target(s), 89 events
-  <span class="tm">codex</span>: 6 target(s), 42 events
-  <span class="to">opencode</span>: 4 database(s), 25 events
-<span class="ti">ℹ</span> Cached pricing heuristics loaded
-
-<span class="td">┌──────────────────────────────┐</span>
-<span class="td">│</span><span class="t">  Monthly Token Usage Report  </span><span class="td">│</span>
-<span class="td">└──────────────────────────────┘</span>
-
-╭──────────┬──────────┬─────────────────────┬─────────┬─────────┬───────────┬─────────┬────────╮
-│ <span class="tb">Period</span>   │ <span class="tb">Source</span>   │ <span class="tb">Models</span>              │   <span class="tb">Input</span> │  <span class="tb">Output</span> │ <span class="tb">Reasoning</span> │   <span class="tb">Total</span> │   <span class="tb">Cost</span> │
-├──────────┼──────────┼─────────────────────┼─────────┼─────────┼───────────┼─────────┼────────┤
-│ <span class="t">Feb 2026</span> │ <span class="tc">pi</span>       │ <span class="t">• claude-sonnet-4</span>   │ <span class="t">245,800</span> │  <span class="t">82,300</span> │    <span class="t">12,400</span> │ <span class="t">525,000</span> │ <span class="ty">$12.45</span> │
-│          │          │ <span class="t">• gpt-4.1</span>           │         │         │           │         │        │
-│ <span class="t">Feb 2026</span> │ <span class="tm">codex</span>    │ <span class="t">• gpt-4.1-codex</span>     │  <span class="t">98,200</span> │  <span class="t">34,100</span> │         <span class="t">0</span> │ <span class="t">186,100</span> │  <span class="ty">$4.82</span> │
-│ <span class="t">Feb 2026</span> │ <span class="to">opencode</span> │ <span class="t">• gemini-2.5-pro</span>    │  <span class="t">42,500</span> │  <span class="t">18,900</span> │     <span class="t">8,200</span> │  <span class="t">69,600</span> │  <span class="ty">$1.95</span> │
-├──────────┼──────────┼─────────────────────┼─────────┼─────────┼───────────┼─────────┼────────┤
-│ <span class="tb">ALL</span>      │ <span class="tgb">TOTAL</span>    │ <span class="tb">• claude-sonnet-4</span>   │ <span class="tb">386,500</span> │ <span class="tb">135,300</span> │    <span class="tb">20,600</span> │ <span class="tb">780,700</span> │ <span class="tb">$19.22</span> │
-│          │          │ <span class="tb">• gemini-2.5-pro</span>    │         │         │           │         │        │
-│          │          │ <span class="tb">• gpt-4.1</span>           │         │         │           │         │        │
-│          │          │ <span class="tb">• gpt-4.1-codex</span>     │         │         │           │         │        │
-╰──────────┴──────────┴─────────────────────┴─────────┴─────────┴───────────┴─────────┴────────╯</pre>
-      </div>
+    <!-- ── SCREENSHOT VISUAL ──────────────────────────── -->
+    <div class="screenshot-container">
+      <img src="screenshot.png" alt="Terminal output from llm-usage-metrics showing token usage and cost breakdown across pi, codex, and opencode sources" class="screenshot" loading="lazy" width="1222" height="946" />
     </div>
   </section>
 
@@ -207,11 +172,21 @@ $ llm-usage <span class="flag">monthly</span> --pricing-offline</pre>
   <div class="footer-inner">
     <a href="https://github.com/ayagmar/llm-usage-metrics" class="footer-brand">llm-usage-metrics</a>
     <span class="separator">/</span>
-    <span class="dim">MIT License</span>
+    <a href="https://github.com/ayagmar/llm-usage-metrics/blob/main/LICENSE" class="footer-link">MIT License</a>
     <span class="separator">/</span>
     <a href="https://github.com/ayagmar" class="footer-link">ayagmar</a>
   </div>
 </footer>
+
+<!-- ── Lightbox Overlay ──────────────────────────── -->
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Screenshot preview">
+  <button class="lightbox-close" aria-label="Close preview">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+  <div class="lightbox-scroll">
+    <img src="screenshot.png" alt="Terminal output from llm-usage-metrics — expanded view" class="lightbox-img" />
+  </div>
+</div>
 
 <script src="main.js"></script>
 </body>

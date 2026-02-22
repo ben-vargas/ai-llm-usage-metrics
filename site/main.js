@@ -147,4 +147,52 @@ document.addEventListener('DOMContentLoaded', function () {
         lineIndex++;
     }, 1500);
   }
+
+  // ── Screenshot Lightbox ────────────────────────────────
+  var screenshot = document.querySelector('.screenshot');
+  var lightbox = document.getElementById('lightbox');
+  var lightboxClose = lightbox ? lightbox.querySelector('.lightbox-close') : null;
+  var lightboxScroll = lightbox ? lightbox.querySelector('.lightbox-scroll') : null;
+
+  function openLightbox() {
+    if (!lightbox) return;
+    lightbox.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeLightbox() {
+    if (!lightbox) return;
+    lightbox.classList.remove('open');
+    document.body.style.overflow = '';
+    // Reset scroll position for next open
+    if (lightboxScroll) {
+      lightboxScroll.scrollTop = 0;
+      lightboxScroll.scrollLeft = 0;
+    }
+  }
+
+  if (screenshot && lightbox) {
+    screenshot.addEventListener('click', openLightbox);
+
+    if (lightboxClose) {
+      lightboxClose.addEventListener('click', function (e) {
+        e.stopPropagation();
+        closeLightbox();
+      });
+    }
+
+    // Close on backdrop click (not on the image itself)
+    lightbox.addEventListener('click', function (e) {
+      if (e.target === lightbox || e.target === lightboxScroll) {
+        closeLightbox();
+      }
+    });
+
+    // Close on Escape key
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && lightbox.classList.contains('open')) {
+        closeLightbox();
+      }
+    });
+  }
 });
