@@ -1,21 +1,17 @@
 import { access, constants } from 'node:fs/promises';
 
-import { createUsageEvent } from '../../domain/usage-event.js';
 import type { UsageEvent } from '../../domain/usage-event.js';
-import { asRecord } from '../../utils/as-record.js';
-import { asTrimmedText, toNumberLike } from '../parsing-utils.js';
 import type { SourceAdapter, SourceParseFileDiagnostics } from '../source-adapter.js';
 import { getDefaultOpenCodeDbPathCandidates } from './opencode-db-path-resolver.js';
 import { loadNodeSqliteModule, type SqliteModule } from './node-sqlite-loader.js';
+import { parseOpenCodeMessageRows } from './opencode-row-parser.js';
+import { runWithBusyRetries, type SleepFn } from './opencode-retry-policy.js';
+import { queryOpenCodeMessageRows } from './opencode-sqlite-query.js';
 
-const UNIX_SECONDS_ABS_CUTOFF = 10_000_000_000;
 const DEFAULT_BUSY_RETRY_COUNT = 2;
 const DEFAULT_BUSY_RETRY_DELAY_MS = 50;
 
-type SqliteRow = Record<string, unknown>;
-
 type PathPredicate = (filePath: string) => Promise<boolean>;
-type SleepFn = (delayMs: number) => Promise<void>;
 
 export type OpenCodeSourceAdapterOptions = {
   dbPath?: string;
@@ -30,237 +26,6 @@ export type OpenCodeSourceAdapterOptions = {
 
 function isBlankText(value: string): boolean {
   return value.trim().length === 0;
-}
-
-function normalizeTimestampCandidate(candidate: unknown): string | undefined {
-  if (typeof candidate === 'number' && Number.isFinite(candidate)) {
-    const timestampMs =
-      Math.abs(candidate) <= UNIX_SECONDS_ABS_CUTOFF ? candidate * 1000 : candidate;
-    const date = new Date(timestampMs);
-
-    if (Number.isNaN(date.getTime())) {
-      return undefined;
-    }
-
-    return date.toISOString();
-  }
-
-  if (typeof candidate === 'string') {
-    const trimmed = candidate.trim();
-
-    if (!trimmed) {
-      return undefined;
-    }
-
-    const numericTimestamp = Number(trimmed);
-
-    if (Number.isFinite(numericTimestamp)) {
-      return normalizeTimestampCandidate(numericTimestamp);
-    }
-
-    const date = new Date(trimmed);
-
-    if (Number.isNaN(date.getTime())) {
-      return undefined;
-    }
-
-    return date.toISOString();
-  }
-
-  return undefined;
-}
-
-function resolveTimestamp(
-  rowTimestamp: unknown,
-  messagePayload: Record<string, unknown>,
-): string | undefined {
-  const timestampCandidates = [
-    rowTimestamp,
-    messagePayload.timestamp,
-    messagePayload.timeCreated,
-    messagePayload.time_created,
-  ];
-
-  for (const candidate of timestampCandidates) {
-    const resolved = normalizeTimestampCandidate(candidate);
-
-    if (resolved) {
-      return resolved;
-    }
-  }
-
-  return undefined;
-}
-
-function parseNonNegativeNumber(value: unknown): number | undefined {
-  const parsed = toNumberLike(value);
-
-  if (parsed === undefined || parsed === null) {
-    return undefined;
-  }
-
-  const numberValue = typeof parsed === 'number' ? parsed : Number(parsed);
-
-  if (!Number.isFinite(numberValue) || numberValue < 0) {
-    return undefined;
-  }
-
-  return numberValue;
-}
-
-function hasUsageSignal(usageFields: Array<unknown>, explicitCost: number | undefined): boolean {
-  if (explicitCost !== undefined) {
-    return true;
-  }
-
-  return usageFields.some((value) => {
-    const parsed = parseNonNegativeNumber(value);
-    return parsed !== undefined && parsed > 0;
-  });
-}
-
-function isBusyOrLockedError(error: unknown): boolean {
-  const asError = asRecord(error);
-  const code = asTrimmedText(asError?.code);
-  const message = error instanceof Error ? error.message : String(error);
-  const busySignal = /SQLITE_BUSY|SQLITE_LOCKED|database is locked|database table is locked/u;
-
-  return (
-    code === 'SQLITE_BUSY' ||
-    code === 'SQLITE_LOCKED' ||
-    code === 'ERR_SQLITE_BUSY' ||
-    busySignal.test(message)
-  );
-}
-
-function shouldFallbackToNonJsonExtractQuery(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error);
-  return /no such function:\s*json_extract|malformed JSON/iu.test(message);
-}
-
-function formatSqliteError(error: unknown): string {
-  if (!(error instanceof Error)) {
-    return String(error);
-  }
-
-  const errorRecord = asRecord(error);
-  const code = asTrimmedText(errorRecord?.code);
-
-  if (!code) {
-    return error.message;
-  }
-
-  return `${code}: ${error.message}`;
-}
-
-function escapeIdentifier(identifier: string): string {
-  return `"${identifier.replaceAll('"', '""')}"`;
-}
-
-function resolveIdentifierCaseInsensitive(
-  identifiers: readonly string[],
-  candidates: readonly string[],
-): string | undefined {
-  for (const candidate of candidates) {
-    const normalizedCandidate = candidate.toLowerCase();
-    const matchedIdentifier = identifiers.find(
-      (identifier) => identifier.toLowerCase() === normalizedCandidate,
-    );
-
-    if (matchedIdentifier) {
-      return matchedIdentifier;
-    }
-  }
-
-  return undefined;
-}
-
-function resolveRequiredMessageColumns(messageColumns: readonly string[]): {
-  idColumn: string;
-  timestampColumn: string;
-  dataColumn: string;
-  sessionIdColumn: string | undefined;
-} {
-  const dataColumn = resolveIdentifierCaseInsensitive(messageColumns, ['data']);
-
-  if (!dataColumn) {
-    throw new Error(
-      'OpenCode schema drift: "message.data" column not found. Inspect schema with `opencode db` commands.',
-    );
-  }
-
-  const idColumn = resolveIdentifierCaseInsensitive(messageColumns, ['id', 'message_id']);
-  const timestampColumn = resolveIdentifierCaseInsensitive(messageColumns, [
-    'time_created',
-    'created_at',
-    'timestamp',
-  ]);
-  const sessionIdColumn = resolveIdentifierCaseInsensitive(messageColumns, [
-    'session_id',
-    'sessionid',
-  ]);
-
-  if (!idColumn || !timestampColumn) {
-    throw new Error(
-      'OpenCode schema drift: required message id/timestamp columns are unavailable. Inspect schema with `opencode db` commands.',
-    );
-  }
-
-  return {
-    idColumn,
-    timestampColumn,
-    dataColumn,
-    sessionIdColumn,
-  };
-}
-
-function createPrimaryQuery(
-  tableName: string,
-  columns: {
-    idColumn: string;
-    timestampColumn: string;
-    dataColumn: string;
-    sessionIdColumn: string | undefined;
-  },
-): string {
-  const rowSessionId = columns.sessionIdColumn
-    ? `${escapeIdentifier(columns.sessionIdColumn)} AS row_session_id`
-    : 'NULL AS row_session_id';
-
-  return [
-    'SELECT',
-    `  ${escapeIdentifier(columns.idColumn)} AS row_id,`,
-    `  ${escapeIdentifier(columns.timestampColumn)} AS row_time,`,
-    `  ${rowSessionId},`,
-    `  ${escapeIdentifier(columns.dataColumn)} AS data_json`,
-    `FROM ${escapeIdentifier(tableName)}`,
-    `WHERE lower(trim(coalesce(json_extract(${escapeIdentifier(columns.dataColumn)}, '$.role'), json_extract(${escapeIdentifier(columns.dataColumn)}, '$.type')))) = 'assistant'`,
-    `ORDER BY ${escapeIdentifier(columns.timestampColumn)} ASC, ${escapeIdentifier(columns.idColumn)} ASC`,
-  ].join('\n');
-}
-
-function createFallbackQuery(
-  tableName: string,
-  columns: {
-    idColumn: string;
-    timestampColumn: string;
-    dataColumn: string;
-    sessionIdColumn: string | undefined;
-  },
-): string {
-  const rowSessionId = columns.sessionIdColumn
-    ? `${escapeIdentifier(columns.sessionIdColumn)} AS row_session_id`
-    : 'NULL AS row_session_id';
-
-  return [
-    'SELECT',
-    `  ${escapeIdentifier(columns.idColumn)} AS row_id,`,
-    `  ${escapeIdentifier(columns.timestampColumn)} AS row_time,`,
-    `  ${rowSessionId},`,
-    `  ${escapeIdentifier(columns.dataColumn)} AS data_json`,
-    `FROM ${escapeIdentifier(tableName)}`,
-    `ORDER BY ${escapeIdentifier(columns.timestampColumn)} ASC, ${escapeIdentifier(columns.idColumn)} ASC`,
-  ].join('\n');
 }
 
 async function pathExists(filePath: string): Promise<boolean> {
@@ -363,28 +128,12 @@ export class OpenCodeSourceAdapter implements SourceAdapter {
       throw new Error(`OpenCode DB path is unreadable: ${normalizedDbPath}`);
     }
 
-    for (let attempt = 0; attempt <= this.maxBusyRetries; attempt += 1) {
-      try {
-        return await this.parseFileOnce(normalizedDbPath);
-      } catch (error) {
-        if (isBusyOrLockedError(error) && attempt < this.maxBusyRetries) {
-          await this.sleep(this.busyRetryDelayMs * (attempt + 1));
-          continue;
-        }
-
-        if (isBusyOrLockedError(error)) {
-          throw new Error(
-            `OpenCode DB is busy/locked: ${normalizedDbPath}. Retries exhausted after ${this.maxBusyRetries + 1} attempt(s). Close active OpenCode processes and retry.`,
-          );
-        }
-
-        throw new Error(
-          `Could not read OpenCode DB at ${normalizedDbPath}: ${formatSqliteError(error)}`,
-        );
-      }
-    }
-
-    throw new Error('Unexpected OpenCode retry state: loop exhausted without result');
+    return runWithBusyRetries(() => this.parseFileOnce(normalizedDbPath), {
+      dbPath: normalizedDbPath,
+      maxBusyRetries: this.maxBusyRetries,
+      busyRetryDelayMs: this.busyRetryDelayMs,
+      sleep: this.sleep,
+    });
   }
 
   private async parseFileOnce(dbPath: string): Promise<SourceParseFileDiagnostics> {
@@ -392,139 +141,8 @@ export class OpenCodeSourceAdapter implements SourceAdapter {
     const database = new sqlite.DatabaseSync(dbPath, { readOnly: true, timeout: 0 });
 
     try {
-      const tablesResult = database
-        .prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
-        .all()
-        .map((row) => asTrimmedText(row.name))
-        .filter((value): value is string => Boolean(value));
-      const messageTableName = resolveIdentifierCaseInsensitive(tablesResult, ['message']);
-
-      if (!messageTableName) {
-        throw new Error(
-          'OpenCode schema drift: required "message" table not found. Inspect schema with `opencode db` commands.',
-        );
-      }
-
-      const escapedMessageTableName = messageTableName.replaceAll("'", "''");
-      const messageColumns = database
-        .prepare(`PRAGMA table_info('${escapedMessageTableName}')`)
-        .all()
-        .map((row) => asTrimmedText(row.name))
-        .filter((value): value is string => Boolean(value));
-      const columns = resolveRequiredMessageColumns(messageColumns);
-      const primaryQuery = createPrimaryQuery(messageTableName, columns);
-
-      let messageRows: SqliteRow[];
-
-      try {
-        messageRows = database.prepare(primaryQuery).all();
-      } catch (error) {
-        if (!shouldFallbackToNonJsonExtractQuery(error)) {
-          throw error;
-        }
-
-        messageRows = database.prepare(createFallbackQuery(messageTableName, columns)).all();
-      }
-
-      const events: UsageEvent[] = [];
-      let skippedRows = 0;
-
-      for (const row of messageRows) {
-        const dataJson = asTrimmedText(row.data_json);
-
-        if (!dataJson) {
-          skippedRows += 1;
-          continue;
-        }
-
-        let payload: Record<string, unknown>;
-
-        try {
-          payload = asRecord(JSON.parse(dataJson)) ?? {};
-        } catch {
-          skippedRows += 1;
-          continue;
-        }
-
-        const role = asTrimmedText(payload.role) ?? asTrimmedText(payload.type);
-
-        if (role?.toLowerCase() !== 'assistant') {
-          continue;
-        }
-
-        const timestamp = resolveTimestamp(row.row_time, payload);
-
-        if (!timestamp) {
-          skippedRows += 1;
-          continue;
-        }
-
-        const sessionId =
-          asTrimmedText(row.row_session_id) ??
-          asTrimmedText(payload.sessionID) ??
-          asTrimmedText(payload.sessionId) ??
-          asTrimmedText(payload.session_id) ??
-          asTrimmedText(row.row_id);
-
-        if (!sessionId) {
-          skippedRows += 1;
-          continue;
-        }
-
-        const provider = asTrimmedText(payload.providerID) ?? asTrimmedText(payload.provider);
-        const model = asTrimmedText(payload.modelID) ?? asTrimmedText(payload.model);
-        const tokens = asRecord(payload.tokens);
-        const tokenCache = asRecord(tokens?.cache);
-        const inputTokens = toNumberLike(tokens?.input);
-        const outputTokens = toNumberLike(tokens?.output);
-        const reasoningTokens = toNumberLike(tokens?.reasoning);
-        const cacheReadTokens = toNumberLike(tokenCache?.read);
-        const cacheWriteTokens = toNumberLike(tokenCache?.write);
-        const totalTokens = toNumberLike(tokens?.total);
-        const explicitCost = parseNonNegativeNumber(payload.cost);
-
-        if (
-          !hasUsageSignal(
-            [
-              inputTokens,
-              outputTokens,
-              reasoningTokens,
-              cacheReadTokens,
-              cacheWriteTokens,
-              totalTokens,
-            ],
-            explicitCost,
-          )
-        ) {
-          skippedRows += 1;
-          continue;
-        }
-
-        try {
-          events.push(
-            createUsageEvent({
-              source: this.id,
-              sessionId,
-              timestamp,
-              provider,
-              model,
-              inputTokens,
-              outputTokens,
-              reasoningTokens,
-              cacheReadTokens,
-              cacheWriteTokens,
-              totalTokens,
-              costUsd: explicitCost,
-              costMode: explicitCost === undefined ? 'estimated' : 'explicit',
-            }),
-          );
-        } catch {
-          skippedRows += 1;
-          continue;
-        }
-      }
-
-      return { events, skippedRows };
+      const messageRows = queryOpenCodeMessageRows(database);
+      return parseOpenCodeMessageRows(messageRows, this.id);
     } finally {
       database.close();
     }

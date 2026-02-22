@@ -1,0 +1,36 @@
+import { formatSqliteError, isBusyOrLockedSqliteError } from './opencode-sqlite-errors.js';
+
+export type SleepFn = (delayMs: number) => Promise<void>;
+
+export async function runWithBusyRetries<T>(
+  operation: () => Promise<T>,
+  options: {
+    dbPath: string;
+    maxBusyRetries: number;
+    busyRetryDelayMs: number;
+    sleep: SleepFn;
+  },
+): Promise<T> {
+  for (let attempt = 0; attempt <= options.maxBusyRetries; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (isBusyOrLockedSqliteError(error) && attempt < options.maxBusyRetries) {
+        await options.sleep(options.busyRetryDelayMs * (attempt + 1));
+        continue;
+      }
+
+      if (isBusyOrLockedSqliteError(error)) {
+        throw new Error(
+          `OpenCode DB is busy/locked: ${options.dbPath}. Retries exhausted after ${options.maxBusyRetries + 1} attempt(s). Close active OpenCode processes and retry.`,
+        );
+      }
+
+      throw new Error(
+        `Could not read OpenCode DB at ${options.dbPath}: ${formatSqliteError(error)}`,
+      );
+    }
+  }
+
+  throw new Error('Unexpected OpenCode retry state: loop exhausted without result');
+}
