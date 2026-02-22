@@ -2,23 +2,18 @@
 title: pi Source
 ---
 
-# pi Source
+## Default location
 
-Pi coding agent session data adapter.
+- `~/.pi/agent/sessions/**/*.jsonl`
 
-## Data Location
+## Override
 
-Pi stores session data in platform-specific directories:
+```bash
+llm-usage daily --pi-dir /path/to/pi/sessions
+# or
+llm-usage daily --source-dir pi=/path/to/pi/sessions
+```
 
-- **macOS**: `~/Library/Application Support/pi/`
-- **Linux**: `~/.config/pi/`
-- **Windows**: `%APPDATA%/pi/`
+## Parsing notes
 
-## Parsed Events
-
-The pi adapter extracts:
-
-- Session metadata (start time, end time)
-- Model usage events
-- Token counts (input/output)
-- Cost calculations based on pricing configuration
+The adapter reads `session`, `model_change`, and `message` records and extracts token/cost usage from message usage payloads.

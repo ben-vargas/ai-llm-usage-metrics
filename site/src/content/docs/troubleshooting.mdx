@@ -1,143 +1,60 @@
 ---
 title: Troubleshooting
-description: Common issues and solutions for llm-usage-metrics.
+description: Common problems and practical checks.
 ---
 
-# Troubleshooting
+## No sessions found
 
-## No Data Found
+Run a scoped check first:
 
-**Symptom:** CLI reports "No usage data found" or empty results.
+```bash
+llm-usage daily --source pi
+llm-usage daily --source codex
+llm-usage daily --source opencode
+```
 
-**Solutions:**
+If OpenCode is expected, provide an explicit DB path:
 
-1. **Verify source applications have been used**
-   ```bash
-   # Check if pi has session data
-   ls ~/.pi/sessions/
-   
-   # Check if codex has history
-   ls ~/.codex/
-   
-   # Check if opencode has metrics
-   ls ~/.opencode/
-   ```
+```bash
+llm-usage daily --source opencode --opencode-db /path/to/opencode.db
+```
 
-2. **Check the correct time period**
-   ```bash
-   # Try a wider date range
-   llm-usage monthly --verbose
-   ```
+## Path override errors
 
-3. **Verify data directory location**
-   ```bash
-   # Run with verbose output to see search paths
-   llm-usage daily --verbose
-   ```
+- `--source-dir` supports only `pi` and `codex`.
+- For OpenCode, use `--opencode-db`.
 
-4. **Specify custom data directory**
-   ```bash
-   llm-usage daily --data-dir /custom/path
-   ```
+Correct examples:
 
-## Permission Errors
+```bash
+llm-usage daily --source-dir pi=/path/to/pi --source-dir codex=/path/to/codex
+llm-usage daily --opencode-db /path/to/opencode.db
+```
 
-**Symptom:** "EACCES: permission denied" errors when reading data files.
+## Pricing load failures
 
-**Solutions:**
+If pricing resolution fails:
 
-1. **Check file permissions**
-   ```bash
-   ls -la ~/.pi/sessions/
-   ```
+1. retry with network enabled
+2. or use a cache that already exists with `--pricing-offline`
 
-2. **Ensure CLI has read access**
-   - On macOS/Linux: Check file ownership
-   - On Windows: Run terminal as appropriate user
+```bash
+llm-usage monthly --pricing-offline
+```
 
-3. **Use environment variable for data dir**
-   ```bash
-   LLM_USAGE_DATA_DIR=/path/with/permissions llm-usage daily
-   ```
+## Schema drift / OpenCode parsing errors
 
-## Incorrect Costs
+OpenCode runtime parsing is read-only and CLI-independent. For schema inspection, use OpenCode CLI tooling:
 
-**Symptom:** Costs appear incorrect or show as $0.00.
+```bash
+opencode db "select name from sqlite_master where type='table'"
+opencode db --format json "<sql>"
+```
 
-**Solutions:**
+## Need a reproducible report
 
-1. **Check for unknown model warnings**
-   ```bash
-   llm-usage daily --verbose
-   ```
+Pin source and date range explicitly:
 
-2. **Verify model pricing is available**
-   - Some newer models may not have pricing data yet
-   - Pricing is updated with each CLI release
-
-3. **Check for pricing overrides**
-   - Ensure no local pricing overrides are affecting calculations
-
-## JSON Parsing Errors
-
-**Symptom:** "Unexpected token" or JSON parse errors.
-
-**Solutions:**
-
-1. **Check source data integrity**
-   - Corrupted session files can cause parsing failures
-   - Look for invalid JSON in session files
-
-2. **Enable verbose mode**
-   ```bash
-   llm-usage daily --verbose
-   ```
-
-3. **Filter to specific sources**
-   ```bash
-   # Isolate which source is causing issues
-   llm-usage daily --source pi --verbose
-   llm-usage daily --source codex --verbose
-   ```
-
-## Performance Issues
-
-**Symptom:** CLI is slow to generate reports.
-
-**Solutions:**
-
-1. **Limit date range**
-   ```bash
-   # Use specific dates instead of wide ranges
-   llm-usage daily --since 2026-02-22 --until 2026-02-22
-   ```
-
-2. **Filter by source**
-   ```bash
-   # Process only needed sources
-   llm-usage weekly --source pi
-   ```
-
-3. **Clear file cache**
-   The CLI caches file metadata. If you suspect cache corruption:
-   ```bash
-   # Cache is automatically invalidated on file changes
-   # Manual clearing: remove ~/.cache/llm-usage/ (if exists)
-   ```
-
-## Getting Help
-
-If issues persist:
-
-1. Run with verbose output and save to file:
-   ```bash
-   llm-usage daily --verbose 2> debug.log
-   ```
-
-2. Check the [GitHub Issues](https://github.com/ayagmar/llm-usage-metrics/issues) for similar problems
-
-3. Open a new issue with:
-   - CLI version (`llm-usage --version`)
-   - Operating system
-   - Verbose output (sanitized)
-   - Steps to reproduce
+```bash
+llm-usage monthly --source opencode --opencode-db /archives/opencode-2026-01.db --since 2026-01-01 --until 2026-01-31
+```

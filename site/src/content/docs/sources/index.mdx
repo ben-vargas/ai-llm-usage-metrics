@@ -2,24 +2,25 @@
 title: Data Sources
 ---
 
-# Data Sources
+`llm-usage-metrics` supports three built-in sources:
 
-`llm-usage-metrics` supports multiple LLM coding agent data sources. Each source has a dedicated adapter that normalizes session data into a common format for aggregation.
+- `pi`
+- `codex`
+- `opencode`
 
-## Supported Sources
+Each source is parsed by a dedicated adapter and normalized into the same `UsageEvent` schema before pricing/aggregation.
 
-| Source | Status | Description |
-|--------|--------|-------------|
-| [pi](./pi/) | ✅ Supported | Pi coding agent session data |
-| [codex](./codex/) | ✅ Supported | OpenAI Codex CLI session data |
-| [opencode](./opencode/) | ✅ Supported | Opencode session data |
+## Discovery model
 
-## How Source Detection Works
+- `pi` and `codex`: recursive JSONL discovery in their session directories
+- `opencode`: single SQLite DB (auto-discovered or explicit `--opencode-db`)
 
-The CLI automatically discovers data directories based on platform conventions:
+## Source filtering
 
-- **macOS**: `~/Library/Application Support/{source}`
-- **Linux**: `~/.config/{source}` or `~/.local/share/{source}`
-- **Windows**: `%APPDATA%/{source}`
+```bash
+llm-usage monthly --source pi
+llm-usage monthly --source pi,codex
+llm-usage monthly --source opencode --opencode-db /path/to/opencode.db
+```
 
-Each source adapter parses the native format and normalizes it to the internal event schema.
+See per-source pages for details.

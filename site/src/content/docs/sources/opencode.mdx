@@ -2,23 +2,22 @@
 title: opencode Source
 ---
 
-# opencode Source
+## Data format
 
-Opencode session data adapter.
+- SQLite database
 
-## Data Location
+## Path selection
 
-Opencode stores session data in:
+1. explicit `--opencode-db`
+2. deterministic OS-specific default candidates
 
-- **macOS**: `~/Library/Application Support/opencode/`
-- **Linux**: `~/.config/opencode/`
-- **Windows**: `%APPDATA%/opencode/`
+```bash
+llm-usage daily --source opencode --opencode-db /path/to/opencode.db
+```
 
-## Parsed Events
+## Parsing notes
 
-The opencode adapter extracts:
-
-- Session metadata
-- Model interactions
-- Token usage
-- Cost calculations
+- database is opened in read-only mode
+- assistant message rows are parsed into normalized events
+- malformed rows are skipped and surfaced in diagnostics
+- busy/locked DB errors use bounded retry before failing with actionable guidance
