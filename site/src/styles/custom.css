@@ -1,8 +1,5 @@
 /* Custom styles for llm-usage-metrics site */
 
-/* Import design tokens */
-@import './tokens.css';
-
 /* ── Base Styles ─────────────────────────────────────────── */
 html {
   scroll-behavior: smooth;

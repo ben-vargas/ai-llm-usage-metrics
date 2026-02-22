@@ -60,7 +60,7 @@ export default defineConfig({
         './src/styles/custom.css',
       ],
       editLink: {
-        baseUrl: 'https://github.com/ayagmar/llm-usage-metrics/edit/main/site/',
+        baseUrl: 'https://github.com/ayagmar/llm-usage-metrics/edit/master/site/',
       },
     }),
   ],
