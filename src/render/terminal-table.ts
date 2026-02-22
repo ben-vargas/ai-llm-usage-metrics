@@ -85,20 +85,37 @@ export function renderTerminalTable(
 ): string {
   const useColor = options.useColor ?? shouldUseColorByDefault();
   const tableLayout = options.tableLayout ?? 'compact';
+  const hasExplicitTerminalWidth =
+    typeof options.terminalWidth === 'number' &&
+    Number.isFinite(options.terminalWidth) &&
+    options.terminalWidth > 0;
   const terminalWidth = resolveTerminalWidth(options.terminalWidth);
   let modelsColumnWidth = defaultModelsColumnWidth;
   let renderedTable = renderTableWithModelsWidth(rows, tableLayout, useColor, modelsColumnWidth);
 
   if (terminalWidth !== undefined) {
-    const renderedTableWidth = measureTableWidth(renderedTable);
+    let renderedTableWidth = measureTableWidth(renderedTable);
 
-    if (renderedTableWidth > terminalWidth) {
+    while (renderedTableWidth > terminalWidth && modelsColumnWidth > minimumModelsColumnWidth) {
       const overflowColumns = renderedTableWidth - terminalWidth;
-      modelsColumnWidth = Math.max(minimumModelsColumnWidth, modelsColumnWidth - overflowColumns);
+      const nextModelsColumnWidth = Math.max(
+        minimumModelsColumnWidth,
+        modelsColumnWidth - overflowColumns,
+      );
 
-      if (modelsColumnWidth !== defaultModelsColumnWidth) {
-        renderedTable = renderTableWithModelsWidth(rows, tableLayout, useColor, modelsColumnWidth);
+      if (nextModelsColumnWidth === modelsColumnWidth) {
+        break;
       }
+
+      modelsColumnWidth = nextModelsColumnWidth;
+      renderedTable = renderTableWithModelsWidth(rows, tableLayout, useColor, modelsColumnWidth);
+      renderedTableWidth = measureTableWidth(renderedTable);
+    }
+
+    if (hasExplicitTerminalWidth && renderedTableWidth > terminalWidth) {
+      throw new Error(
+        `Configured terminal width (${terminalWidth}) is too narrow for table rendering (minimum ${renderedTableWidth}).`,
+      );
     }
   }
 

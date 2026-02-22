@@ -660,6 +660,15 @@ describe('renderTerminalTable', () => {
     expect(constrainedWidth).toBeLessThan(unconstrainedWidth);
     expect(constrainedWidth).toBeLessThanOrEqual(118);
   });
+
+  it('throws when explicit terminal width override is too narrow to render table', () => {
+    expect(() =>
+      renderTerminalTable(sampleRows, {
+        useColor: false,
+        terminalWidth: 40,
+      }),
+    ).toThrow('Configured terminal width (40) is too narrow for table rendering');
+  });
 });
 
 describe('shouldUseColorByDefault', () => {
