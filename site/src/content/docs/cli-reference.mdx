@@ -5,26 +5,32 @@ description: Complete reference for llm-usage-metrics command-line options and u
 
 # CLI Reference
 
-:::tip
-This CLI reference is auto-generated from the source. For the most up-to-date information, run `llm-usage --help` in your terminal.
+:::caution[Auto-generated]
+This reference was automatically generated from CLI version `0.2.1`.
+For the most up-to-date information, run `llm-usage --help` in your terminal.
 :::
 
 ## Global Options
 
 | Option | Short | Description | Default |
 |--------|-------|-------------|---------|
-| `--format` | `-f` | Output format: `terminal`, `json`, `markdown` | `terminal` |
-| `--source` | `-s` | Filter by source(s): `pi`, `codex`, `opencode` | all sources |
-| `--since` | | Start date (ISO 8601) | start of current period |
-| `--until` | | End date (ISO 8601) | end of current period |
-| `--timezone` | `-z` | Timezone for date calculations | system timezone |
-| `--model` | `-m` | Filter by model name pattern | - |
-| `--provider` | `-p` | Filter by provider | - |
-| `--data-dir` | | Override default data directory | auto-discovered |
-| `--verbose` | `-v` | Enable verbose diagnostic output | false |
-| `--no-color` | | Disable colored output | false |
-| `--help` | `-h` | Display help information | - |
-| `--version` | `-V` | Display version information | - |
+| `--codex-dir` |  | Path to .codex sessions directory `path` | - |
+| `--json` |  | Render output as JSON | - |
+| `--markdown` |  | Render output as markdown table | - |
+| `--model` |  | Filter by model (repeatable/comma-separated; exact when exact match exists after source/provider/date filters, otherwise substring) (default: []) `name` | - |
+| `--opencode-db` |  | Path to OpenCode SQLite DB `path` | - |
+| `--per-model-columns` |  | Render per-model metrics as multiline aligned table columns (terminal/markdown) | - |
+| `--pi-dir` |  | Path to .pi sessions directory `path` | - |
+| `--pricing-offline` |  | Use cached LiteLLM pricing only (no network fetch) | - |
+| `--pricing-url` |  | Override LiteLLM pricing source URL `url` | - |
+| `--provider` |  | Provider filter (substring match, optional) `name` | - |
+| `--since` |  | Inclusive start date filter `YYYY-MM-DD` | - |
+| `--source` |  | Filter by source id (repeatable or comma-separated, supported sources (3): pi, codex, opencode) (default: []) `name` | - |
+| `--source-dir` |  | Override source directory for directory-backed sources (repeatable) (default: []) `source-id=path` | - |
+| `--timezone` |  | Timezone for bucketing (default: "Africa/Casablanca") `iana` | - |
+| `--until` |  | Inclusive end date filter `YYYY-MM-DD` | - |
+| `--version` | `-V` | output the version number | - |
+| `--help` | `-h` | display help for command | - |
 
 ## Commands
 
@@ -120,6 +126,8 @@ llm-usage monthly --markdown > usage-report.md
 |----------|-------------|
 | `LLM_USAGE_DATA_DIR` | Override default data directory path |
 | `TZ` | Timezone for date calculations |
+| `LLM_USAGE_SKIP_UPDATE_CHECK` | Skip startup update check |
+| `LLM_USAGE_PARSE_MAX_PARALLEL` | Max concurrent file parses (1-64) |
 
 ## Exit Codes
 

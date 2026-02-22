@@ -36,8 +36,8 @@ Evidence template:
 - T3: ✅ completed
 - T4: ✅ completed
 - T5: ✅ completed
-- T6: in progress
-- T7: not started
+- T6: ✅ completed
+- T7: in progress
 - T8: not started
 - T9: not started
 - T10: not started
@@ -276,7 +276,57 @@ Evidence template:
     - ✅ No duplicated user-facing docs maintained in two places
 
 - Next action:
-  - Proceed to T6 (Docs automation pipeline - CLI reference generation)
+  - ✅ Completed T6 - Docs automation pipeline for CLI reference
+  - Proceed to T7 (CI integration for site quality gates)
+
+---
+
+### 2025-02-22 - T6 completed
+
+- What changed:
+  - Created `scripts/generate-cli-reference.mjs` - CLI reference generator:
+    - Parses `--help` output from CLI and subcommands (daily, weekly, monthly)
+    - Generates `site/src/content/docs/cli-reference.mdx` with auto-generated content
+    - Includes all global options with short/long flags, descriptions, defaults
+    - Adds commands section with examples for daily/weekly/monthly
+    - Includes filtering examples (source, model, provider)
+    - Includes output format examples (terminal, JSON, markdown)
+    - Adds environment variables and exit codes tables
+    - Auto-builds CLI if `dist/` doesn't exist
+    - Deterministic output for reproducible CI diff checks
+  - Added `site:docs:generate` script to root `package.json`
+  - Generated CLI reference now shows auto-generated notice with CLI version
+  - Script deduplicates options across subcommands
+  - Formatting preserved through Prettier
+
+- Verification commands:
+  - `pnpm run site:docs:generate` - Generate CLI reference
+  - `pnpm run site:check` - Astro type/content check
+  - `pnpm run site:build` - Production build
+  - `pnpm run lint` - ESLint check
+  - `pnpm run format:check` - Prettier format check
+
+- Verification evidence:
+  - site:docs:generate: PASS (generates cli-reference.mdx)
+  - site:check: PASS (0 errors)
+  - site:build: PASS (14 pages built)
+  - lint: PASS
+  - format: PASS
+  - Generated CLI reference verified:
+    - ✅ 16 options captured from CLI --help
+    - ✅ All subcommand options included
+    - ✅ Deterministic output (sorted alphabetically)
+    - ✅ Auto-generated notice with version
+
+- Result:
+  - T6 acceptance criteria met:
+    - ✅ CLI reference generation script created
+    - ✅ Derives options from `pnpm run cli -- --help` + subcommands
+    - ✅ Writes to `site/src/content/docs/cli-reference.mdx`
+    - ✅ Deterministic output for CI diff checks
+
+- Next action:
+  - Proceed to T7 (CI integration for site quality gates)
 
 ---
 

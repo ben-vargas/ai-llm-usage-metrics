@@ -32,7 +32,8 @@
     "site:dev": "pnpm --filter llm-usage-metrics-site dev",
     "site:build": "pnpm --filter llm-usage-metrics-site build",
     "site:preview": "pnpm --filter llm-usage-metrics-site preview",
-    "site:check": "pnpm --filter llm-usage-metrics-site check"
+    "site:check": "pnpm --filter llm-usage-metrics-site check",
+    "site:docs:generate": "node scripts/generate-cli-reference.mjs"
   },
   "keywords": [
     "llm",
