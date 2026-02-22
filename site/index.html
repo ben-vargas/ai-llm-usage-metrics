@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>llm-usage-metrics — Track your local LLM usage</title>
+  <meta name="description" content="CLI to aggregate and analyze token usage and costs from .pi, .codex, and OpenCode sessions.">
+  <meta name="theme-color" content="#0d1117">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="#" class="nav-brand">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+      <span>llm-usage-metrics</span>
+    </a>
+    <div class="nav-links">
+      <a href="https://github.com/ayagmar/llm-usage-metrics" aria-label="GitHub">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.37.5 0 5.78 0 12.29c0 5.21 3.44 9.63 8.21 11.19.6.11.82-.25.82-.57 0-.28-.01-1.02-.02-2-3.34.71-4.04-1.58-4.04-1.58-.55-1.36-1.33-1.72-1.33-1.72-1.09-.73.08-.72.08-.72 1.2.08 1.84 1.22 1.84 1.22 1.07 1.8 2.81 1.28 3.5.98.1-.76.42-1.28.76-1.58-2.67-.3-5.47-1.31-5.47-5.83 0-1.29.47-2.34 1.23-3.16-.12-.3-.53-1.5.12-3.12 0 0 1-.31 3.28 1.21A11.5 11.5 0 0 1 12 6.29c1.01.01 2.03.13 2.99.39 2.28-1.52 3.28-1.21 3.28-1.21.65 1.62.24 2.82.12 3.12.76.82 1.23 1.87 1.23 3.16 0 4.53-2.81 5.53-5.48 5.82.43.37.82 1.09.82 2.19 0 1.58-.02 2.86-.02 3.24 0 .32.22.68.82.57C20.57 21.92 24 17.5 24 12.29 24 5.78 18.63.5 12 .5z"/></svg>
+      </a>
+      <a href="https://www.npmjs.com/package/llm-usage-metrics" aria-label="npm">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M0 7.33v8h6.67v1.34H12v-1.34h12v-8H0zm6.67 6.67H5.33v-4H4v4H1.33V8.67h5.34v5.33zm4 0v1.33H8V8.67h5.33v5.33h-2.66zm12 0h-1.33v-4h-1.34v4h-1.33v-4h-1.33v4H16V8.67h8v5.33zM10.67 10H12v2.67h-1.33V10z"/></svg>
+      </a>
+    </div>
+  </div>
+</nav>
+
+<main>
+
+  <!-- ── HERO ──────────────────────────────── -->
+  <section class="hero">
+    <div class="badge loading" id="version-badge">loading…</div>
+
+    <h1>Track your local <em>LLM<br>usage</em> with precision.</h1>
+
+    <p class="lead">Know exactly how many tokens you're burning and what they cost.<br>Works with pi, codex, and OpenCode out of the box.</p>
+
+    <div class="install" role="button" tabindex="0" aria-label="Copy install command">
+      <span class="dollar">$</span>
+      <span class="cmd">npm install -g llm-usage-metrics</span>
+      <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      <span class="toast" role="status" aria-live="polite" aria-atomic="true">Copied!</span>
+    </div>
+  </section>
+
+  <!-- ── TERMINAL ──────────────────────────── -->
+  <section class="terminal-section">
+    <div class="terminal">
+      <div class="term-bar">
+        <span class="dot dot-r"></span>
+        <span class="dot dot-y"></span>
+        <span class="dot dot-g"></span>
+        <span class="term-title">llm-usage monthly</span>
+      </div>
+      <pre class="term-body"><span class="td">$</span> <span class="tb">llm-usage monthly</span>
+
+<span class="ti">ℹ</span> Found 24 session file(s) with 156 event(s)
+  <span class="tc">pi</span>: 14 file(s), 89 events
+  <span class="tm">codex</span>: 6 file(s), 42 events
+  <span class="to">opencode</span>: 4 file(s), 25 events
+<span class="ti">ℹ</span> Loaded pricing from cache
+
+<span class="td">┌──────────────────────────────┐</span>
+<span class="td">│</span><span class="t">  Monthly Token Usage Report  </span><span class="td">│</span>
+<span class="td">└──────────────────────────────┘</span>
+
+╭──────────┬──────────┬─────────────────────┬─────────┬─────────┬───────────┬────────────┬─────────────┬─────────┬────────╮
+│ <span class="tb">Period</span>   │ <span class="tb">Source</span>   │ <span class="tb">Models</span>              │   <span class="tb">Input</span> │  <span class="tb">Output</span> │ <span class="tb">Reasoning</span> │ <span class="tb">Cache Read</span> │ <span class="tb">Cache Write</span> │   <span class="tb">Total</span> │   <span class="tb">Cost</span> │
+├──────────┼──────────┼─────────────────────┼─────────┼─────────┼───────────┼────────────┼─────────────┼─────────┼────────┤
+│ <span class="t">Feb 2026</span> │ <span class="tc">pi</span>       │ <span class="t">• claude-sonnet-4</span>   │ <span class="t">245,800</span> │  <span class="t">82,300</span> │    <span class="t">12,400</span> │    <span class="t">156,000</span> │      <span class="t">28,500</span> │ <span class="t">525,000</span> │ <span class="ty">$12.45</span> │
+│          │          │ <span class="t">• gpt-4.1</span>           │         │         │           │            │             │         │        │
+│ <span class="t">Feb 2026</span> │ <span class="tm">codex</span>    │ <span class="t">• gpt-4.1-codex</span>     │  <span class="t">98,200</span> │  <span class="t">34,100</span> │         <span class="t">0</span> │     <span class="t">45,600</span> │       <span class="t">8,200</span> │ <span class="t">186,100</span> │  <span class="ty">$4.82</span> │
+│ <span class="t">Feb 2026</span> │ <span class="to">opencode</span> │ <span class="t">• gemini-2.5-pro</span>    │  <span class="t">42,500</span> │  <span class="t">18,900</span> │     <span class="t">8,200</span> │          <span class="t">0</span> │           <span class="t">0</span> │  <span class="t">69,600</span> │  <span class="ty">$1.95</span> │
+├──────────┼──────────┼─────────────────────┼─────────┼─────────┼───────────┼────────────┼─────────────┼─────────┼────────┤
+│<span class="tdim"> Feb 2026 </span>│ <span class="tyb">combined</span><span class="tdim"> </span>│<span class="tdim"> • claude-sonnet-4   </span>│<span class="tdim"> 386,500 </span>│<span class="tdim"> 135,300 </span>│<span class="tdim">    20,600 </span>│<span class="tdim">    201,600 </span>│<span class="tdim">      36,700 </span>│<span class="tdim"> 780,700 </span>│<span class="tdim"> $19.22 </span>│
+│          │          │<span class="tdim"> • gemini-2.5-pro    </span>│         │         │           │            │             │         │        │
+│          │          │<span class="tdim"> • gpt-4.1           </span>│         │         │           │            │             │         │        │
+│          │          │<span class="tdim"> • gpt-4.1-codex     </span>│         │         │           │            │             │         │        │
+├──────────┼──────────┼─────────────────────┼─────────┼─────────┼───────────┼────────────┼─────────────┼─────────┼────────┤
+│ <span class="tb">ALL</span>      │ <span class="tgb">TOTAL</span>    │ <span class="tb">• claude-sonnet-4</span>   │ <span class="tb">386,500</span> │ <span class="tb">135,300</span> │    <span class="tb">20,600</span> │    <span class="tb">201,600</span> │      <span class="tb">36,700</span> │ <span class="tb">780,700</span> │ <span class="tb">$19.22</span> │
+│          │          │ <span class="tb">• gemini-2.5-pro</span>    │         │         │           │            │             │         │        │
+│          │          │ <span class="tb">• gpt-4.1</span>           │         │         │           │            │             │         │        │
+│          │          │ <span class="tb">• gpt-4.1-codex</span>     │         │         │           │            │             │         │        │
+╰──────────┴──────────┴─────────────────────┴─────────┴─────────┴───────────┴────────────┴─────────────┴─────────┴────────╯</pre>
+    </div>
+  </section>
+
+  <!-- ── FEATURES ──────────────────────────── -->
+  <section class="features">
+    <div class="features-grid">
+      <div class="fcard">
+        <div class="fcard-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+        </div>
+        <h3>Auto-discovery</h3>
+        <p>Point it at your home directory. It finds <code>.pi</code> sessions, <code>.codex</code> logs, and OpenCode databases automatically. Zero config.</p>
+      </div>
+      <div class="fcard">
+        <div class="fcard-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </div>
+        <h3>Real pricing</h3>
+        <p>Costs pulled from LiteLLM's pricing database and cached locally. Use <code>--pricing-offline</code> when you're on a plane.</p>
+      </div>
+      <div class="fcard">
+        <div class="fcard-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        </div>
+        <h3>Multiple formats</h3>
+        <p>Terminal tables for your eyes, <code>--json</code> for your scripts, <code>--markdown</code> for your docs. Filter by source, provider, or model.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── EXAMPLES ──────────────────────────── -->
+  <section class="examples">
+    <h2>Quick start</h2>
+    <p class="sub">Three commands. Daily, weekly, monthly. Add flags to taste.</p>
+
+    <div class="ex-tabs">
+      <button class="ex-tab active" data-panel="ex-basics">Basics</button>
+      <button class="ex-tab" data-panel="ex-filter">Filtering</button>
+      <button class="ex-tab" data-panel="ex-output">Output</button>
+      <button class="ex-tab" data-panel="ex-config">Config</button>
+    </div>
+
+    <div id="ex-basics" class="ex-panel active">
+      <pre class="ex-block"><span class="cmt"># today's usage</span>
+llm-usage <span class="flag">daily</span>
+
+<span class="cmt"># this week, in Paris time</span>
+llm-usage <span class="flag">weekly</span> --timezone <span class="val">Europe/Paris</span>
+
+<span class="cmt"># January 2026</span>
+llm-usage <span class="flag">monthly</span> --since <span class="val">2026-01-01</span> --until <span class="val">2026-01-31</span></pre>
+    </div>
+
+    <div id="ex-filter" class="ex-panel">
+      <pre class="ex-block"><span class="cmt"># only pi and codex sources</span>
+llm-usage <span class="flag">monthly</span> --source <span class="val">pi,codex</span>
+
+<span class="cmt"># only Claude models</span>
+llm-usage <span class="flag">monthly</span> --model <span class="val">claude</span>
+
+<span class="cmt"># OpenAI provider across all sources</span>
+llm-usage <span class="flag">monthly</span> --provider <span class="val">openai</span>
+
+<span class="cmt"># combine filters</span>
+llm-usage <span class="flag">monthly</span> --source <span class="val">codex</span> --model <span class="val">gpt-4.1</span></pre>
+    </div>
+
+    <div id="ex-output" class="ex-panel">
+      <pre class="ex-block"><span class="cmt"># JSON for scripting</span>
+llm-usage <span class="flag">daily</span> --json
+
+<span class="cmt"># Markdown for docs</span>
+llm-usage <span class="flag">daily</span> --markdown
+
+<span class="cmt"># per-model breakdown in columns</span>
+llm-usage <span class="flag">monthly</span> --per-model-columns</pre>
+    </div>
+
+    <div id="ex-config" class="ex-panel">
+      <pre class="ex-block"><span class="cmt"># custom session directories</span>
+llm-usage <span class="flag">daily</span> --pi-dir <span class="val">/path/to/pi</span> --codex-dir <span class="val">/path/to/codex</span>
+
+<span class="cmt"># explicit OpenCode database</span>
+llm-usage <span class="flag">daily</span> --opencode-db <span class="val">/path/to/opencode.db</span>
+
+<span class="cmt"># offline pricing (cached only)</span>
+llm-usage <span class="flag">monthly</span> --pricing-offline
+
+<span class="cmt"># or run without installing</span>
+npx --yes llm-usage-metrics <span class="flag">daily</span></pre>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <a href="https://github.com/ayagmar/llm-usage-metrics">llm-usage-metrics</a> · MIT License · by <a href="https://github.com/ayagmar">ayagmar</a>
+</footer>
+
+<script src="main.js"></script>
+</body>
+</html>
