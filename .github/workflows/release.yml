@@ -47,18 +47,21 @@ jobs:
         with:
           node-version: '24.13.1'
           registry-url: https://registry.npmjs.org
+          cache: pnpm
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.1
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Build
-        run: bun run build
+        run: pnpm run build
 
       - name: Smoke test built dist (OpenCode)
-        run: bun run smoke:dist-opencode
+        run: pnpm run smoke:dist-opencode
 
       - name: Ensure npm version for trusted publishing
         run: npm install -g npm@^11.5.1
@@ -67,16 +70,16 @@ jobs:
         run: |
           node --version
           npm --version
-          bun --version
+          pnpm --version
 
       - name: Dry run release
         if: ${{ inputs.dry_run }}
-        run: bun run release:ci -- --dry-run --increment ${{ inputs.increment }}
+        run: pnpm run release:ci -- --dry-run --increment ${{ inputs.increment }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish release
         if: ${{ !inputs.dry_run }}
-        run: bun run release:ci -- --increment ${{ inputs.increment }}
+        run: pnpm run release:ci -- --increment ${{ inputs.increment }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

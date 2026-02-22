@@ -8,20 +8,20 @@ Guidance for coding agents working in this repository.
 
 - Type: TypeScript CLI (`llm-usage-metrics`)
 - Runtime: Node.js 24+
-- Package/dev workflow: Bun (`bun.lock`)
+- Package/dev workflow: pnpm (`pnpm-lock.yaml`)
 - Core job: parse local usage data, normalize events, apply pricing, aggregate, render reports
 
 ## Setup and Commands
 
-- Install: `bun install`
-- Lint: `bun run lint`
-- Typecheck: `bun run typecheck`
-- Tests (with coverage): `bun run test`
-- Format check: `bun run format:check`
-- Build: `bun run build`
+- Install: `pnpm install`
+- Lint: `pnpm run lint`
+- Typecheck: `pnpm run typecheck`
+- Tests (with coverage): `pnpm run test`
+- Format check: `pnpm run format:check`
+- Build: `pnpm run build`
 
 Before opening a PR, run:
-`bun run lint && bun run typecheck && bun run test && bun run format:check`
+`pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run format:check`
 
 ## Architecture Boundaries
 
