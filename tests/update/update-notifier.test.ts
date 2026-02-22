@@ -124,7 +124,7 @@ describe('update-notifier', () => {
     expect(fetchSpy).toHaveBeenCalledOnce();
   });
 
-  it('uses stale cache when network check fails and refreshes checkedAt', async () => {
+  it('uses stale cache when network check fails without refreshing checkedAt', async () => {
     const cacheFilePath = await createTempCachePath('update-cache-stale-');
     const nowValue = 1_000_000;
 
@@ -147,10 +147,11 @@ describe('update-notifier', () => {
       cacheTtlMs: 5_000,
       fetchImpl: fetchSpy,
       now: () => nowValue,
+      sleep: async () => undefined,
     });
 
     expect(latestVersion).toBe('9.9.9');
-    expect(fetchSpy).toHaveBeenCalledOnce();
+    expect(fetchSpy).toHaveBeenCalledTimes(3);
 
     const updatedCache = JSON.parse(await readFile(cacheFilePath, 'utf8')) as {
       checkedAt: number;
@@ -158,7 +159,7 @@ describe('update-notifier', () => {
     };
 
     expect(updatedCache).toEqual({
-      checkedAt: nowValue,
+      checkedAt: nowValue - 10_000,
       latestVersion: '9.9.9',
     });
   });

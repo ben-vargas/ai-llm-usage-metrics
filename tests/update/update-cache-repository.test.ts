@@ -2,7 +2,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   getSessionScopedCachePath,
@@ -154,6 +154,7 @@ describe('update-cache-repository', () => {
         packageName: 'llm-usage-metrics',
         cacheFilePath,
         fetchImpl: async () => new Response('oops', { status: 503 }),
+        sleep: async () => undefined,
       }),
     ).resolves.toBeUndefined();
 
@@ -164,6 +165,7 @@ describe('update-cache-repository', () => {
         fetchImpl: async () => {
           throw new Error('network down');
         },
+        sleep: async () => undefined,
       }),
     ).resolves.toBeUndefined();
   });
@@ -190,10 +192,29 @@ describe('update-cache-repository', () => {
     ).resolves.toBeUndefined();
   });
 
-  it('returns stale cache when refresh write fails after a fetch error', async () => {
-    const tempDir = await createTempDir('update-cache-repository-stale-refresh-write-fail-');
-    const cacheFilePath = path.join(tempDir, 'nested', 'update-check.json');
-    const cacheDirPath = path.dirname(cacheFilePath);
+  it('retries transient update fetch failures and returns recovered network version', async () => {
+    const tempDir = await createTempDir('update-cache-repository-retries-');
+    const cacheFilePath = path.join(tempDir, 'update-check.json');
+    const fetchImpl = vi
+      .fn<() => Promise<Response>>()
+      .mockRejectedValueOnce(new Error('timeout'))
+      .mockRejectedValueOnce(new Error('network down'))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ version: '1.9.0' }), { status: 200 }));
+
+    const latestVersion = await resolveLatestVersion({
+      packageName: 'llm-usage-metrics',
+      cacheFilePath,
+      fetchImpl,
+      sleep: async () => undefined,
+    });
+
+    expect(latestVersion).toBe('1.9.0');
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+  });
+
+  it('returns stale cache without refreshing checkedAt when fetch fails', async () => {
+    const tempDir = await createTempDir('update-cache-repository-stale-no-refresh-');
+    const cacheFilePath = path.join(tempDir, 'update-check.json');
     const nowValue = 900_000;
 
     await writeUpdateCheckCachePayload(cacheFilePath, {
@@ -207,13 +228,16 @@ describe('update-cache-repository', () => {
       cacheTtlMs: 1_000,
       now: () => nowValue,
       fetchImpl: async () => {
-        await rm(cacheDirPath, { recursive: true, force: true });
-        await writeFile(cacheDirPath, 'not-a-directory', 'utf8');
         throw new Error('timeout');
       },
+      sleep: async () => undefined,
     });
 
     expect(latestVersion).toBe('1.2.3');
+    await expect(readUpdateCheckCachePayload(cacheFilePath)).resolves.toEqual({
+      checkedAt: nowValue - 10_000,
+      latestVersion: '1.2.3',
+    });
   });
 
   it('returns fetched version when cache write fails after a successful fetch', async () => {
