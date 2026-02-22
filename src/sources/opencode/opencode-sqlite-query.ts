@@ -18,7 +18,7 @@ type MessageQueryColumns = {
 
 function shouldFallbackToNonJsonExtractQuery(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
-  return /no such function:\s*json_extract|malformed JSON/iu.test(message);
+  return /no such function:\s*json_(?:extract|valid)|malformed JSON/iu.test(message);
 }
 
 function escapeIdentifier(identifier: string): string {

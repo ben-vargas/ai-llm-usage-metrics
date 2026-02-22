@@ -239,7 +239,7 @@ async function fetchLatestVersionWithRetry(
   sleepFn: (delayMs: number) => Promise<void>,
 ): Promise<string | undefined> {
   const safeRetryCount =
-    Number.isFinite(fetchRetryCount) && fetchRetryCount > 0
+    Number.isFinite(fetchRetryCount) && fetchRetryCount >= 0
       ? Math.trunc(fetchRetryCount)
       : DEFAULT_FETCH_RETRY_COUNT;
   const safeRetryDelayMs =

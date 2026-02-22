@@ -31,6 +31,12 @@ describe('opencode row parser', () => {
           data_json: '{invalid',
         },
         {
+          row_id: 'msg-2b',
+          row_session_id: 'session-2b',
+          row_time: 1_737_000_001_500,
+          data_json: '[]',
+        },
+        {
           row_id: 'msg-3',
           row_session_id: 'session-3',
           row_time: 1_737_000_002,
@@ -74,9 +80,9 @@ describe('opencode row parser', () => {
     );
 
     expect(parseDiagnostics.events).toHaveLength(1);
-    expect(parseDiagnostics.skippedRows).toBe(4);
+    expect(parseDiagnostics.skippedRows).toBe(5);
     expect(parseDiagnostics.skippedRowReasons).toEqual([
-      { reason: 'invalid_data_json', count: 1 },
+      { reason: 'invalid_data_json', count: 2 },
       { reason: 'missing_session_id', count: 1 },
       { reason: 'missing_timestamp', count: 1 },
       { reason: 'missing_usage_signal', count: 1 },
@@ -171,5 +177,30 @@ describe('opencode row parser', () => {
       costUsd: 0,
       costMode: 'explicit',
     });
+  });
+
+  it('treats blank string cost as absent instead of explicit zero', () => {
+    const parseDiagnostics = parseOpenCodeMessageRows(
+      [
+        {
+          row_id: 'msg-empty-cost',
+          row_session_id: 'session-empty-cost',
+          row_time: 1_737_000_030_000,
+          data_json: JSON.stringify({
+            role: 'assistant',
+            model: 'gpt-4.1',
+            tokens: { input: 0, output: 0, total: 0 },
+            cost: '   ',
+          }),
+        },
+      ],
+      'opencode',
+    );
+
+    expect(parseDiagnostics.events).toHaveLength(0);
+    expect(parseDiagnostics.skippedRows).toBe(1);
+    expect(parseDiagnostics.skippedRowReasons).toEqual([
+      { reason: 'missing_usage_signal', count: 1 },
+    ]);
   });
 });

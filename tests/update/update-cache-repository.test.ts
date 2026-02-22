@@ -240,6 +240,25 @@ describe('update-cache-repository', () => {
     });
   });
 
+  it('allows disabling retries by setting fetchRetryCount to zero', async () => {
+    const tempDir = await createTempDir('update-cache-repository-no-retries-');
+    const cacheFilePath = path.join(tempDir, 'update-check.json');
+    const fetchImpl = vi.fn(async () => {
+      throw new Error('network down');
+    });
+
+    const latestVersion = await resolveLatestVersion({
+      packageName: 'llm-usage-metrics',
+      cacheFilePath,
+      fetchImpl,
+      fetchRetryCount: 0,
+      sleep: async () => undefined,
+    });
+
+    expect(latestVersion).toBeUndefined();
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
   it('returns fetched version when cache write fails after a successful fetch', async () => {
     const tempDir = await createTempDir('update-cache-repository-cache-write-fail-');
     const cacheFilePath = path.join(tempDir, 'nested', 'update-check.json');

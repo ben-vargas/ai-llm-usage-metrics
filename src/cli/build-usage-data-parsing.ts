@@ -37,27 +37,25 @@ function normalizeSkippedRowReasons(value: unknown): Array<{ reason: string; cou
     return [];
   }
 
-  return value
-    .flatMap((entry) => {
-      const record = asRecord(entry);
+  return value.flatMap((entry) => {
+    const record = asRecord(entry);
 
-      if (!record) {
-        return [];
-      }
+    if (!record) {
+      return [];
+    }
 
-      const reason = typeof record.reason === 'string' ? record.reason.trim() : '';
-      const count =
-        typeof record.count === 'number' && Number.isFinite(record.count) && record.count > 0
-          ? Math.trunc(record.count)
-          : 0;
+    const reason = typeof record.reason === 'string' ? record.reason.trim() : '';
+    const count =
+      typeof record.count === 'number' && Number.isFinite(record.count) && record.count > 0
+        ? Math.trunc(record.count)
+        : 0;
 
-      if (!reason || count <= 0) {
-        return [];
-      }
+    if (!reason || count <= 0) {
+      return [];
+    }
 
-      return [{ reason, count }];
-    })
-    .sort((left, right) => compareByCodePoint(left.reason, right.reason));
+    return [{ reason, count }];
+  });
 }
 
 export async function parseAdapterEvents(

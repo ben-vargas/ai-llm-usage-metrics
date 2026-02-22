@@ -83,6 +83,10 @@ function parseNonNegativeNumber(value: unknown): number | undefined {
     return undefined;
   }
 
+  if (typeof parsed === 'string' && parsed.trim() === '') {
+    return undefined;
+  }
+
   const numberValue = typeof parsed === 'number' ? parsed : Number(parsed);
 
   if (!Number.isFinite(numberValue) || numberValue < 0) {
@@ -127,7 +131,14 @@ export function parseOpenCodeMessageRows(
     let payload: Record<string, unknown>;
 
     try {
-      payload = asRecord(JSON.parse(dataJson)) ?? {};
+      const parsedPayload = asRecord(JSON.parse(dataJson));
+
+      if (!parsedPayload) {
+        recordSkippedRow('invalid_data_json');
+        continue;
+      }
+
+      payload = parsedPayload;
     } catch {
       recordSkippedRow('invalid_data_json');
       continue;

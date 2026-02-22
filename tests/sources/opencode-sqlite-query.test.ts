@@ -99,6 +99,17 @@ describe('opencode sqlite query', () => {
     expect(rows).toEqual([{ row_id: 'msg-fallback-2', data_json: '{}' }]);
   });
 
+  it('falls back to non-json_extract query when json_valid is unavailable', () => {
+    const rows = queryOpenCodeMessageRows(
+      createFakeDatabase({
+        primaryQueryErrors: [new Error('no such function: json_valid')],
+        fallbackRows: [{ row_id: 'msg-fallback-3', data_json: '{}' }],
+      }),
+    );
+
+    expect(rows).toEqual([{ row_id: 'msg-fallback-3', data_json: '{}' }]);
+  });
+
   it('throws actionable schema drift error when message table is missing', () => {
     expect(() =>
       queryOpenCodeMessageRows(

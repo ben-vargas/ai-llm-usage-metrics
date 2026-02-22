@@ -39,8 +39,12 @@ function colorizeHeader(useColor: boolean): string[] {
   return headerCells.map((header) => pc.bold(pc.white(header)));
 }
 
+function isValidTerminalWidth(width: unknown): width is number {
+  return typeof width === 'number' && Number.isFinite(width) && width > 0;
+}
+
 function resolveTerminalWidth(override: number | undefined): number | undefined {
-  if (typeof override === 'number' && Number.isFinite(override) && override > 0) {
+  if (isValidTerminalWidth(override)) {
     return Math.floor(override);
   }
 
@@ -85,10 +89,7 @@ export function renderTerminalTable(
 ): string {
   const useColor = options.useColor ?? shouldUseColorByDefault();
   const tableLayout = options.tableLayout ?? 'compact';
-  const hasExplicitTerminalWidth =
-    typeof options.terminalWidth === 'number' &&
-    Number.isFinite(options.terminalWidth) &&
-    options.terminalWidth > 0;
+  const hasExplicitTerminalWidth = isValidTerminalWidth(options.terminalWidth);
   const terminalWidth = resolveTerminalWidth(options.terminalWidth);
   let modelsColumnWidth = defaultModelsColumnWidth;
   let renderedTable = renderTableWithModelsWidth(rows, tableLayout, useColor, modelsColumnWidth);
