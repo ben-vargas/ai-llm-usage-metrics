@@ -48,8 +48,15 @@ export function emitDiagnostics(
     diagnosticsLogger.warn(`Skipped ${totalSkippedRows} malformed ${rowLabel}`);
 
     for (const skippedRowsEntry of diagnostics.skippedRows) {
+      const reasonSummary = skippedRowsEntry.reasons
+        ?.filter((reasonStat) => reasonStat.count > 0)
+        .map((reasonStat) => `${reasonStat.reason}: ${reasonStat.count}`)
+        .join(', ');
+
       diagnosticsLogger.dim(
-        `  ${skippedRowsEntry.source}: ${skippedRowsEntry.skippedRows} skipped`,
+        reasonSummary
+          ? `  ${skippedRowsEntry.source}: ${skippedRowsEntry.skippedRows} skipped (${reasonSummary})`
+          : `  ${skippedRowsEntry.source}: ${skippedRowsEntry.skippedRows} skipped`,
       );
     }
   }

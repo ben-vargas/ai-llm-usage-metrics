@@ -1,5 +1,8 @@
 import type { UsageEvent } from '../domain/usage-event.js';
+import { compareByCodePoint } from '../utils/compare-by-code-point.js';
 import type { SourceAdapter, SourceParseFileDiagnostics } from '../sources/source-adapter.js';
+import type { SourceSkippedRowReasonStat } from '../sources/source-adapter.js';
+import { asRecord } from '../utils/as-record.js';
 import { getPeriodKey } from '../utils/time-buckets.js';
 
 import type { UsageSourceFailure } from './usage-data-contracts.js';
@@ -9,6 +12,7 @@ export type AdapterParseResult = {
   events: UsageEvent[];
   filesFound: number;
   skippedRows: number;
+  skippedRowReasons: SourceSkippedRowReasonStat[];
 };
 
 export type ParsedAdaptersResult = {
@@ -17,7 +21,7 @@ export type ParsedAdaptersResult = {
 };
 
 function getDefaultParseFileDiagnostics(events: UsageEvent[]): SourceParseFileDiagnostics {
-  return { events, skippedRows: 0 };
+  return { events, skippedRows: 0, skippedRowReasons: [] };
 }
 
 function normalizeSkippedRowsCount(value: unknown): number {
@@ -28,6 +32,36 @@ function normalizeSkippedRowsCount(value: unknown): number {
   return Math.max(0, Math.trunc(value));
 }
 
+function normalizeSkippedRowReasons(
+  value: unknown,
+): Array<{ reason: string; count: number }> {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .flatMap((entry) => {
+      const record = asRecord(entry);
+
+      if (!record) {
+        return [];
+      }
+
+      const reason = typeof record.reason === 'string' ? record.reason.trim() : '';
+      const count =
+        typeof record.count === 'number' && Number.isFinite(record.count) && record.count > 0
+          ? Math.trunc(record.count)
+          : 0;
+
+      if (!reason || count <= 0) {
+        return [];
+      }
+
+      return [{ reason, count }];
+    })
+    .sort((left, right) => compareByCodePoint(left.reason, right.reason));
+}
+
 export async function parseAdapterEvents(
   adapter: SourceAdapter,
   maxParallelFileParsing: number,
@@ -35,7 +69,13 @@ export async function parseAdapterEvents(
   const files = await adapter.discoverFiles();
 
   if (files.length === 0) {
-    return { source: adapter.id, events: [], filesFound: 0, skippedRows: 0 };
+    return {
+      source: adapter.id,
+      events: [],
+      filesFound: 0,
+      skippedRows: 0,
+      skippedRowReasons: [],
+    };
   }
 
   const safeMaxParallelFileParsing =
@@ -44,6 +84,7 @@ export async function parseAdapterEvents(
       : 1;
   const parsedByFile: UsageEvent[][] = Array.from({ length: files.length }, () => []);
   const skippedRowsByFile: number[] = Array.from({ length: files.length }, () => 0);
+  const skippedRowReasons = new Map<string, number>();
   const workerCount = Math.min(safeMaxParallelFileParsing, files.length);
   let nextFileIndex = 0;
 
@@ -58,6 +99,12 @@ export async function parseAdapterEvents(
 
       parsedByFile[fileIndex] = parseFileDiagnostics.events;
       skippedRowsByFile[fileIndex] = normalizeSkippedRowsCount(parseFileDiagnostics.skippedRows);
+      for (const reasonStat of normalizeSkippedRowReasons(parseFileDiagnostics.skippedRowReasons)) {
+        skippedRowReasons.set(
+          reasonStat.reason,
+          (skippedRowReasons.get(reasonStat.reason) ?? 0) + reasonStat.count,
+        );
+      }
     }
   });
 
@@ -68,6 +115,9 @@ export async function parseAdapterEvents(
     events: parsedByFile.flat(),
     filesFound: files.length,
     skippedRows: skippedRowsByFile.reduce((sum, skippedRowsCount) => sum + skippedRowsCount, 0),
+    skippedRowReasons: [...skippedRowReasons.entries()]
+      .map(([reason, count]) => ({ reason, count }))
+      .sort((left, right) => compareByCodePoint(left.reason, right.reason)),
   };
 }
 

@@ -226,6 +226,11 @@ describe('OpenCodeSourceAdapter', () => {
 
     expect(parseDiagnostics.events).toHaveLength(1);
     expect(parseDiagnostics.skippedRows).toBe(4);
+    expect(parseDiagnostics.skippedRowReasons).toEqual([
+      { reason: 'invalid_data_json', count: 1 },
+      { reason: 'missing_timestamp', count: 1 },
+      { reason: 'missing_usage_signal', count: 2 },
+    ]);
     expect(parseDiagnostics.events[0]).toMatchObject({
       source: 'opencode',
       sessionId: 'session-1',
@@ -465,6 +470,7 @@ describe('OpenCodeSourceAdapter', () => {
     expect(parseDiagnostics.events).toHaveLength(1);
     expect(parseDiagnostics.events[0]?.sessionId).toBe('msg-fallback-id');
     expect(parseDiagnostics.skippedRows).toBe(1);
+    expect(parseDiagnostics.skippedRowReasons).toEqual([{ reason: 'missing_session_id', count: 1 }]);
   });
 
   it('retries busy/locked errors and succeeds when lock clears within retry budget', async () => {

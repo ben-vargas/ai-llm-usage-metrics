@@ -36,9 +36,15 @@ export type UsageSourceFailure = {
   reason: string;
 };
 
+export type UsageSkippedRowReasonStat = {
+  reason: string;
+  count: number;
+};
+
 export type UsageSkippedRowsStat = {
   source: string;
   skippedRows: number;
+  reasons?: UsageSkippedRowReasonStat[];
 };
 
 export type UsagePricingOrigin = 'cache' | 'network' | 'offline-cache' | 'none';

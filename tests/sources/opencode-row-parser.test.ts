@@ -75,6 +75,12 @@ describe('opencode row parser', () => {
 
     expect(parseDiagnostics.events).toHaveLength(1);
     expect(parseDiagnostics.skippedRows).toBe(4);
+    expect(parseDiagnostics.skippedRowReasons).toEqual([
+      { reason: 'invalid_data_json', count: 1 },
+      { reason: 'missing_session_id', count: 1 },
+      { reason: 'missing_timestamp', count: 1 },
+      { reason: 'missing_usage_signal', count: 1 },
+    ]);
     expect(parseDiagnostics.events[0]).toMatchObject({
       source: 'opencode',
       sessionId: 'session-1',
@@ -122,6 +128,7 @@ describe('opencode row parser', () => {
     );
 
     expect(parseDiagnostics.skippedRows).toBe(0);
+    expect(parseDiagnostics.skippedRowReasons).toEqual([]);
     expect(parseDiagnostics.events).toHaveLength(2);
     expect(parseDiagnostics.events[0]).toMatchObject({
       sessionId: 'msg-fallback-id',
@@ -156,6 +163,7 @@ describe('opencode row parser', () => {
     );
 
     expect(parseDiagnostics.skippedRows).toBe(0);
+    expect(parseDiagnostics.skippedRowReasons).toEqual([]);
     expect(parseDiagnostics.events).toHaveLength(1);
     expect(parseDiagnostics.events[0]).toMatchObject({
       sessionId: 'session-explicit-zero',

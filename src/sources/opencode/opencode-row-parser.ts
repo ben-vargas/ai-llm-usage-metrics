@@ -1,11 +1,20 @@
 import { createUsageEvent } from '../../domain/usage-event.js';
 import type { UsageEvent } from '../../domain/usage-event.js';
+import { compareByCodePoint } from '../../utils/compare-by-code-point.js';
 import { asRecord } from '../../utils/as-record.js';
 import { asTrimmedText, toNumberLike } from '../parsing-utils.js';
 import type { SourceParseFileDiagnostics } from '../source-adapter.js';
 import type { OpenCodeSqliteRow } from './opencode-sqlite-query.js';
 
 const UNIX_SECONDS_ABS_CUTOFF = 10_000_000_000;
+
+type SkippedRowReason =
+  | 'missing_data_json'
+  | 'invalid_data_json'
+  | 'missing_timestamp'
+  | 'missing_session_id'
+  | 'missing_usage_signal'
+  | 'invalid_usage_event';
 
 function normalizeTimestampCandidate(candidate: unknown): string | undefined {
   if (typeof candidate === 'number' && Number.isFinite(candidate)) {
@@ -100,12 +109,18 @@ export function parseOpenCodeMessageRows(
 ): SourceParseFileDiagnostics {
   const events: UsageEvent[] = [];
   let skippedRows = 0;
+  const skippedRowReasons = new Map<SkippedRowReason, number>();
+
+  const recordSkippedRow = (reason: SkippedRowReason): void => {
+    skippedRows += 1;
+    skippedRowReasons.set(reason, (skippedRowReasons.get(reason) ?? 0) + 1);
+  };
 
   for (const row of rows) {
     const dataJson = asTrimmedText(row.data_json);
 
     if (!dataJson) {
-      skippedRows += 1;
+      recordSkippedRow('missing_data_json');
       continue;
     }
 
@@ -114,7 +129,7 @@ export function parseOpenCodeMessageRows(
     try {
       payload = asRecord(JSON.parse(dataJson)) ?? {};
     } catch {
-      skippedRows += 1;
+      recordSkippedRow('invalid_data_json');
       continue;
     }
 
@@ -127,7 +142,7 @@ export function parseOpenCodeMessageRows(
     const timestamp = resolveTimestamp(row.row_time, payload);
 
     if (!timestamp) {
-      skippedRows += 1;
+      recordSkippedRow('missing_timestamp');
       continue;
     }
 
@@ -139,7 +154,7 @@ export function parseOpenCodeMessageRows(
       asTrimmedText(row.row_id);
 
     if (!sessionId) {
-      skippedRows += 1;
+      recordSkippedRow('missing_session_id');
       continue;
     }
 
@@ -168,7 +183,7 @@ export function parseOpenCodeMessageRows(
         explicitCost,
       )
     ) {
-      skippedRows += 1;
+      recordSkippedRow('missing_usage_signal');
       continue;
     }
 
@@ -191,9 +206,15 @@ export function parseOpenCodeMessageRows(
         }),
       );
     } catch {
-      skippedRows += 1;
+      recordSkippedRow('invalid_usage_event');
     }
   }
 
-  return { events, skippedRows };
+  return {
+    events,
+    skippedRows,
+    skippedRowReasons: [...skippedRowReasons.entries()]
+      .map(([reason, count]) => ({ reason, count }))
+      .sort((left, right) => compareByCodePoint(left.reason, right.reason)),
+  };
 }
