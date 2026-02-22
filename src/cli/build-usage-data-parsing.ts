@@ -7,7 +7,7 @@ import type {
   SourceParseFileDiagnostics,
   SourceSkippedRowReasonStat,
 } from '../sources/source-adapter.js';
-import { asRecord } from '../utils/as-record.js';
+import { normalizeSkippedRowReasons } from './normalize-skipped-row-reasons.js';
 import { getPeriodKey } from '../utils/time-buckets.js';
 import { ParseFileCache } from './parse-file-cache.js';
 
@@ -49,32 +49,6 @@ function normalizeSkippedRowsCount(value: unknown): number {
   }
 
   return Math.max(0, Math.trunc(value));
-}
-
-function normalizeSkippedRowReasons(value: unknown): Array<{ reason: string; count: number }> {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value.flatMap((entry) => {
-    const record = asRecord(entry);
-
-    if (!record) {
-      return [];
-    }
-
-    const reason = typeof record.reason === 'string' ? record.reason.trim() : '';
-    const count =
-      typeof record.count === 'number' && Number.isFinite(record.count) && record.count > 0
-        ? Math.trunc(record.count)
-        : 0;
-
-    if (!reason || count <= 0) {
-      return [];
-    }
-
-    return [{ reason, count }];
-  });
 }
 
 export async function parseAdapterEvents(

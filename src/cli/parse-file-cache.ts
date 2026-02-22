@@ -6,6 +6,7 @@ import type {
   SourceParseFileDiagnostics,
   SourceSkippedRowReasonStat,
 } from '../sources/source-adapter.js';
+import { normalizeSkippedRowReasons } from './normalize-skipped-row-reasons.js';
 import { asRecord } from '../utils/as-record.js';
 import { getUserCacheRootDir } from '../utils/cache-root-dir.js';
 
@@ -54,29 +55,6 @@ function toNonNegativeNumber(value: unknown): number | undefined {
   }
 
   return value;
-}
-
-function normalizeSkippedRowReasons(value: unknown): SourceSkippedRowReasonStat[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value.flatMap((entry) => {
-    const record = asRecord(entry);
-
-    if (!record) {
-      return [];
-    }
-
-    const reason = typeof record.reason === 'string' ? record.reason.trim() : '';
-    const count = toNonNegativeInteger(record.count);
-
-    if (!reason || count === undefined || count <= 0) {
-      return [];
-    }
-
-    return [{ reason, count }];
-  });
 }
 
 function normalizeCachedUsageEvent(value: unknown): UsageEvent | undefined {
@@ -156,6 +134,12 @@ function cloneUsageEvents(events: UsageEvent[]): UsageEvent[] {
   return events.map((event) => cloneUsageEvent(event));
 }
 
+function cloneSkippedRowReasons(
+  skippedRowReasons: SourceSkippedRowReasonStat[] | undefined,
+): SourceSkippedRowReasonStat[] {
+  return (skippedRowReasons ?? []).map((stat) => ({ reason: stat.reason, count: stat.count }));
+}
+
 function normalizeCachedEvents(value: unknown): UsageEvent[] | undefined {
   if (!Array.isArray(value)) {
     return undefined;
@@ -215,7 +199,7 @@ function normalizeCacheEntry(value: unknown): ParseFileCacheEntry | undefined {
     diagnostics: {
       events,
       skippedRows,
-      skippedRowReasons: normalizeSkippedRowReasons(record.skippedRowReasons),
+      skippedRowReasons: normalizeSkippedRowReasons(diagnostics?.skippedRowReasons),
     },
   };
 }
@@ -275,7 +259,7 @@ export class ParseFileCache {
     return {
       events: cloneUsageEvents(entry.diagnostics.events),
       skippedRows: entry.diagnostics.skippedRows,
-      skippedRowReasons: [...(entry.diagnostics.skippedRowReasons ?? [])],
+      skippedRowReasons: cloneSkippedRowReasons(entry.diagnostics.skippedRowReasons),
     };
   }
 
@@ -296,7 +280,7 @@ export class ParseFileCache {
       diagnostics: {
         events: cloneUsageEvents(diagnostics.events),
         skippedRows: diagnostics.skippedRows,
-        skippedRowReasons: [...(diagnostics.skippedRowReasons ?? [])],
+        skippedRowReasons: cloneSkippedRowReasons(diagnostics.skippedRowReasons),
       },
     });
     this.dirty = true;
@@ -349,7 +333,7 @@ export class ParseFileCache {
         diagnostics: {
           events: entry.diagnostics.events,
           skippedRows: entry.diagnostics.skippedRows,
-          skippedRowReasons: entry.diagnostics.skippedRowReasons ?? [],
+          skippedRowReasons: cloneSkippedRowReasons(entry.diagnostics.skippedRowReasons),
         },
       })),
     };

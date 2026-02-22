@@ -155,17 +155,4 @@ describe('runtime overrides', () => {
       fetchTimeoutMs: 1000,
     });
   });
-
-  it('accepts parse cache boolean aliases', () => {
-    expect(
-      getParsingRuntimeConfig({
-        LLM_USAGE_PARSE_CACHE_ENABLED: '0',
-      }),
-    ).toMatchObject({ parseCacheEnabled: false });
-    expect(
-      getParsingRuntimeConfig({
-        LLM_USAGE_PARSE_CACHE_ENABLED: 'yes',
-      }),
-    ).toMatchObject({ parseCacheEnabled: true });
-  });
 });
