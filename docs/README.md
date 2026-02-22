@@ -8,6 +8,7 @@ This folder contains internal technical documentation for `llm-usage-metrics` co
 
 ## Contributor Documentation
 
+- [Architecture](./architecture.md) - Runtime flow and module boundaries
 - [Development Guide](./development.md) - Setup, build, test workflows
 - [Contributing Guide](../CONTRIBUTING.md) - Contribution guidelines
 
