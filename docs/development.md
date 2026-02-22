@@ -3,12 +3,12 @@
 ## Requirements
 
 - Node.js 24+
-- Bun (used for local scripts and lockfile)
+- pnpm (used for local scripts and lockfile)
 
 ## Install
 
 ```bash
-bun install
+pnpm install
 ```
 
 ## Local quality checks
@@ -16,20 +16,20 @@ bun install
 Run these before opening a PR:
 
 ```bash
-bun run lint
-bun run typecheck
-bun run test
-bun run format:check
+pnpm run lint
+pnpm run typecheck
+pnpm run test
+pnpm run format:check
 ```
 
-`bun run test` includes coverage by default.
+`pnpm run test` includes coverage by default.
 
 ## Reporting pipeline performance baseline
 
 Capture local timing snapshots for daily/weekly/monthly report generation on representative fixtures:
 
 ```bash
-bun run perf:report-baseline
+pnpm run perf:report-baseline
 ```
 
 The command runs a warmup + sampled timings and prints min/avg/p95/max per scenario.
@@ -55,19 +55,19 @@ Common variables:
 Build CLI bundle:
 
 ```bash
-bun run build
+pnpm run build
 ```
 
 Smoke-test built OpenCode path:
 
 ```bash
-bun run smoke:dist-opencode
+pnpm run smoke:dist-opencode
 ```
 
 Check npm package output:
 
 ```bash
-bun run pack:check
+pnpm run pack:check
 ```
 
 ## Test layout
@@ -84,14 +84,14 @@ CI runs on pull requests and pushes to `main` and `master`.
 
 Checks:
 
-- install (`bun install --frozen-lockfile`)
+- install (`pnpm install --frozen-lockfile`)
 - lint
 - typecheck
 - format check
 - build
 - built dist OpenCode smoke test
 - npm pack check
-- test + coverage (`bun run test`, Node 24)
+- test + coverage (`pnpm run test`, Node 24)
 
 Runtime:
 
@@ -103,9 +103,9 @@ Coverage summary/artifacts are generated from the single Node 24 CI run.
 
 ### Local commands
 
-- `bun run release:dry` to preview the next release
-- `bun run release` to run an interactive release locally
-- `bun run release:ci -- --increment patch|minor|major` for non-interactive mode
+- `pnpm run release:dry` to preview the next release
+- `pnpm run release` to run an interactive release locally
+- `pnpm run release:ci -- --increment patch|minor|major` for non-interactive mode
 
 Release configuration lives in `.release-it.json`.
 

@@ -27,37 +27,41 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.1
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '24.13.1'
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Lint
-        run: bun run lint
+        run: pnpm run lint
 
       - name: Typecheck
-        run: bun run typecheck
+        run: pnpm run typecheck
 
       - name: Format check
-        run: bun run format:check
+        run: pnpm run format:check
 
       - name: Build
-        run: bun run build
+        run: pnpm run build
 
       - name: Smoke test built dist (OpenCode)
-        run: bun run smoke:dist-opencode
+        run: pnpm run smoke:dist-opencode
 
       - name: Package check
-        run: bun run pack:check
+        run: pnpm run pack:check
 
       - name: Run tests with coverage (single run)
-        run: bun run test
+        run: pnpm run test
 
       - name: Upload coverage to Codecov
         if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork }}

@@ -36,7 +36,7 @@ npx --yes llm-usage-metrics daily
 Runtime notes:
 
 - OpenCode parsing requires Node.js 24+ (`node:sqlite`).
-- Bun is supported for dependency/scripts workflow, but OpenCode report runs should use Node-based CLI execution.
+- pnpm is the supported dependency/script workflow for this repository.
 - Example local execution against built dist: `node dist/index.js daily --source opencode --opencode-db /path/to/opencode.db`
 
 ## Update checks
@@ -325,9 +325,9 @@ Columns:
 ## Development
 
 ```bash
-bun install
-bun run lint
-bun run typecheck
-bun run test
-bun run format:check
+pnpm install
+pnpm run lint
+pnpm run typecheck
+pnpm run test
+pnpm run format:check
 ```

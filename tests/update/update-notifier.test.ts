@@ -321,7 +321,7 @@ describe('update-notifier', () => {
   });
 
   it('detects local source execution entrypoints', () => {
-    expect(isLikelySourceExecution(['/usr/bin/bun', '/app/src/cli/index.ts', 'daily'])).toBe(true);
+    expect(isLikelySourceExecution(['/usr/bin/pnpm', '/app/src/cli/index.ts', 'daily'])).toBe(true);
     expect(isLikelySourceExecution(['/usr/bin/node', '/app/src/cli/index.mts', 'daily'])).toBe(
       true,
     );
@@ -337,7 +337,7 @@ describe('update-notifier', () => {
     const result = await checkForUpdatesAndMaybeRestart({
       packageName: 'llm-usage-metrics',
       currentVersion: '0.1.11',
-      argv: ['/usr/bin/bun', '/app/src/cli/index.ts', 'monthly'],
+      argv: ['/usr/bin/pnpm', '/app/src/cli/index.ts', 'monthly'],
       env: {},
       fetchImpl: fetchSpy,
       notify,

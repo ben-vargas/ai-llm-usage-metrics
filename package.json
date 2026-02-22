@@ -3,6 +3,7 @@
   "version": "0.1.11",
   "description": "CLI for aggregating local LLM usage metrics from pi, codex, and opencode sessions",
   "type": "module",
+  "packageManager": "pnpm@10.17.1",
   "engines": {
     "node": ">=24"
   },
@@ -16,7 +17,7 @@
   ],
   "scripts": {
     "build": "tsup src/cli/index.ts --format esm --dts --clean --sourcemap",
-    "cli": "bun run src/cli/index.ts",
+    "cli": "node --experimental-strip-types src/cli/index.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --coverage",
@@ -24,7 +25,7 @@
     "format:write": "prettier --write .",
     "pack:check": "npm pack",
     "smoke:dist-opencode": "node scripts/smoke-dist-opencode.mjs",
-    "perf:report-baseline": "bun run scripts/perf-report-baseline.mjs",
+    "perf:report-baseline": "node scripts/perf-report-baseline.mjs",
     "release": "release-it",
     "release:dry": "release-it --dry-run",
     "release:ci": "release-it --ci"

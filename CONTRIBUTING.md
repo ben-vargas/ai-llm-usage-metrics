@@ -7,21 +7,21 @@ Thanks for contributing.
 Requirements:
 
 - Node.js 24+
-- Bun
+- pnpm
 
 Install dependencies:
 
 ```bash
-bun install
+pnpm install
 ```
 
 Run checks:
 
 ```bash
-bun run lint
-bun run typecheck
-bun run test
-bun run format:check
+pnpm run lint
+pnpm run typecheck
+pnpm run test
+pnpm run format:check
 ```
 
 ## Project shape
@@ -107,5 +107,5 @@ Use concise Conventional Commit subjects, for example:
 Run the full check suite:
 
 ```bash
-bun run lint && bun run typecheck && bun run test && bun run format:check
+pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run format:check
 ```
