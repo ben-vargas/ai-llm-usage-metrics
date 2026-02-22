@@ -6,7 +6,7 @@
   --accent:#3fb950;--accent-bg:rgba(63,185,80,.12);
   --cyan:#58a6ff;--magenta:#d2a8ff;--blue:#79c0ff;
   --yellow:#e3b341;--radius:10px;--max-w:1100px;
-  --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  --mono:"SFMono-Regular","Consolas","Liberation Mono","Menlo",monospace;
 }
 html{scroll-behavior:smooth}
 body{
@@ -66,10 +66,16 @@ nav{
   position:relative;transition:border-color .15s;
 }
 .install:hover{border-color:var(--accent)}
+.install:focus-visible{
+  border-color:var(--accent);
+  outline:2px solid var(--accent);
+  outline-offset:3px;
+}
 .install .dollar{color:var(--dim);user-select:none}
 .install .cmd{user-select:all}
 .install .icon{color:var(--muted);flex-shrink:0;transition:color .15s}
 .install:hover .icon{color:var(--text)}
+.install:focus-visible .icon{color:var(--text)}
 .toast{
   position:absolute;top:-30px;left:50%;transform:translateX(-50%);
   background:var(--accent);color:var(--bg);padding:3px 10px;
@@ -77,6 +83,7 @@ nav{
   opacity:0;pointer-events:none;transition:opacity .2s;
 }
 .toast.show{opacity:1}
+.toast.error{background:#f85149;color:#fff}
 
 /* ── Terminal ───────────────────────────────── */
 .terminal-section{
@@ -170,6 +177,12 @@ nav{
 }
 .ex-tab:hover{color:var(--text)}
 .ex-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.ex-tab:focus-visible{
+  color:var(--text);
+  border-bottom-color:var(--accent);
+  outline:2px solid var(--accent);
+  outline-offset:2px;
+}
 .ex-panel{display:none}
 .ex-panel.active{display:block}
 .ex-block{
