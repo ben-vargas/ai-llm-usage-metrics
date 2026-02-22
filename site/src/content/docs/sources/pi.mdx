@@ -1,0 +1,24 @@
+---
+title: pi Source
+---
+
+# pi Source
+
+Pi coding agent session data adapter.
+
+## Data Location
+
+Pi stores session data in platform-specific directories:
+
+- **macOS**: `~/Library/Application Support/pi/`
+- **Linux**: `~/.config/pi/`
+- **Windows**: `%APPDATA%/pi/`
+
+## Parsed Events
+
+The pi adapter extracts:
+
+- Session metadata (start time, end time)
+- Model usage events
+- Token counts (input/output)
+- Cost calculations based on pricing configuration

@@ -1,0 +1,49 @@
+---
+title: Getting Started
+---
+
+# Getting Started
+
+`llm-usage-metrics` is a CLI tool for aggregating local LLM usage metrics from pi, codex, and opencode sessions.
+
+## Installation
+
+Install globally via npm:
+
+```bash
+npm install -g llm-usage-metrics
+```
+
+Or use with npx:
+
+```bash
+npx llm-usage-metrics
+```
+
+## Quick Start
+
+After installation, run the CLI to see your aggregated usage metrics:
+
+```bash
+llm-usage
+```
+
+This will automatically detect usage data from supported sources and display a formatted report.
+
+## Data Sources
+
+The CLI automatically discovers and parses usage data from:
+
+- **pi** - Parse pi coding agent session data
+- **codex** - Parse OpenAI Codex CLI session data
+- **opencode** - Parse opencode session data
+
+## Output Formats
+
+Results can be displayed in multiple formats:
+
+- **Terminal** (default) - Rich formatted tables with colors
+- **JSON** - Structured data for piping to other tools
+- **Markdown** - Formatted tables suitable for documentation
+
+Learn more in the [CLI Reference](./cli-reference).

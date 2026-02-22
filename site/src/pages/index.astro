@@ -1,0 +1,171 @@
+---
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+---
+
+<StarlightPage frontmatter={{ title: 'llm-usage-metrics', template: 'splash' }}>
+  <div class="hero">
+    <div class="hero-content">
+      <h1>llm-usage-metrics</h1>
+      <p class="tagline">
+        CLI for aggregating local LLM usage metrics from pi, codex, and opencode sessions
+      </p>
+      <div class="install-command">
+        <code>npm install -g llm-usage-metrics</code>
+      </div>
+      <div class="actions">
+        <a href="./getting-started" class="button primary">Get Started</a>
+        <a href="https://github.com/ayagmar/llm-usage-metrics" class="button secondary">GitHub</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="features">
+    <h2>Features</h2>
+    <div class="feature-grid">
+      <div class="feature">
+        <h3>Multi-Source Support</h3>
+        <p>Aggregate usage from pi, codex, and opencode in one command.</p>
+      </div>
+      <div class="feature">
+        <h3>Cost Calculation</h3>
+        <p>Automatic pricing based on token usage and model rates.</p>
+      </div>
+      <div class="feature">
+        <h3>Flexible Output</h3>
+        <p>Terminal, JSON, or Markdown formats for any workflow.</p>
+      </div>
+      <div class="feature">
+        <h3>Offline Operation</h3>
+        <p>Bundled pricing data works without network access.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="cta">
+    <h2>Ready to track your LLM usage?</h2>
+    <a href="./getting-started" class="button primary">Read the Docs</a>
+  </div>
+</StarlightPage>
+
+<style>
+  .hero {
+    text-align: center;
+    padding: 4rem 1rem;
+  }
+
+  .hero h1 {
+    font-size: 3rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+  }
+
+  .tagline {
+    font-size: 1.25rem;
+    color: var(--sl-color-gray-2);
+    max-width: 600px;
+    margin: 0 auto 2rem;
+  }
+
+  .install-command {
+    background: var(--sl-color-black);
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.5rem;
+    padding: 1rem 1.5rem;
+    display: inline-block;
+    margin-bottom: 2rem;
+  }
+
+  .install-command code {
+    font-family: var(--sl-font-system-mono);
+    font-size: 1rem;
+  }
+
+  .actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .button {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: opacity 0.2s;
+  }
+
+  .button:hover {
+    opacity: 0.9;
+  }
+
+  .button.primary {
+    background: var(--sl-color-accent);
+    color: var(--sl-color-black);
+  }
+
+  .button.secondary {
+    background: var(--sl-color-gray-6);
+    color: var(--sl-color-white);
+  }
+
+  .features {
+    padding: 4rem 1rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .features h2 {
+    text-align: center;
+    font-size: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+  }
+
+  .feature {
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    background: var(--sl-color-gray-6);
+  }
+
+  .feature h3 {
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .feature p {
+    color: var(--sl-color-gray-2);
+    margin: 0;
+  }
+
+  .cta {
+    text-align: center;
+    padding: 4rem 1rem;
+  }
+
+  .cta h2 {
+    font-size: 1.75rem;
+    margin-bottom: 1.5rem;
+  }
+
+  @media (max-width: 768px) {
+    .hero h1 {
+      font-size: 2rem;
+    }
+
+    .tagline {
+      font-size: 1rem;
+    }
+
+    .feature-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

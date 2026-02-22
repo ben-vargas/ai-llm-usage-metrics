@@ -28,7 +28,11 @@
     "perf:report-baseline": "node scripts/perf-report-baseline.mjs",
     "release": "release-it",
     "release:dry": "release-it --dry-run",
-    "release:ci": "release-it --ci"
+    "release:ci": "release-it --ci",
+    "site:dev": "pnpm --filter llm-usage-metrics-site dev",
+    "site:build": "pnpm --filter llm-usage-metrics-site build",
+    "site:preview": "pnpm --filter llm-usage-metrics-site preview",
+    "site:check": "pnpm --filter llm-usage-metrics-site check"
   },
   "keywords": [
     "llm",

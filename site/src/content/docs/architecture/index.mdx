@@ -1,0 +1,25 @@
+---
+title: Architecture
+---
+
+# Architecture
+
+:::caution
+This page is a placeholder. Architecture documentation will be detailed here.
+:::
+
+## System Overview
+
+The `llm-usage-metrics` CLI follows a pipeline architecture:
+
+```
+Parse → Normalize → Price → Render
+```
+
+## Components
+
+- **Sources**: Adapters for each LLM agent data format
+- **Domain**: Normalized data contracts
+- **Pricing**: Cost calculation engine
+- **Aggregate**: Usage bucketing and totals
+- **Render**: Output formatting (terminal, JSON, markdown)
