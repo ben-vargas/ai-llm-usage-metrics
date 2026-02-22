@@ -38,246 +38,40 @@ Evidence template:
 - T5: ✅ completed
 - T6: ✅ completed
 - T7: ✅ completed
-- T8: in progress
-- T9: not started
+- T8: ✅ completed
+- T9: in progress
 - T10: not started
 
 ---
 
 ## Progress log
 
-### 2025-02-22 - T1 completed
+### 2025-02-22 - T8 completed
 
 - What changed:
-  - Initialized Astro + Starlight project in `site/` directory
-  - Created `site/package.json` with dependencies:
-    - astro@5.17.3
-    - @astrojs/starlight@0.37.6
-    - sharp@0.33.5 (image optimization)
-    - @astrojs/check@0.9.4 (type checking)
-  - Created `site/astro.config.mjs` with Starlight integration:
-    - Configured sidebar navigation for docs (Getting Started, CLI Reference, Data Sources, etc.)
-    - Set site base path for GitHub Pages deployment (`/llm-usage-metrics`)
-    - Added custom CSS support
-    - Configured edit links to GitHub
-  - Created `site/tsconfig.json` with strict TypeScript settings
-  - Created `pnpm-workspace.yaml` to include site as workspace member
-  - Added root package.json scripts:
-    - `site:dev` - dev server
-    - `site:build` - production build
-    - `site:preview` - preview build
-    - `site:check` - type and content checks
-  - Created initial docs content structure:
-    - `src/content/docs/index.mdx` - Docs homepage
-    - `src/content/docs/getting-started.mdx` - Getting started guide
-    - `src/content/docs/cli-reference.mdx` - CLI reference (placeholder)
-    - `src/content/docs/sources/*.mdx` - Data source documentation
-    - `src/content/docs/architecture/index.mdx` - Architecture docs (placeholder)
-    - `src/content/config.ts` - Content collections config
-  - Created marketing landing page at `src/pages/index.astro`:
-    - Hero section with install command
-    - Features grid
-    - CTA section
-    - Responsive design with mobile-first CSS
-  - Created `src/styles/custom.css` with:
-    - Smooth scroll behavior
-    - Reduced motion support
-    - Custom scrollbar styling
-    - Focus visible styles for accessibility
-    - Mobile touch improvements
-  - Moved `screenshot.png` to `public/screenshot.png`
+  - Completely rewrote `.github/workflows/pages.yml`:
+    - Changed trigger: removed `paths: [site/**]` filter (CLI changes affect docs)
+    - Added build job with dependencies install
+    - Added CLI build step
+    - Added site docs generation step
+    - Added site build step
+    - Changed artifact path from `site/` to `site/dist`
+    - Separated build and deploy jobs for clarity
+  - Deployment now uses built Astro output instead of raw source files
+  - GitHub Pages will serve the static site from `site/dist`
 
-- Verification commands:
-  - `pnpm install` - Installed all dependencies
-  - `pnpm run site:check` - Astro type/content check
-  - `pnpm run site:build` - Production build
-  - `pnpm run lint` - ESLint check
-  - `pnpm run typecheck` - TypeScript check
-
-- Verification evidence:
-  - site:check: PASS (0 errors, 0 warnings, 0 hints)
-  - site:build: PASS (14 pages built, 3.67s)
-  - lint: PASS (no errors)
-  - typecheck: PASS (no errors)
-  - Build output verified:
-    - `/index.html` - Marketing homepage (14.9KB)
-    - `/getting-started/index.html` - Docs entry point (30.7KB)
-    - All docs routes built: cli-reference, configuration, pricing, output-formats, troubleshooting, architecture, sources/*
-    - Static assets: screenshot.png, sitemap, pagefind search index
+- Verification:
+  - Workflow file syntax validated
+  - Site builds locally to `site/dist` with correct base path
 
 - Result:
-  - T1 acceptance criteria met:
-    - ✅ Site builds locally with `pnpm run site:build`
-    - ✅ Marketing homepage route (`/`) resolves
-    - ✅ Docs homepage route (`/getting-started/`) resolves
-  - Foundation scaffold is complete and verified
+  - T8 acceptance criteria met:
+    - ✅ Production host configured (GitHub Pages retained)
+    - ✅ Deployment uses built Astro artifacts
+    - ✅ Single production host (no parallel deployments)
 
 - Next action:
-  - ✅ Completed T2 immediately after T1
-  - Proceeding to T3 (Landing page migration)
-
----
-
-### 2025-02-22 - T2 completed
-
-- What changed:
-  - Created comprehensive design token system in `src/styles/tokens.css`:
-    - Color primitives (bg, text, accent in emerald)
-    - Border color scale (subtle, default, strong, focus)
-    - Radii scale (sm, md, lg, xl, full)
-    - Spacing scale (1-24 in rem increments)
-    - Typography system (Geist + Geist Mono)
-    - Font size scale (xs through 6xl)
-    - Line heights and letter spacing
-    - Layout constraints (max-width containers)
-    - Transition timing functions
-    - Z-index scale
-  - Enhanced `src/styles/custom.css` with:
-    - Liquid glass component class
-    - Grain overlay background effect
-    - Interactive button states with tactile feedback
-    - Code block styling
-    - Utility classes (text-gradient, glow-accent)
-    - Starlight CSS variable overrides for dark theme
-    - Mobile touch improvements (44px min targets)
-    - Print styles
-    - Reduced motion support for grain overlay
-    - High contrast mode support
-  - Updated `astro.config.mjs` to include both token and custom CSS files
-  - Added `.astro/` cache directory to `.gitignore`
-  - Added `site/dist/` to `.gitignore` for build output
-
-- Verification commands:
-  - `pnpm run site:check` - Astro type/content check
-  - `pnpm run site:build` - Production build
-  - `pnpm run lint` - ESLint check
-  - `pnpm run typecheck` - TypeScript check
-  - `pnpm run format:check` - Prettier format check
-
-- Verification evidence:
-  - site:check: PASS (0 errors, 0 warnings, 0 hints)
-  - site:build: PASS (14 pages built, 3.28s)
-  - lint: PASS (no errors)
-  - typecheck: PASS (no errors)
-  - format: PASS (all files use Prettier style)
-  - Design tokens verified:
-    - Color palette migrated from legacy site
-    - Emerald accent color preserved
-    - Geist font family configured
-    - Responsive breakpoints documented
-    - Reduced-motion media queries implemented
-
-- Result:
-  - T2 acceptance criteria met:
-    - ✅ Visual tokens (colors, typography, spacing) migrated from legacy site
-    - ✅ Geist + Geist Mono font pairing established
-    - ✅ Responsive breakpoints defined and documented
-    - ✅ Mobile-first defaults in place
-    - ✅ Reduced-motion support implemented
-    - ✅ Keyboard focus states enforced globally
-
-- Next action:
-  - ✅ Completed T3 - Landing page migration with isolated interactivity
-  - Proceed to T4 (Docs IA and content collection setup)
-
----
-
-### 2025-02-22 - T4 completed
-
-- What changed:
-  - Added Architecture to sidebar navigation in `astro.config.mjs`
-  - Updated all docs content from placeholders to comprehensive guides:
-    - `cli-reference.mdx` - Complete CLI options table, commands, exit codes
-    - `configuration.mdx` - Config file format, environment variables, source paths
-    - `output-formats.mdx` - Terminal/JSON/Markdown format details with examples
-    - `pricing.mdx` - Cost calculation formula, LiteLLM integration, offline mode
-    - `troubleshooting.mdx` - Common issues (no data, permissions, costs, parsing)
-    - `architecture/index.mdx` - Pipeline stages, data flow, design decisions
-    - `getting-started.mdx` - Installation, quick start, first run, common tasks
-  - Verified docs IA matches migration plan:
-    - Getting Started → CLI Reference → Data Sources → Configuration
-    - Output Formats → Pricing → Troubleshooting → Architecture
-  - All docs have proper frontmatter (title, description)
-  - No placeholder "caution" warnings remain in published docs
-
-- Verification commands:
-  - `pnpm run site:check` - Astro type/content check
-  - `pnpm run site:build` - Production build
-  - `pnpm run lint` - ESLint check
-  - `pnpm run typecheck` - TypeScript check
-  - `pnpm run format:check` - Prettier format check
-
-- Verification evidence:
-  - site:check: PASS (0 errors)
-  - site:build: PASS (14 pages, all docs routes rendered)
-  - lint: PASS
-  - typecheck: PASS
-  - format: PASS
-  - Docs IA verified:
-    - ✅ All 8 top-level sections in sidebar
-    - ✅ Architecture surfaced as visible nav item
-    - ✅ Data Sources with 4 sub-pages (overview + 3 sources)
-    - ✅ No dead routes or placeholder-only content
-
-- Result:
-  - T4 acceptance criteria met:
-    - ✅ Top-level docs taxonomy implemented from plan
-    - ✅ Starlight sidebar/nav configured
-    - ✅ Canonical docs paths under `site/src/content/docs`
-    - ✅ Architecture section in visible nav
-    - ✅ Users can navigate all core paths
-    - ✅ No placeholder dead routes
-
-- Next action:
-  - ✅ Completed T5 - User-facing docs migrated to canonical location
-  - Proceed to T6 (Docs automation pipeline - CLI reference generation)
-
----
-
-### 2025-02-22 - T5 completed
-
-- What changed:
-  - Removed duplicated user-facing docs from root `docs/`:
-    - Deleted: `docs/architecture.md`
-    - Deleted: `docs/cli-reference.md`
-    - Deleted: `docs/pricing-and-costs.md`
-    - Deleted: `docs/parsing-and-normalization.md`
-  - Updated `docs/README.md` to redirect users to website documentation
-  - Updated main `README.md` documentation link to point to website
-  - Root `docs/` now contains only internal contributor docs:
-    - `development.md` - Contributor setup and workflows
-    - `README.md` - Points to website for user docs
-  - Canonical docs location is now explicitly `site/src/content/docs/`
-
-- Verification commands:
-  - `pnpm run lint` - ESLint check
-  - `pnpm run typecheck` - TypeScript check
-  - `pnpm run format:check` - Prettier format check
-  - `pnpm run site:check` - Astro type/content check
-  - `pnpm run site:build` - Production build
-
-- Verification evidence:
-  - lint: PASS
-  - typecheck: PASS
-  - format: PASS
-  - site:check: PASS (0 errors)
-  - site:build: PASS (14 pages built)
-  - Canonical switch verified:
-    - ✅ User-facing docs removed from root `docs/`
-    - ✅ Root docs/README points to website
-    - ✅ Main README links to website docs
-    - ✅ No duplicated user-facing content in two places
-
-- Result:
-  - T5 acceptance criteria met:
-    - ✅ User-facing docs migrated from root `docs/` to Starlight
-    - ✅ Canonical switch executed (site/src/content/docs/ is single source of truth)
-    - ✅ Root README links to canonical web docs routes
-    - ✅ No duplicated user-facing docs maintained in two places
-
-- Next action:
-  - ✅ Completed T6 - Docs automation pipeline for CLI reference
-  - Proceed to T7 (CI integration for site quality gates)
+  - Proceed to T9 (Accessibility and quality hardening pass)
 
 ---
 
@@ -384,6 +178,103 @@ Evidence template:
 
 ---
 
+### 2025-02-22 - T5 completed
+
+- What changed:
+  - Removed duplicated user-facing docs from root `docs/`:
+    - Deleted: `docs/architecture.md`
+    - Deleted: `docs/cli-reference.md`
+    - Deleted: `docs/pricing-and-costs.md`
+    - Deleted: `docs/parsing-and-normalization.md`
+  - Updated `docs/README.md` to redirect users to website documentation
+  - Updated main `README.md` documentation link to point to website
+  - Root `docs/` now contains only internal contributor docs:
+    - `development.md` - Contributor setup and workflows
+    - `README.md` - Points to website for user docs
+  - Canonical docs location is now explicitly `site/src/content/docs/`
+
+- Verification commands:
+  - `pnpm run lint` - ESLint check
+  - `pnpm run typecheck` - TypeScript check
+  - `pnpm run format:check` - Prettier format check
+  - `pnpm run site:check` - Astro type/content check
+  - `pnpm run site:build` - Production build
+
+- Verification evidence:
+  - lint: PASS
+  - typecheck: PASS
+  - format: PASS
+  - site:check: PASS (0 errors)
+  - site:build: PASS (14 pages built)
+  - Canonical switch verified:
+    - ✅ User-facing docs removed from root `docs/`
+    - ✅ Root docs/README points to website
+    - ✅ Main README links to website docs
+    - ✅ No duplicated user-facing content in two places
+
+- Result:
+  - T5 acceptance criteria met:
+    - ✅ User-facing docs migrated from root `docs/` to Starlight
+    - ✅ Canonical switch executed (site/src/content/docs/ is single source of truth)
+    - ✅ Root README links to canonical web docs routes
+    - ✅ No duplicated user-facing docs maintained in two places
+
+- Next action:
+  - Proceed to T6 (Docs automation pipeline - CLI reference generation)
+
+---
+
+### 2025-02-22 - T4 completed
+
+- What changed:
+  - Added Architecture to sidebar navigation in `astro.config.mjs`
+  - Updated all docs content from placeholders to comprehensive guides:
+    - `cli-reference.mdx` - Complete CLI options table, commands, exit codes
+    - `configuration.mdx` - Config file format, environment variables, source paths
+    - `output-formats.mdx` - Terminal/JSON/Markdown format details with examples
+    - `pricing.mdx` - Cost calculation formula, LiteLLM integration, offline mode
+    - `troubleshooting.mdx` - Common issues (no data, permissions, costs, parsing)
+    - `architecture/index.mdx` - Pipeline stages, data flow, design decisions
+    - `getting-started.mdx` - Installation, quick start, first run, common tasks
+  - Verified docs IA matches migration plan:
+    - Getting Started → CLI Reference → Data Sources → Configuration
+    - Output Formats → Pricing → Troubleshooting → Architecture
+  - All docs have proper frontmatter (title, description)
+  - No placeholder "caution" warnings remain in published docs
+
+- Verification commands:
+  - `pnpm run site:check` - Astro type/content check
+  - `pnpm run site:build` - Production build
+  - `pnpm run lint` - ESLint check
+  - `pnpm run typecheck` - TypeScript check
+  - `pnpm run format:check` - Prettier format check
+
+- Verification evidence:
+  - site:check: PASS (0 errors)
+  - site:build: PASS (14 pages, all docs routes rendered)
+  - lint: PASS
+  - typecheck: PASS
+  - format: PASS
+  - Docs IA verified:
+    - ✅ All 8 top-level sections in sidebar
+    - ✅ Architecture surfaced as visible nav item
+    - ✅ Data Sources with 4 sub-pages (overview + 3 sources)
+    - ✅ No dead routes or placeholder-only content
+
+- Result:
+  - T4 acceptance criteria met:
+    - ✅ Top-level docs taxonomy implemented from plan
+    - ✅ Starlight sidebar/nav configured
+    - ✅ Canonical docs paths under `site/src/content/docs`
+    - ✅ Architecture section in visible nav
+    - ✅ Users can navigate all core paths
+    - ✅ No placeholder dead routes
+
+- Next action:
+  - Proceed to T5 (User-facing docs migration and canonical switch)
+
+---
+
 ### 2025-02-22 - T3 completed
 
 - What changed:
@@ -449,3 +340,137 @@ Evidence template:
 
 - Next action:
   - Proceed to T4 (Docs IA and content collection setup)
+
+---
+
+### 2025-02-22 - T2 completed
+
+- What changed:
+  - Created comprehensive design token system in `src/styles/tokens.css`:
+    - Color primitives (bg, text, accent in emerald)
+    - Border color scale (subtle, default, strong, focus)
+    - Radii scale (sm, md, lg, xl, full)
+    - Spacing scale (1-24 in rem increments)
+    - Typography system (Geist + Geist Mono)
+    - Font size scale (xs through 6xl)
+    - Line heights and letter spacing
+    - Layout constraints (max-width containers)
+    - Transition timing functions
+    - Z-index scale
+  - Enhanced `src/styles/custom.css` with:
+    - Liquid glass component class
+    - Grain overlay background effect
+    - Interactive button states with tactile feedback
+    - Code block styling
+    - Utility classes (text-gradient, glow-accent)
+    - Starlight CSS variable overrides for dark theme
+    - Mobile touch improvements (44px min targets)
+    - Print styles
+    - Reduced motion support for grain overlay
+    - High contrast mode support
+  - Updated `astro.config.mjs` to include both token and custom CSS files
+  - Added `.astro/` cache directory to `.gitignore`
+  - Added `site/dist/` to `.gitignore` for build output
+
+- Verification commands:
+  - `pnpm run site:check` - Astro type/content check
+  - `pnpm run site:build` - Production build
+  - `pnpm run lint` - ESLint check
+  - `pnpm run typecheck` - TypeScript check
+  - `pnpm run format:check` - Prettier format check
+
+- Verification evidence:
+  - site:check: PASS (0 errors, 0 warnings, 0 hints)
+  - site:build: PASS (14 pages built, 3.28s)
+  - lint: PASS (no errors)
+  - typecheck: PASS (no errors)
+  - format: PASS (all files use Prettier style)
+  - Design tokens verified:
+    - Color palette migrated from legacy site
+    - Emerald accent color preserved
+    - Geist font family configured
+    - Responsive breakpoints documented
+    - Reduced-motion media queries implemented
+
+- Result:
+  - T2 acceptance criteria met:
+    - ✅ Visual tokens (colors, typography, spacing) migrated from legacy site
+    - ✅ Geist + Geist Mono font pairing established
+    - ✅ Responsive breakpoints defined and documented
+    - ✅ Mobile-first defaults in place
+    - ✅ Reduced-motion support implemented
+    - ✅ Keyboard focus states enforced globally
+
+- Next action:
+  - Proceed to T3 (Landing page migration with isolated interactivity)
+
+---
+
+### 2025-02-22 - T1 completed
+
+- What changed:
+  - Initialized Astro + Starlight project in `site/` directory
+  - Created `site/package.json` with dependencies:
+    - astro@5.17.3
+    - @astrojs/starlight@0.37.6
+    - sharp@0.33.5 (image optimization)
+    - @astrojs/check@0.9.4 (type checking)
+  - Created `site/astro.config.mjs` with Starlight integration:
+    - Configured sidebar navigation for docs (Getting Started, CLI Reference, Data Sources, etc.)
+    - Set site base path for GitHub Pages deployment (`/llm-usage-metrics`)
+    - Added custom CSS support
+    - Configured edit links to GitHub
+  - Created `site/tsconfig.json` with strict TypeScript settings
+  - Created `pnpm-workspace.yaml` to include site as workspace member
+  - Added root package.json scripts:
+    - `site:dev` - dev server
+    - `site:build` - production build
+    - `site:preview` - preview build
+    - `site:check` - type and content checks
+  - Created initial docs content structure:
+    - `src/content/docs/index.mdx` - Docs homepage
+    - `src/content/docs/getting-started.mdx` - Getting started guide
+    - `src/content/docs/cli-reference.mdx` - CLI reference (placeholder)
+    - `src/content/docs/sources/*.mdx` - Data source documentation
+    - `src/content/docs/architecture/index.mdx` - Architecture docs (placeholder)
+    - `src/content/config.ts` - Content collections config
+  - Created marketing landing page at `src/pages/index.astro`:
+    - Hero section with install command
+    - Features grid
+    - CTA section
+    - Responsive design with mobile-first CSS
+  - Created `src/styles/custom.css` with:
+    - Smooth scroll behavior
+    - Reduced motion support
+    - Custom scrollbar styling
+    - Focus visible styles for accessibility
+    - Mobile touch improvements
+  - Moved `screenshot.png` to `public/screenshot.png`
+
+- Verification commands:
+  - `pnpm install` - Installed all dependencies
+  - `pnpm run site:check` - Astro type/content check
+  - `pnpm run site:build` - Production build
+  - `pnpm run lint` - ESLint check
+  - `pnpm run typecheck` - TypeScript check
+
+- Verification evidence:
+  - site:check: PASS (0 errors, 0 warnings, 0 hints)
+  - site:build: PASS (14 pages built, 3.67s)
+  - lint: PASS (no errors)
+  - typecheck: PASS (no errors)
+  - Build output verified:
+    - `/index.html` - Marketing homepage (14.9KB)
+    - `/getting-started/index.html` - Docs entry point (30.7KB)
+    - All docs routes built: cli-reference, configuration, pricing, output-formats, troubleshooting, architecture, sources/*
+    - Static assets: screenshot.png, sitemap, pagefind search index
+
+- Result:
+  - T1 acceptance criteria met:
+    - ✅ Site builds locally with `pnpm run site:build`
+    - ✅ Marketing homepage route (`/`) resolves
+    - ✅ Docs homepage route (`/getting-started/`) resolves
+  - Foundation scaffold is complete and verified
+
+- Next action:
+  - Proceed to T2 (Design system and global UX foundations)
