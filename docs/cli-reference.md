@@ -87,7 +87,9 @@ When outputting to terminal (default), the CLI emits:
 ### `stderr` diagnostics
 
 1. **Session summary**: total files/events and per-source breakdown
-2. **Pricing source message**: cache / network / offline-cache
+2. **Source failure summary** (when present): failing source ids and reasons
+3. **Malformed-row summary** (when present): skipped rows with per-source reason counts
+4. **Pricing source message**: cache / network / offline-cache
 
 ### `stdout` report body
 

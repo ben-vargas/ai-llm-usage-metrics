@@ -25,11 +25,13 @@ export async function runWithBusyRetries<T>(
       if (isBusy) {
         throw new Error(
           `OpenCode DB is busy/locked: ${options.dbPath}. Retries exhausted after ${options.maxBusyRetries + 1} attempt(s). Close active OpenCode processes and retry.`,
+          { cause: error },
         );
       }
 
       throw new Error(
         `Could not read OpenCode DB at ${options.dbPath}: ${formatSqliteError(error)}`,
+        { cause: error },
       );
     }
   }

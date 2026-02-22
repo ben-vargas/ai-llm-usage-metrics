@@ -33,16 +33,20 @@ export async function resolvePricingSource(
     return { source: litellmPricingFetcher, origin: fromCache ? 'cache' : 'network' };
   } catch (error) {
     if (options.pricingOffline) {
-      throw new Error('Offline pricing mode enabled but cached pricing is unavailable');
+      throw new Error('Offline pricing mode enabled but cached pricing is unavailable', {
+        cause: error,
+      });
     }
 
     const reason = error instanceof Error ? error.message : String(error);
 
     if (options.pricingUrl) {
-      throw new Error(`Could not load pricing from --pricing-url: ${reason}`);
+      throw new Error(`Could not load pricing from --pricing-url: ${reason}`, {
+        cause: error,
+      });
     }
 
-    throw new Error(`Could not load LiteLLM pricing: ${reason}`);
+    throw new Error(`Could not load LiteLLM pricing: ${reason}`, { cause: error });
   }
 }
 
