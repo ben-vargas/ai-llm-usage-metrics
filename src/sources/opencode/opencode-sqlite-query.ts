@@ -154,7 +154,16 @@ function executeQueryRows(
   const statement = database.prepare(query);
 
   if (statement.iterate) {
-    return statement.iterate();
+    const iterator = statement.iterate();
+    const firstResult = iterator.next();
+
+    return (function* iterRows(): IterableIterator<OpenCodeSqliteRow> {
+      if (!firstResult.done) {
+        yield firstResult.value;
+      }
+
+      yield* iterator;
+    })();
   }
 
   return statement.all();

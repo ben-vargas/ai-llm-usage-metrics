@@ -12,12 +12,18 @@ type FakeScenario = {
 };
 
 type FakeDatabase = {
-  prepare: (sql: string) => { all: () => Record<string, unknown>[] };
+  prepare: (sql: string) => {
+    all: () => Record<string, unknown>[];
+    iterate?: () => IterableIterator<Record<string, unknown>>;
+  };
 };
 
 function createFakeDatabase(scenario: FakeScenario): FakeDatabase {
   return {
-    prepare(sql: string): { all: () => Record<string, unknown>[] } {
+    prepare(sql: string): {
+      all: () => Record<string, unknown>[];
+      iterate?: () => IterableIterator<Record<string, unknown>>;
+    } {
       scenario.seenQueries?.push(sql);
 
       if (sql.includes('sqlite_master')) {
@@ -194,5 +200,71 @@ describe('opencode sqlite query', () => {
       { row_id: 'iter-1', data_json: '{}' },
       { row_id: 'iter-2', data_json: '{}' },
     ]);
+  });
+
+  it('falls back when iterate() throws json-function error on first next()', () => {
+    const seenQueries: string[] = [];
+
+    const database = {
+      prepare(sql: string): {
+        all: () => Record<string, unknown>[];
+        iterate?: () => IterableIterator<Record<string, unknown>>;
+      } {
+        seenQueries.push(sql);
+
+        if (sql.includes('sqlite_master')) {
+          return {
+            all: () => [{ name: 'message' }],
+          };
+        }
+
+        if (/PRAGMA\s+table_info\(/iu.test(sql)) {
+          return {
+            all: () => [
+              { name: 'id' },
+              { name: 'time_created' },
+              { name: 'session_id' },
+              { name: 'data' },
+            ],
+          };
+        }
+
+        if (sql.includes('json_extract(')) {
+          return {
+            all: () => {
+              throw new Error('all() should not be used when iterate() is available');
+            },
+            iterate: (): IterableIterator<Record<string, unknown>> => ({
+              [Symbol.iterator]() {
+                return this;
+              },
+              next(): IteratorResult<Record<string, unknown>> {
+                throw new Error('no such function: json_valid');
+              },
+              return(): IteratorResult<Record<string, unknown>> {
+                return { done: true, value: undefined };
+              },
+              throw(error: unknown): IteratorResult<Record<string, unknown>> {
+                throw error;
+              },
+            }),
+          };
+        }
+
+        return {
+          all: () => [{ row_id: 'iter-fallback', data_json: '{}' }],
+        };
+      },
+    };
+
+    const rows = [...queryOpenCodeMessageRows(database)];
+
+    expect(rows).toEqual([{ row_id: 'iter-fallback', data_json: '{}' }]);
+    expect(seenQueries.some((query) => query.includes('json_extract('))).toBe(true);
+    expect(
+      seenQueries.some(
+        (query) => query.includes('FROM "message"') && !query.includes('json_extract('),
+      ),
+    ).toBe(true);
   });
 });

@@ -1,7 +1,10 @@
 import type { UsageEvent } from '../domain/usage-event.js';
 import { compareByCodePoint } from '../utils/compare-by-code-point.js';
-import type { SourceAdapter, SourceParseFileDiagnostics } from '../sources/source-adapter.js';
-import type { SourceSkippedRowReasonStat } from '../sources/source-adapter.js';
+import type {
+  SourceAdapter,
+  SourceParseFileDiagnostics,
+  SourceSkippedRowReasonStat,
+} from '../sources/source-adapter.js';
 import { asRecord } from '../utils/as-record.js';
 import { getPeriodKey } from '../utils/time-buckets.js';
 

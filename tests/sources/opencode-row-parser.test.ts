@@ -150,6 +150,30 @@ describe('opencode row parser', () => {
     });
   });
 
+  it('coerces numeric row_id fallback into a valid session id', () => {
+    const parseDiagnostics = parseOpenCodeMessageRows(
+      [
+        {
+          row_id: 42,
+          row_time: 1_737_000_040_000,
+          data_json: JSON.stringify({
+            role: 'assistant',
+            model: 'gpt-4.1',
+            tokens: { input: 2, output: 3, total: 5 },
+          }),
+        },
+      ],
+      'opencode',
+    );
+
+    expect(parseDiagnostics.skippedRows).toBe(0);
+    expect(parseDiagnostics.events).toHaveLength(1);
+    expect(parseDiagnostics.events[0]).toMatchObject({
+      sessionId: '42',
+      totalTokens: 5,
+    });
+  });
+
   it('treats explicit zero cost as usage signal and keeps explicit cost mode', () => {
     const parseDiagnostics = parseOpenCodeMessageRows(
       [

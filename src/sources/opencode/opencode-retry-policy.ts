@@ -15,12 +15,14 @@ export async function runWithBusyRetries<T>(
     try {
       return await operation();
     } catch (error) {
-      if (isBusyOrLockedSqliteError(error) && attempt < options.maxBusyRetries) {
+      const isBusy = isBusyOrLockedSqliteError(error);
+
+      if (isBusy && attempt < options.maxBusyRetries) {
         await options.sleep(options.busyRetryDelayMs * (attempt + 1));
         continue;
       }
 
-      if (isBusyOrLockedSqliteError(error)) {
+      if (isBusy) {
         throw new Error(
           `OpenCode DB is busy/locked: ${options.dbPath}. Retries exhausted after ${options.maxBusyRetries + 1} attempt(s). Close active OpenCode processes and retry.`,
         );

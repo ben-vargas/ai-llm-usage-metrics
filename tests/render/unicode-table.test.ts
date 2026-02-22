@@ -52,4 +52,25 @@ describe('renderUnicodeTable', () => {
 
     expect(rendered).toContain('2026-02-22');
   });
+
+  it('uses max column count across rows to keep later wider rows aligned', () => {
+    const rendered = renderUnicodeTable({
+      headerCells: ['Period', 'Source'],
+      bodyRows: [
+        ['2026-02-22', 'pi'],
+        ['2026-02-22', 'opencode', 'extra-cell'],
+      ],
+      measureHeaderCells: ['Period', 'Source'],
+      measureBodyRows: [
+        ['2026-02-22', 'pi'],
+        ['2026-02-22', 'opencode', 'extra-cell'],
+      ],
+      usageRows: [createUsageRow(), createUsageRow({ source: 'opencode' })],
+      tableLayout: 'compact',
+      modelsColumnIndex: 1,
+      modelsColumnWidth: 12,
+    });
+
+    expect(rendered).toContain('extra-cell');
+  });
 });

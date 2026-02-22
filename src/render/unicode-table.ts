@@ -184,6 +184,16 @@ function padRowToColumnCount(row: string[] | undefined, columnCount: number): st
   ];
 }
 
+function getMaxRowColumnCount(
+  rows: readonly (readonly string[])[],
+  minimumColumnCount: number,
+): number {
+  return rows.reduce(
+    (maxColumnCount, row) => Math.max(maxColumnCount, row.length),
+    minimumColumnCount,
+  );
+}
+
 function normalizeRenderableUsageRows(options: {
   usageRows: UsageReportRow[];
   bodyRows: string[][];
@@ -232,12 +242,15 @@ function computeColumnWidths(
   measureRows: readonly (readonly string[])[],
   options: { modelsColumnIndex: number; modelsColumnWidth: number },
 ): number[] {
-  const columnCount = measureRows[0]?.length ?? 0;
+  const columnCount = measureRows.reduce(
+    (maxColumnCount, row) => Math.max(maxColumnCount, row.length),
+    0,
+  );
   const widths = Array.from({ length: columnCount }, () => 0);
 
   for (const row of measureRows) {
     for (let columnIndex = 0; columnIndex < columnCount; columnIndex += 1) {
-      for (const line of splitCellLines(row[columnIndex])) {
+      for (const line of splitCellLines(row[columnIndex] ?? '')) {
         widths[columnIndex] = Math.max(widths[columnIndex], visibleWidth(line));
       }
     }
@@ -249,10 +262,15 @@ function computeColumnWidths(
 }
 
 export function renderUnicodeTable(options: RenderUnicodeTableOptions): string {
-  const bodyColumnCount = Math.max(options.headerCells.length, options.bodyRows[0]?.length ?? 0);
-  const measureColumnCount = Math.max(
+  const bodyColumnCount = getMaxRowColumnCount(options.bodyRows, options.headerCells.length);
+  const measureColumnCount = getMaxRowColumnCount(
+    options.measureBodyRows,
     options.measureHeaderCells.length,
-    options.measureBodyRows[0]?.length ?? 0,
+  );
+  const normalizedHeaderCells = padRowToColumnCount([...options.headerCells], bodyColumnCount);
+  const normalizedMeasureHeaderCells = padRowToColumnCount(
+    [...options.measureHeaderCells],
+    measureColumnCount,
   );
   const normalizedRenderableRows = normalizeRenderableUsageRows({
     usageRows: options.usageRows,
@@ -264,7 +282,7 @@ export function renderUnicodeTable(options: RenderUnicodeTableOptions): string {
   const normalizedBodyRows = normalizedRenderableRows.map((row) => row.bodyRow);
   const normalizedMeasureBodyRows = normalizedRenderableRows.map((row) => row.measureBodyRow);
   const normalizedUsageRows = normalizedRenderableRows.map((row) => row.usageRow);
-  const measureRows = [options.measureHeaderCells, ...normalizedMeasureBodyRows];
+  const measureRows = [normalizedMeasureHeaderCells, ...normalizedMeasureBodyRows];
   const widths = computeColumnWidths(measureRows, {
     modelsColumnIndex: options.modelsColumnIndex,
     modelsColumnWidth: options.modelsColumnWidth,
@@ -279,7 +297,7 @@ export function renderUnicodeTable(options: RenderUnicodeTableOptions): string {
     }),
   );
   renderedLines.push(
-    ...toRenderableRowLines(options.headerCells, {
+    ...toRenderableRowLines(normalizedHeaderCells, {
       widths,
       tableLayout: 'per_model_columns',
       modelsColumnIndex: options.modelsColumnIndex,

@@ -96,6 +96,14 @@ function parseNonNegativeNumber(value: unknown): number | undefined {
   return numberValue;
 }
 
+function normalizeSessionIdCandidate(value: unknown): string | undefined {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return String(value);
+  }
+
+  return asTrimmedText(value);
+}
+
 function hasUsageSignal(usageFields: Array<unknown>, explicitCost: number | undefined): boolean {
   if (explicitCost !== undefined) {
     return true;
@@ -158,11 +166,11 @@ export function parseOpenCodeMessageRows(
     }
 
     const sessionId =
-      asTrimmedText(row.row_session_id) ??
-      asTrimmedText(payload.sessionID) ??
-      asTrimmedText(payload.sessionId) ??
-      asTrimmedText(payload.session_id) ??
-      asTrimmedText(row.row_id);
+      normalizeSessionIdCandidate(row.row_session_id) ??
+      normalizeSessionIdCandidate(payload.sessionID) ??
+      normalizeSessionIdCandidate(payload.sessionId) ??
+      normalizeSessionIdCandidate(payload.session_id) ??
+      normalizeSessionIdCandidate(row.row_id);
 
     if (!sessionId) {
       recordSkippedRow('missing_session_id');
