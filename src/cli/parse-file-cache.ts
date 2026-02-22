@@ -95,6 +95,10 @@ function normalizeCachedUsageEvent(value: unknown): UsageEvent | undefined {
     return undefined;
   }
 
+  if (Number.isNaN(new Date(timestamp).getTime())) {
+    return undefined;
+  }
+
   const costMode =
     record.costMode === 'explicit' || record.costMode === 'estimated' ? record.costMode : undefined;
 
@@ -145,6 +149,14 @@ function normalizeCachedUsageEvent(value: unknown): UsageEvent | undefined {
   };
 }
 
+function cloneUsageEvent(event: UsageEvent): UsageEvent {
+  return { ...event };
+}
+
+function cloneUsageEvents(events: UsageEvent[]): UsageEvent[] {
+  return events.map((event) => cloneUsageEvent(event));
+}
+
 function normalizeCachedEvents(value: unknown): UsageEvent[] | undefined {
   if (!Array.isArray(value)) {
     return undefined;
@@ -174,11 +186,13 @@ function normalizeCacheEntry(value: unknown): ParseFileCacheEntry | undefined {
 
   const source = typeof record.source === 'string' ? record.source.trim() : '';
   const filePath = typeof record.filePath === 'string' ? record.filePath.trim() : '';
-  const size = toNonNegativeInteger(record.size);
-  const mtimeMs = toNonNegativeInteger(record.mtimeMs);
   const cachedAt = toNonNegativeInteger(record.cachedAt);
-  const skippedRows = toNonNegativeInteger(record.skippedRows) ?? 0;
-  const events = normalizeCachedEvents(record.events);
+  const fingerprint = asRecord(record.fingerprint);
+  const diagnostics = asRecord(record.diagnostics);
+  const size = toNonNegativeInteger(fingerprint?.size);
+  const mtimeMs = toNonNegativeInteger(fingerprint?.mtimeMs);
+  const skippedRows = toNonNegativeInteger(diagnostics?.skippedRows) ?? 0;
+  const events = normalizeCachedEvents(diagnostics?.events);
 
   if (
     !source ||
@@ -260,7 +274,7 @@ export class ParseFileCache {
     }
 
     return {
-      events: [...entry.diagnostics.events],
+      events: cloneUsageEvents(entry.diagnostics.events),
       skippedRows: entry.diagnostics.skippedRows,
       skippedRowReasons: [...(entry.diagnostics.skippedRowReasons ?? [])],
     };
@@ -281,7 +295,7 @@ export class ParseFileCache {
       },
       cachedAt: this.now(),
       diagnostics: {
-        events: [...diagnostics.events],
+        events: cloneUsageEvents(diagnostics.events),
         skippedRows: diagnostics.skippedRows,
         skippedRowReasons: [...(diagnostics.skippedRowReasons ?? [])],
       },
@@ -375,29 +389,14 @@ export class ParseFileCache {
       return;
     }
 
+    if (Buffer.byteLength(content, 'utf8') > this.limits.maxBytes) {
+      this.dirty = true;
+    }
+
     const entries = Array.isArray(payloadRecord.entries) ? payloadRecord.entries : [];
 
     for (const rawEntry of entries) {
-      const legacyEntryRecord = asRecord(rawEntry);
-      const normalizedEntry = normalizeCacheEntry(
-        legacyEntryRecord
-          ? {
-              source: legacyEntryRecord.source,
-              filePath: legacyEntryRecord.filePath,
-              size: asRecord(legacyEntryRecord.fingerprint)?.size ?? legacyEntryRecord.size,
-              mtimeMs:
-                asRecord(legacyEntryRecord.fingerprint)?.mtimeMs ?? legacyEntryRecord.mtimeMs,
-              cachedAt: legacyEntryRecord.cachedAt,
-              skippedRows:
-                asRecord(legacyEntryRecord.diagnostics)?.skippedRows ??
-                legacyEntryRecord.skippedRows,
-              skippedRowReasons:
-                asRecord(legacyEntryRecord.diagnostics)?.skippedRowReasons ??
-                legacyEntryRecord.skippedRowReasons,
-              events: asRecord(legacyEntryRecord.diagnostics)?.events ?? legacyEntryRecord.events,
-            }
-          : rawEntry,
-      );
+      const normalizedEntry = normalizeCacheEntry(rawEntry);
 
       if (!normalizedEntry) {
         this.dirty = true;
@@ -413,6 +412,10 @@ export class ParseFileCache {
         createCacheKey(normalizedEntry.source, normalizedEntry.filePath),
         normalizedEntry,
       );
+    }
+
+    if (this.entriesByKey.size > this.limits.maxEntries) {
+      this.dirty = true;
     }
   }
 }
