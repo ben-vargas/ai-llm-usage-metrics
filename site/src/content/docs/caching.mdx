@@ -89,6 +89,6 @@ LLM_USAGE_PRICING_CACHE_TTL_MS=7200000 llm-usage monthly
 
 ## Troubleshooting cache behavior
 
-- If pricing fails in offline mode, run once without `--pricing-offline` to warm the cache.
-- If reports look stale after source file changes, verify source files updated `mtime` and cache TTL settings.
-- If you need fresh update checks every run, set `LLM_USAGE_UPDATE_CACHE_TTL_MS=0`.
+- When pricing fails in offline mode, run once without `--pricing-offline` to warm the cache.
+- For stale reports after source file changes, verify source files updated `mtime` and cache TTL settings.
+- To force update checks every run, set `LLM_USAGE_UPDATE_CACHE_TTL_MS=0`.

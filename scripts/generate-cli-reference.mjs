@@ -31,6 +31,7 @@ function ensureDistBuild() {
 function normalizeDescription(text) {
   return text
     .replace(/\(default:\s*"[^"]+"\)/g, '(default: local system timezone)')
+    .replace(/\bmarkdown\b/giu, 'Markdown')
     .replace(/\s+/g, ' ')
     .trim();
 }
