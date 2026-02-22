@@ -43,7 +43,10 @@ function normalizeDescription(text, optionLong) {
       ? text.replace(/\(default:\s*"[^"]+"\)/g, '(default: local system timezone)')
       : text;
 
-  return timezoneNormalizedText.replace(/\bmarkdown\b/giu, 'Markdown').replace(/\s+/g, ' ').trim();
+  return timezoneNormalizedText
+    .replace(/\bmarkdown\b/giu, 'Markdown')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function parseOptions(helpText) {
@@ -85,7 +88,10 @@ function parseOptions(helpText) {
     }
 
     if (current) {
-      current.description = normalizeDescription(`${current.description} ${line.trim()}`, current.long);
+      current.description = normalizeDescription(
+        `${current.description} ${line.trim()}`,
+        current.long,
+      );
     }
   }
 
@@ -182,7 +188,9 @@ function main() {
   );
 
   const options = sortOptions(
-    deduplicateOptions([parseOptions(rootHelp), ...commandHelps.map((helpText) => parseOptions(helpText))].flat()),
+    deduplicateOptions(
+      [parseOptions(rootHelp), ...commandHelps.map((helpText) => parseOptions(helpText))].flat(),
+    ),
   );
   const markdown = generateMarkdown(version, options);
 
