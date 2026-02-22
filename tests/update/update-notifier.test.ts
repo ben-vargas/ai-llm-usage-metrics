@@ -8,6 +8,7 @@ import {
   checkForUpdatesAndMaybeRestart,
   compareVersions,
   isCacheFresh,
+  isLikelyNpxExecution,
   resolveLatestVersion,
   shouldOfferUpdate,
   shouldSkipUpdateCheckForArgv,
@@ -303,6 +304,20 @@ describe('update-notifier', () => {
     expect(notify).not.toHaveBeenCalled();
   });
 
+  it('detects npx execution from npm_execpath hints', () => {
+    expect(
+      isLikelyNpxExecution(['/usr/bin/node', '/app/dist/index.js', 'daily'], {
+        npm_execpath: '/usr/lib/node_modules/npm/bin/npx-cli.js',
+      }),
+    ).toBe(true);
+
+    expect(
+      isLikelyNpxExecution(['/usr/bin/node', '/app/dist/index.js', 'daily'], {
+        npm_execpath: '/usr/lib/node_modules/pnpm/bin/pnpm.js',
+      }),
+    ).toBe(false);
+  });
+
   it('skips update checks for help/version invocations', async () => {
     const fetchSpy = vi.fn(async () => {
       throw new Error('fetch should not be called when check is skipped');
@@ -337,6 +352,42 @@ describe('update-notifier', () => {
 
     expect(result).toEqual({ continueExecution: true });
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('continues without notifying when the latest version is not newer', async () => {
+    const notify = vi.fn();
+
+    const result = await checkForUpdatesAndMaybeRestart({
+      packageName: 'llm-usage-metrics',
+      currentVersion: '0.2.0',
+      fetchImpl: vi.fn(
+        async () => new Response(JSON.stringify({ version: '0.2.0' }), { status: 200 }),
+      ),
+      stdinIsTTY: false,
+      stdoutIsTTY: false,
+      env: {},
+      notify,
+    });
+
+    expect(result).toEqual({ continueExecution: true });
+    expect(notify).not.toHaveBeenCalled();
+  });
+
+  it('swallows unexpected notifier errors and continues execution', async () => {
+    const result = await checkForUpdatesAndMaybeRestart({
+      packageName: 'llm-usage-metrics',
+      currentVersion: '0.1.0',
+      now: () => {
+        throw new Error('clock unavailable');
+      },
+      fetchImpl: vi.fn(
+        async () => new Response(JSON.stringify({ version: '0.2.0' }), { status: 200 }),
+      ),
+      env: {},
+      notify: vi.fn(),
+    });
+
+    expect(result).toEqual({ continueExecution: true });
   });
 
   it('prompts in interactive mode and respects the no-install branch', async () => {

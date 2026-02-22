@@ -5,6 +5,13 @@ import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { buildUsageData } from '../../src/cli/build-usage-data.js';
+import { buildUsageDiagnostics } from '../../src/cli/build-usage-data-diagnostics.js';
+import {
+  normalizeSourceFilter,
+  selectAdaptersForParsing,
+} from '../../src/cli/build-usage-data-inputs.js';
+import { filterUsageEvents } from '../../src/cli/build-usage-data-parsing.js';
+import { shouldLoadPricingSource } from '../../src/cli/build-usage-data-pricing.js';
 import type { PricingLoadResult } from '../../src/cli/usage-data-contracts.js';
 import { createUsageEvent } from '../../src/domain/usage-event.js';
 import type { SourceAdapter } from '../../src/sources/source-adapter.js';
@@ -109,6 +116,129 @@ function withDeterministicRuntimeDeps() {
     getActiveEnvVarOverrides: () => [],
   };
 }
+
+describe('build-usage-data helper modules', () => {
+  it('normalizes source filters and preserves adapter order during selection', () => {
+    const sourceFilter = normalizeSourceFilter([' codex, pi ', 'codex']);
+
+    const selectedAdapters = selectAdaptersForParsing(
+      [createAdapter('pi', {}), createAdapter('codex', {}), createAdapter('opencode', {})],
+      sourceFilter,
+    );
+
+    expect(sourceFilter ? [...sourceFilter] : []).toEqual(['codex', 'pi']);
+    expect(selectedAdapters.map((adapter) => adapter.id)).toEqual(['pi', 'codex']);
+  });
+
+  it('uses post-date-filter model availability when choosing exact vs substring matching', () => {
+    const filteredEvents = filterUsageEvents(
+      [
+        createEvent({
+          timestamp: '2026-02-13T10:00:00.000Z',
+          model: 'claude-sonnet-4.5',
+          totalTokens: 10,
+        }),
+        createEvent({
+          timestamp: '2026-02-14T10:00:00.000Z',
+          model: 'claude-sonnet-4.5-v2',
+          totalTokens: 20,
+        }),
+      ],
+      {
+        timezone: 'UTC',
+        since: '2026-02-14',
+        until: '2026-02-14',
+        modelFilter: ['claude-sonnet-4.5'],
+      },
+    );
+
+    expect(filteredEvents).toHaveLength(1);
+    expect(filteredEvents[0]?.model).toBe('claude-sonnet-4.5-v2');
+  });
+
+  it('decides pricing loading based on model presence, usage, and explicit cost state', () => {
+    expect(shouldLoadPricingSource([])).toBe(false);
+    expect(
+      shouldLoadPricingSource([
+        createEvent({
+          totalTokens: 0,
+          inputTokens: 0,
+          outputTokens: 0,
+          reasoningTokens: 0,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          costMode: 'estimated',
+          costUsd: undefined,
+        }),
+      ]),
+    ).toBe(false);
+    expect(
+      shouldLoadPricingSource([
+        createEvent({
+          model: undefined,
+          costMode: 'estimated',
+          costUsd: undefined,
+        }),
+      ]),
+    ).toBe(false);
+    expect(
+      shouldLoadPricingSource([
+        createEvent({
+          costMode: 'explicit',
+          costUsd: 0.12,
+        }),
+      ]),
+    ).toBe(false);
+    expect(
+      shouldLoadPricingSource([
+        createEvent({
+          costMode: 'estimated',
+          costUsd: undefined,
+        }),
+      ]),
+    ).toBe(true);
+    expect(
+      shouldLoadPricingSource([
+        createEvent({
+          costMode: 'explicit',
+          costUsd: 0,
+        }),
+      ]),
+    ).toBe(true);
+  });
+
+  it('assembles diagnostics from parse results while preserving adapter order', () => {
+    const diagnostics = buildUsageDiagnostics({
+      adaptersToParse: [createAdapter('pi', {}), createAdapter('codex', {})],
+      successfulParseResults: [
+        {
+          source: 'codex',
+          events: [
+            createEvent({ source: 'codex', sessionId: 'codex-session-1' }),
+            createEvent({ source: 'codex', sessionId: 'codex-session-2' }),
+          ],
+          filesFound: 2,
+          skippedRows: 3,
+        },
+      ],
+      sourceFailures: [{ source: 'pi', reason: 'pi parse failed' }],
+      pricingOrigin: 'none',
+      activeEnvOverrides: [],
+      timezone: 'UTC',
+    });
+
+    expect(diagnostics).toMatchObject({
+      sessionStats: [
+        { source: 'pi', filesFound: 0, eventsParsed: 0 },
+        { source: 'codex', filesFound: 2, eventsParsed: 2 },
+      ],
+      sourceFailures: [{ source: 'pi', reason: 'pi parse failed' }],
+      skippedRows: [{ source: 'codex', skippedRows: 3 }],
+      pricingOrigin: 'none',
+      timezone: 'UTC',
+    });
+  });
+});
 
 describe('buildUsageData', () => {
   it('returns no-sessions diagnostics without loading pricing', async () => {

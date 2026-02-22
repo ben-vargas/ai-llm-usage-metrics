@@ -1,11 +1,112 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  defaultNotify,
+  isInteractiveSession,
   runInteractiveInstallAndRestart,
+  runCommandWithSpawn,
   type CommandRunner,
 } from '../../src/update/update-install-runner.js';
 
+afterEach(() => {
+  vi.doUnmock('node:readline/promises');
+  vi.resetModules();
+  vi.restoreAllMocks();
+});
+
+async function loadDefaultConfirmInstallWithMock(options: {
+  answer?: string;
+  error?: Error;
+}): Promise<{
+  close: ReturnType<typeof vi.fn>;
+  defaultConfirmInstall: (prompt: string) => Promise<boolean>;
+  question: ReturnType<typeof vi.fn>;
+}> {
+  const close = vi.fn();
+  let question: ReturnType<typeof vi.fn>;
+
+  if (options.error) {
+    const thrownError = options.error;
+    question = vi.fn(async () => {
+      throw thrownError;
+    });
+  } else {
+    question = vi.fn(async () => options.answer ?? '');
+  }
+
+  vi.doMock('node:readline/promises', () => ({
+    createInterface: vi.fn(() => ({
+      question,
+      close,
+    })),
+  }));
+
+  // eslint-disable-next-line no-restricted-syntax
+  const module = await import('../../src/update/update-install-runner.js');
+
+  return {
+    close,
+    defaultConfirmInstall: module.defaultConfirmInstall,
+    question,
+  };
+}
+
 describe('update-install-runner', () => {
+  it('detects interactive sessions only when both TTYs are present and CI is unset', () => {
+    expect(isInteractiveSession({ env: {}, stdinIsTTY: true, stdoutIsTTY: true })).toBe(true);
+    expect(isInteractiveSession({ env: { CI: '1' }, stdinIsTTY: true, stdoutIsTTY: true })).toBe(
+      false,
+    );
+    expect(isInteractiveSession({ env: {}, stdinIsTTY: false, stdoutIsTTY: true })).toBe(false);
+    expect(isInteractiveSession({ env: {}, stdinIsTTY: true, stdoutIsTTY: false })).toBe(false);
+  });
+
+  it('normalizes default confirm answers and always closes the readline interface', async () => {
+    const { defaultConfirmInstall, question, close } = await loadDefaultConfirmInstallWithMock({
+      answer: ' YeS ',
+    });
+
+    await expect(defaultConfirmInstall('Install now? ')).resolves.toBe(true);
+    expect(question).toHaveBeenCalledWith('Install now? ');
+    expect(close).toHaveBeenCalledOnce();
+  });
+
+  it('closes the readline interface when default confirm rejects', async () => {
+    const { defaultConfirmInstall, close } = await loadDefaultConfirmInstallWithMock({
+      error: new Error('read failed'),
+    });
+
+    await expect(defaultConfirmInstall('Install now? ')).rejects.toThrow('read failed');
+    expect(close).toHaveBeenCalledOnce();
+  });
+
+  it('spawns commands and propagates spawn errors', async () => {
+    await expect(runCommandWithSpawn(process.execPath, ['-e', 'process.exit(0)'])).resolves.toBe(0);
+
+    await expect(
+      runCommandWithSpawn('__llm_usage_metrics_missing_command__', []),
+    ).rejects.toBeInstanceOf(Error);
+  });
+
+  it('uses default notify when install fails and no custom notifier is provided', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    const result = await runInteractiveInstallAndRestart({
+      packageName: 'llm-usage-metrics',
+      updateMessage: 'Update available.',
+      env: {},
+      argv: ['/usr/bin/node', '/app/dist/index.js', 'daily'],
+      skipUpdateCheckEnvVar: 'LLM_USAGE_SKIP_UPDATE_CHECK',
+      confirmInstall: vi.fn(async () => true),
+      runCommand: vi.fn<CommandRunner>().mockResolvedValueOnce(5),
+    });
+
+    expect(result).toEqual({ continueExecution: true });
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Failed to install llm-usage-metrics@latest (exit code 5).',
+    );
+  });
+
   it('stops when the user declines install', async () => {
     const confirmInstall = vi.fn(async () => false);
     const runCommand = vi.fn<CommandRunner>();
@@ -59,5 +160,50 @@ describe('update-install-runner', () => {
     expect(commandCalls[1].args).toEqual(['/app/dist/index.js', 'daily', '--json']);
     expect(commandCalls[1].options?.env?.PATH).toBe('/usr/bin');
     expect(commandCalls[1].options?.env?.LLM_USAGE_SKIP_UPDATE_CHECK).toBe('1');
+  });
+
+  it('defaults restart execPath to process.execPath when not provided', async () => {
+    const commandCalls: Array<{
+      command: string;
+      args: string[];
+      options?: { env?: NodeJS.ProcessEnv; stdio?: 'inherit' };
+    }> = [];
+
+    const runCommand: CommandRunner = async (command, args, options) => {
+      commandCalls.push({ command, args, options });
+      return 0;
+    };
+
+    const result = await runInteractiveInstallAndRestart({
+      packageName: 'llm-usage-metrics',
+      updateMessage: 'Update available.',
+      env: {},
+      argv: ['/usr/bin/node', '/app/dist/index.js', 'daily'],
+      skipUpdateCheckEnvVar: 'LLM_USAGE_SKIP_UPDATE_CHECK',
+      confirmInstall: vi.fn(async () => true),
+      runCommand,
+    });
+
+    expect(result).toEqual({ continueExecution: false, exitCode: 0 });
+    expect(commandCalls).toHaveLength(2);
+    expect(commandCalls[1].command).toBe(process.execPath);
+    expect(commandCalls[1].args).toEqual(['/app/dist/index.js', 'daily']);
+  });
+
+  it('treats non-yes default confirm answers as declines', async () => {
+    const { defaultConfirmInstall, close } = await loadDefaultConfirmInstallWithMock({
+      answer: 'n',
+    });
+
+    await expect(defaultConfirmInstall('Install now? ')).resolves.toBe(false);
+    expect(close).toHaveBeenCalledOnce();
+  });
+
+  it('writes default notifications to stderr', () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    defaultNotify('hello');
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith('hello');
   });
 });

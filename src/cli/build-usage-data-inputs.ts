@@ -1,0 +1,220 @@
+import type { SourceAdapter } from '../sources/source-adapter.js';
+
+import type { ReportCommandOptions } from './usage-data-contracts.js';
+
+export type NormalizedBuildUsageInputs = {
+  timezone: string;
+  providerFilter: string | undefined;
+  sourceFilter: Set<string> | undefined;
+  modelFilter: string[] | undefined;
+  explicitSourceIds: Set<string>;
+};
+
+export function validateDateInput(value: string, flagName: '--since' | '--until'): void {
+  if (!/^\d{4}-\d{2}-\d{2}$/u.test(value)) {
+    throw new Error(`${flagName} must use format YYYY-MM-DD`);
+  }
+
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value) {
+    throw new Error(`${flagName} has an invalid calendar date`);
+  }
+}
+
+export function validateTimezone(timezone: string): void {
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: timezone }).format(new Date());
+  } catch {
+    throw new Error(`Invalid timezone: ${timezone}`);
+  }
+}
+
+export function normalizeProviderFilter(provider: string | undefined): string | undefined {
+  if (!provider) {
+    return undefined;
+  }
+
+  const normalized = provider.trim().toLowerCase();
+  return normalized || undefined;
+}
+
+export function normalizeSourceFilter(
+  source: string | string[] | undefined,
+): Set<string> | undefined {
+  if (!source || (Array.isArray(source) && source.length === 0)) {
+    return undefined;
+  }
+
+  const sourceCandidates = Array.isArray(source) ? source : [source];
+  const normalizedSources = sourceCandidates
+    .flatMap((candidate) => candidate.split(','))
+    .map((candidate) => candidate.trim().toLowerCase())
+    .filter((candidate) => candidate.length > 0);
+
+  if (normalizedSources.length === 0) {
+    throw new Error('--source must contain at least one non-empty source id');
+  }
+
+  return new Set(normalizedSources);
+}
+
+export function normalizeModelFilter(model: string | string[] | undefined): string[] | undefined {
+  if (!model || (Array.isArray(model) && model.length === 0)) {
+    return undefined;
+  }
+
+  const modelCandidates = Array.isArray(model) ? model : [model];
+  const normalizedModels = modelCandidates
+    .flatMap((candidate) => candidate.split(','))
+    .map((candidate) => candidate.trim().toLowerCase())
+    .filter((candidate) => candidate.length > 0);
+
+  if (normalizedModels.length === 0) {
+    throw new Error('--model must contain at least one non-empty model filter');
+  }
+
+  return [...new Set(normalizedModels)];
+}
+
+export function validateSourceFilterValues(
+  sourceFilter: Set<string> | undefined,
+  availableSourceIds: ReadonlySet<string>,
+): void {
+  if (!sourceFilter) {
+    return;
+  }
+
+  const unknownSources = [...sourceFilter].filter((source) => !availableSourceIds.has(source));
+
+  if (unknownSources.length === 0) {
+    return;
+  }
+
+  const allowedSources = [...availableSourceIds].sort((left, right) => left.localeCompare(right));
+
+  throw new Error(
+    `Unknown --source value(s): ${unknownSources.join(', ')}. Allowed values: ${allowedSources.join(', ')}`,
+  );
+}
+
+export function validatePricingUrl(pricingUrl: string | undefined): void {
+  if (!pricingUrl) {
+    return;
+  }
+
+  try {
+    const parsedUrl = new URL(pricingUrl);
+
+    if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+      throw new Error('Unsupported protocol');
+    }
+  } catch {
+    throw new Error('--pricing-url must be a valid http(s) URL');
+  }
+}
+
+export function validateBuildOptions(options: ReportCommandOptions): void {
+  if (options.since) {
+    validateDateInput(options.since, '--since');
+  }
+
+  if (options.until) {
+    validateDateInput(options.until, '--until');
+  }
+
+  if (options.since && options.until && options.since > options.until) {
+    throw new Error('--since must be less than or equal to --until');
+  }
+
+  validatePricingUrl(options.pricingUrl);
+}
+
+function parseSourceDirOverrideIds(sourceDirEntries: string[] | undefined): Set<string> {
+  const overrideIds = new Set<string>();
+
+  if (!sourceDirEntries || sourceDirEntries.length === 0) {
+    return overrideIds;
+  }
+
+  for (const entry of sourceDirEntries) {
+    const separatorIndex = entry.indexOf('=');
+
+    if (separatorIndex <= 0) {
+      continue;
+    }
+
+    const sourceId = entry.slice(0, separatorIndex).trim().toLowerCase();
+
+    if (sourceId.length > 0) {
+      overrideIds.add(sourceId);
+    }
+  }
+
+  return overrideIds;
+}
+
+export function resolveExplicitSourceIds(
+  options: ReportCommandOptions,
+  sourceFilter: Set<string> | undefined,
+): Set<string> {
+  const explicitSourceIds = new Set<string>();
+
+  if (sourceFilter) {
+    for (const sourceId of sourceFilter) {
+      explicitSourceIds.add(sourceId);
+    }
+  }
+
+  for (const sourceId of parseSourceDirOverrideIds(options.sourceDir)) {
+    explicitSourceIds.add(sourceId);
+  }
+
+  if (options.piDir) {
+    explicitSourceIds.add('pi');
+  }
+
+  if (options.codexDir) {
+    explicitSourceIds.add('codex');
+  }
+
+  if (options.opencodeDb) {
+    explicitSourceIds.add('opencode');
+  }
+
+  return explicitSourceIds;
+}
+
+export function normalizeBuildUsageInputs(
+  options: ReportCommandOptions,
+): NormalizedBuildUsageInputs {
+  validateBuildOptions(options);
+
+  const timezone = options.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+  validateTimezone(timezone);
+
+  const providerFilter = normalizeProviderFilter(options.provider);
+  const sourceFilter = normalizeSourceFilter(options.source);
+  const modelFilter = normalizeModelFilter(options.model);
+  const explicitSourceIds = resolveExplicitSourceIds(options, sourceFilter);
+
+  return {
+    timezone,
+    providerFilter,
+    sourceFilter,
+    modelFilter,
+    explicitSourceIds,
+  };
+}
+
+export function selectAdaptersForParsing(
+  adapters: SourceAdapter[],
+  sourceFilter: Set<string> | undefined,
+): SourceAdapter[] {
+  const availableSourceIds = new Set(adapters.map((adapter) => adapter.id.toLowerCase()));
+  validateSourceFilterValues(sourceFilter, availableSourceIds);
+
+  return sourceFilter
+    ? adapters.filter((adapter) => sourceFilter.has(adapter.id.toLowerCase()))
+    : adapters;
+}

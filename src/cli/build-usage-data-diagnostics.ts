@@ -1,0 +1,58 @@
+import type { UsageReportRow } from '../domain/usage-report-row.js';
+import type { SourceAdapter } from '../sources/source-adapter.js';
+
+import type { AdapterParseResult } from './build-usage-data-parsing.js';
+import type {
+  UsageDataResult,
+  UsageDiagnostics,
+  UsagePricingOrigin,
+  UsageSourceFailure,
+} from './usage-data-contracts.js';
+
+type BuildUsageDiagnosticsParams = {
+  adaptersToParse: SourceAdapter[];
+  successfulParseResults: AdapterParseResult[];
+  sourceFailures: UsageSourceFailure[];
+  pricingOrigin: UsagePricingOrigin;
+  activeEnvOverrides: UsageDiagnostics['activeEnvOverrides'];
+  timezone: string;
+};
+
+export function buildUsageDiagnostics(params: BuildUsageDiagnosticsParams): UsageDiagnostics {
+  const parseResultBySource = new Map(
+    params.successfulParseResults.map((result) => [result.source.toLowerCase(), result]),
+  );
+
+  const sessionStats = params.adaptersToParse.map((adapter) => {
+    const parseResult = parseResultBySource.get(adapter.id.toLowerCase());
+
+    return {
+      source: adapter.id,
+      filesFound: parseResult?.filesFound ?? 0,
+      eventsParsed: parseResult?.events.length ?? 0,
+    };
+  });
+
+  const skippedRows = params.successfulParseResults
+    .filter((result) => result.skippedRows > 0)
+    .map((result) => ({ source: result.source, skippedRows: result.skippedRows }));
+
+  return {
+    sessionStats,
+    sourceFailures: params.sourceFailures,
+    skippedRows,
+    pricingOrigin: params.pricingOrigin,
+    activeEnvOverrides: params.activeEnvOverrides,
+    timezone: params.timezone,
+  };
+}
+
+export function assembleUsageDataResult(
+  rows: UsageReportRow[],
+  diagnostics: UsageDiagnostics,
+): UsageDataResult {
+  return {
+    rows,
+    diagnostics,
+  };
+}

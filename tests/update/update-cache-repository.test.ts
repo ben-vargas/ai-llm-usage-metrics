@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   getSessionScopedCachePath,
   readUpdateCheckCachePayload,
+  resolveLatestVersion,
   writeUpdateCheckCachePayload,
 } from '../../src/update/update-cache-repository.js';
 
@@ -24,6 +25,17 @@ async function createTempDir(prefix: string): Promise<string> {
 }
 
 describe('update-cache-repository', () => {
+  it('returns the base cache path when session scoping is disabled', () => {
+    const cacheFilePath = '/tmp/cache/update-check.json';
+
+    expect(getSessionScopedCachePath(cacheFilePath, {})).toBe(cacheFilePath);
+    expect(
+      getSessionScopedCachePath(cacheFilePath, {
+        LLM_USAGE_UPDATE_CACHE_SCOPE: 'global',
+      }),
+    ).toBe(cacheFilePath);
+  });
+
   it('builds a session-scoped cache path with sanitized session key', () => {
     const cacheFilePath = '/tmp/cache/update-check.json';
 
@@ -52,6 +64,18 @@ describe('update-cache-repository', () => {
     expect(scopedPath).toBe('/tmp/cache/update-check.ppid-777.json');
   });
 
+  it('falls back to parent pid when session scope key env var is missing', () => {
+    const scopedPath = getSessionScopedCachePath(
+      '/tmp/cache/update-check.json',
+      {
+        LLM_USAGE_UPDATE_CACHE_SCOPE: 'SESSION',
+      },
+      { parentPid: 42 },
+    );
+
+    expect(scopedPath).toBe('/tmp/cache/update-check.ppid-42.json');
+  });
+
   it('writes cache payloads and ignores malformed cache content on read', async () => {
     const tempDir = await createTempDir('update-cache-repository-');
     const cacheFilePath = path.join(tempDir, 'nested', 'update-check.json');
@@ -75,6 +99,138 @@ describe('update-cache-repository', () => {
       'utf8',
     );
 
+    await expect(readUpdateCheckCachePayload(cacheFilePath)).resolves.toBeUndefined();
+  });
+
+  it('returns undefined for unreadable or invalid cache payload shapes', async () => {
+    const tempDir = await createTempDir('update-cache-repository-invalid-');
+    const cacheFilePath = path.join(tempDir, 'update-check.json');
+
+    await expect(readUpdateCheckCachePayload(cacheFilePath)).resolves.toBeUndefined();
+
+    await writeFile(cacheFilePath, '{not-json', 'utf8');
+    await expect(readUpdateCheckCachePayload(cacheFilePath)).resolves.toBeUndefined();
+
+    await writeFile(cacheFilePath, JSON.stringify(['not', 'an', 'object']), 'utf8');
+    await expect(readUpdateCheckCachePayload(cacheFilePath)).resolves.toBeUndefined();
+
+    await writeFile(
+      cacheFilePath,
+      JSON.stringify({
+        checkedAt: -1,
+        latestVersion: '1.2.3',
+      }),
+      'utf8',
+    );
+    await expect(readUpdateCheckCachePayload(cacheFilePath)).resolves.toBeUndefined();
+
+    await writeFile(
+      cacheFilePath,
+      JSON.stringify({
+        checkedAt: Number.NaN,
+        latestVersion: '1.2.3',
+      }),
+      'utf8',
+    );
+    await expect(readUpdateCheckCachePayload(cacheFilePath)).resolves.toBeUndefined();
+
+    await writeFile(
+      cacheFilePath,
+      JSON.stringify({
+        checkedAt: 123,
+        latestVersion: '   ',
+      }),
+      'utf8',
+    );
+    await expect(readUpdateCheckCachePayload(cacheFilePath)).resolves.toBeUndefined();
+  });
+
+  it('returns undefined when registry fetch fails and no stale cache is available', async () => {
+    const tempDir = await createTempDir('update-cache-repository-fetch-fail-');
+    const cacheFilePath = path.join(tempDir, 'update-check.json');
+
+    await expect(
+      resolveLatestVersion({
+        packageName: 'llm-usage-metrics',
+        cacheFilePath,
+        fetchImpl: async () => new Response('oops', { status: 503 }),
+      }),
+    ).resolves.toBeUndefined();
+
+    await expect(
+      resolveLatestVersion({
+        packageName: 'llm-usage-metrics',
+        cacheFilePath,
+        fetchImpl: async () => {
+          throw new Error('network down');
+        },
+      }),
+    ).resolves.toBeUndefined();
+  });
+
+  it('returns undefined for invalid registry payloads when no stale cache exists', async () => {
+    const tempDir = await createTempDir('update-cache-repository-invalid-registry-');
+    const cacheFilePath = path.join(tempDir, 'update-check.json');
+
+    await expect(
+      resolveLatestVersion({
+        packageName: 'llm-usage-metrics',
+        cacheFilePath,
+        fetchImpl: async () => new Response(JSON.stringify(['not', 'object']), { status: 200 }),
+      }),
+    ).resolves.toBeUndefined();
+
+    await expect(
+      resolveLatestVersion({
+        packageName: 'llm-usage-metrics',
+        cacheFilePath,
+        fetchImpl: async () =>
+          new Response(JSON.stringify({ version: 'not-a-semver' }), { status: 200 }),
+      }),
+    ).resolves.toBeUndefined();
+  });
+
+  it('returns stale cache when refresh write fails after a fetch error', async () => {
+    const tempDir = await createTempDir('update-cache-repository-stale-refresh-write-fail-');
+    const cacheFilePath = path.join(tempDir, 'nested', 'update-check.json');
+    const cacheDirPath = path.dirname(cacheFilePath);
+    const nowValue = 900_000;
+
+    await writeUpdateCheckCachePayload(cacheFilePath, {
+      checkedAt: nowValue - 10_000,
+      latestVersion: '1.2.3',
+    });
+
+    const latestVersion = await resolveLatestVersion({
+      packageName: 'llm-usage-metrics',
+      cacheFilePath,
+      cacheTtlMs: 1_000,
+      now: () => nowValue,
+      fetchImpl: async () => {
+        await rm(cacheDirPath, { recursive: true, force: true });
+        await writeFile(cacheDirPath, 'not-a-directory', 'utf8');
+        throw new Error('timeout');
+      },
+    });
+
+    expect(latestVersion).toBe('1.2.3');
+  });
+
+  it('returns fetched version when cache write fails after a successful fetch', async () => {
+    const tempDir = await createTempDir('update-cache-repository-cache-write-fail-');
+    const cacheFilePath = path.join(tempDir, 'nested', 'update-check.json');
+    const cacheDirPath = path.dirname(cacheFilePath);
+
+    const latestVersion = await resolveLatestVersion({
+      packageName: 'llm-usage-metrics',
+      cacheFilePath,
+      fetchImpl: async () => {
+        await writeFile(cacheDirPath, 'not-a-directory', 'utf8');
+        return new Response(JSON.stringify({ version: '2.0.0' }), { status: 200 });
+      },
+    });
+
+    expect(latestVersion).toBe('2.0.0');
     await expect(readUpdateCheckCachePayload(cacheFilePath)).resolves.toBeUndefined();
   });
 });
