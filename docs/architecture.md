@@ -24,7 +24,7 @@ flowchart LR
     D --> E[buildUsageData]
 
     E --> F[Source adapters\npi/codex/opencode]
-    F --> G[UsageEvent[]]
+    F --> G[UsageEvent list]
     G --> H[Pricing resolver\nLiteLLM cache/network]
     H --> I[Aggregator\nperiod/source totals]
     I --> J[UsageDataResult]
