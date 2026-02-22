@@ -9,6 +9,8 @@ import type { ModelPricing, PricingSource } from './types.js';
 const ONE_MILLION = 1_000_000;
 const DEFAULT_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_FETCH_TIMEOUT_MS = 4000;
+const DEFAULT_FETCH_RETRY_COUNT = 2;
+const DEFAULT_FETCH_RETRY_DELAY_MS = 200;
 
 export const DEFAULT_LITELLM_PRICING_URL =
   'https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json';
@@ -24,9 +26,12 @@ export type LiteLLMPricingFetcherOptions = {
   cacheFilePath?: string;
   cacheTtlMs?: number;
   fetchTimeoutMs?: number;
+  fetchRetryCount?: number;
+  fetchRetryDelayMs?: number;
   offline?: boolean;
   fetchImpl?: typeof fetch;
   now?: () => number;
+  sleep?: (delayMs: number) => Promise<void>;
 };
 
 type LiteLLMModelMapPayload = {
@@ -39,6 +44,43 @@ type LiteLLMModelMap = {
   canonicalizedAliasToCanonicalModel: Map<string, string>;
   preferredPricingKeyByCanonicalModel: Map<string, string>;
 };
+
+class RetryableLiteLLMFetchError extends Error {
+  public constructor(message: string) {
+    super(message);
+    this.name = 'RetryableLiteLLMFetchError';
+  }
+}
+
+function isRetryableHttpStatus(status: number): boolean {
+  return [408, 425, 429, 500, 502, 503, 504].includes(status);
+}
+
+function isRetryableFetchFailure(error: unknown): boolean {
+  if (error instanceof RetryableLiteLLMFetchError) {
+    return true;
+  }
+
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  if (error.name === 'AbortError' || error.name === 'TimeoutError') {
+    return true;
+  }
+
+  if (error instanceof TypeError) {
+    return true;
+  }
+
+  return /timeout|timed out|network|econn|enotfound|eai_again/iu.test(error.message);
+}
+
+async function sleep(delayMs: number): Promise<void> {
+  await new Promise<void>((resolve) => {
+    setTimeout(resolve, delayMs);
+  });
+}
 
 function normalizeKey(value: string): string {
   return value.trim().toLowerCase();
@@ -288,9 +330,12 @@ export class LiteLLMPricingFetcher implements PricingSource {
   private readonly cacheFilePath: string;
   private readonly cacheTtlMs: number;
   private readonly fetchTimeoutMs: number;
+  private readonly fetchRetryCount: number;
+  private readonly fetchRetryDelayMs: number;
   private readonly offline: boolean;
   private readonly fetchImpl: typeof fetch;
   private readonly now: () => number;
+  private readonly sleep: (delayMs: number) => Promise<void>;
 
   private pricingByModel = new Map<string, ModelPricing>();
   private resolvedAliasCache = new Map<string, string>();
@@ -300,9 +345,18 @@ export class LiteLLMPricingFetcher implements PricingSource {
     this.cacheFilePath = options.cacheFilePath ?? getDefaultLiteLLMPricingCachePath();
     this.cacheTtlMs = options.cacheTtlMs ?? DEFAULT_CACHE_TTL_MS;
     this.fetchTimeoutMs = options.fetchTimeoutMs ?? DEFAULT_FETCH_TIMEOUT_MS;
+    this.fetchRetryCount =
+      Number.isFinite(options.fetchRetryCount) && (options.fetchRetryCount ?? 0) >= 0
+        ? Math.trunc(options.fetchRetryCount ?? DEFAULT_FETCH_RETRY_COUNT)
+        : DEFAULT_FETCH_RETRY_COUNT;
+    this.fetchRetryDelayMs =
+      Number.isFinite(options.fetchRetryDelayMs) && (options.fetchRetryDelayMs ?? 0) > 0
+        ? Math.trunc(options.fetchRetryDelayMs ?? DEFAULT_FETCH_RETRY_DELAY_MS)
+        : DEFAULT_FETCH_RETRY_DELAY_MS;
     this.offline = options.offline ?? false;
     this.fetchImpl = options.fetchImpl ?? fetch;
     this.now = options.now ?? Date.now;
+    this.sleep = options.sleep ?? sleep;
   }
 
   /**
@@ -557,15 +611,47 @@ export class LiteLLMPricingFetcher implements PricingSource {
     return bestMatch.modelName;
   }
 
-  private async loadFromRemote(): Promise<void> {
+  private async fetchRemotePricingResponse(): Promise<Response> {
     const response = await this.fetchImpl(this.sourceUrl, {
       signal: AbortSignal.timeout(this.fetchTimeoutMs),
     });
 
     if (!response.ok) {
+      if (isRetryableHttpStatus(response.status)) {
+        throw new RetryableLiteLLMFetchError(
+          `Retryable LiteLLM pricing response status: HTTP ${response.status}`,
+        );
+      }
+
       throw new Error(`Failed to fetch LiteLLM pricing: HTTP ${response.status}`);
     }
 
+    return response;
+  }
+
+  private async fetchRemotePricingResponseWithRetry(): Promise<Response> {
+    const maxAttempts = this.fetchRetryCount + 1;
+
+    for (let attemptIndex = 0; attemptIndex < maxAttempts; attemptIndex += 1) {
+      try {
+        return await this.fetchRemotePricingResponse();
+      } catch (error) {
+        const shouldRetry = isRetryableFetchFailure(error) && attemptIndex < maxAttempts - 1;
+
+        if (!shouldRetry) {
+          throw error;
+        }
+      }
+
+      const backoffDelay = this.fetchRetryDelayMs * 2 ** attemptIndex;
+      await this.sleep(backoffDelay);
+    }
+
+    throw new Error('Failed to fetch LiteLLM pricing after retries');
+  }
+
+  private async loadFromRemote(): Promise<void> {
+    const response = await this.fetchRemotePricingResponseWithRetry();
     const payload = (await response.json()) as unknown;
     const normalizedPricing = normalizeLitellmPricingPayload(payload);
 
