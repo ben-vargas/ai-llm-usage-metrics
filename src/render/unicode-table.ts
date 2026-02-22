@@ -22,6 +22,15 @@ type BorderChars = {
   right: string;
 };
 
+type RowType = UsageReportRow['rowType'];
+
+type RenderableUsageRow = {
+  usageRow: UsageReportRow;
+  bodyRow: string[];
+  measureBodyRow: string[];
+  originalIndex: number;
+};
+
 function getColumnAlignment(columnIndex: number, modelsColumnIndex: number): TableAlignment {
   if (columnIndex <= modelsColumnIndex) {
     return 'left';
@@ -128,6 +137,76 @@ function shouldDrawBodySeparator(index: number, usageRows: UsageReportRow[]): bo
   );
 }
 
+function getRowTypeWeight(rowType: RowType): number {
+  switch (rowType) {
+    case 'period_source':
+      return 0;
+    case 'period_combined':
+      return 1;
+    case 'grand_total':
+      return 2;
+  }
+}
+
+function getPeriodSortTuple(periodKey: string): [number, string] {
+  if (periodKey === 'ALL') {
+    return [1, periodKey];
+  }
+
+  return [0, periodKey];
+}
+
+function compareUsageRows(left: UsageReportRow, right: UsageReportRow): number {
+  const [leftPeriodGroup, leftPeriodKey] = getPeriodSortTuple(left.periodKey);
+  const [rightPeriodGroup, rightPeriodKey] = getPeriodSortTuple(right.periodKey);
+
+  if (leftPeriodGroup !== rightPeriodGroup) {
+    return leftPeriodGroup - rightPeriodGroup;
+  }
+
+  if (leftPeriodKey !== rightPeriodKey) {
+    return leftPeriodKey < rightPeriodKey ? -1 : 1;
+  }
+
+  return getRowTypeWeight(left.rowType) - getRowTypeWeight(right.rowType);
+}
+
+function normalizeRenderableUsageRows(options: {
+  usageRows: UsageReportRow[];
+  bodyRows: string[][];
+  measureBodyRows: string[][];
+}): RenderableUsageRow[] {
+  const hasAlignedRowCounts =
+    options.usageRows.length === options.bodyRows.length &&
+    options.usageRows.length === options.measureBodyRows.length;
+
+  if (!hasAlignedRowCounts) {
+    return options.usageRows.map((usageRow, index) => ({
+      usageRow,
+      bodyRow: options.bodyRows[index] ?? [],
+      measureBodyRow: options.measureBodyRows[index] ?? [],
+      originalIndex: index,
+    }));
+  }
+
+  return options.usageRows
+    .map((usageRow, index) => ({
+      usageRow,
+      bodyRow: options.bodyRows[index],
+      measureBodyRow: options.measureBodyRows[index],
+      originalIndex: index,
+    }))
+    .sort((left, right) => {
+      const comparison = compareUsageRows(left.usageRow, right.usageRow);
+
+      if (comparison !== 0) {
+        return comparison;
+      }
+
+      return left.originalIndex - right.originalIndex;
+    });
+}
+
 function computeColumnWidths(
   measureRows: readonly (readonly string[])[],
   options: { modelsColumnIndex: number; modelsColumnWidth: number },
@@ -149,7 +228,15 @@ function computeColumnWidths(
 }
 
 export function renderUnicodeTable(options: RenderUnicodeTableOptions): string {
-  const measureRows = [options.measureHeaderCells, ...options.measureBodyRows];
+  const normalizedRenderableRows = normalizeRenderableUsageRows({
+    usageRows: options.usageRows,
+    bodyRows: options.bodyRows,
+    measureBodyRows: options.measureBodyRows,
+  });
+  const normalizedBodyRows = normalizedRenderableRows.map((row) => row.bodyRow);
+  const normalizedMeasureBodyRows = normalizedRenderableRows.map((row) => row.measureBodyRow);
+  const normalizedUsageRows = normalizedRenderableRows.map((row) => row.usageRow);
+  const measureRows = [options.measureHeaderCells, ...normalizedMeasureBodyRows];
   const widths = computeColumnWidths(measureRows, {
     modelsColumnIndex: options.modelsColumnIndex,
     modelsColumnWidth: options.modelsColumnWidth,
@@ -178,7 +265,7 @@ export function renderUnicodeTable(options: RenderUnicodeTableOptions): string {
     }),
   );
 
-  options.bodyRows.forEach((row, rowIndex) => {
+  normalizedBodyRows.forEach((row, rowIndex) => {
     renderedLines.push(
       ...toRenderableRowLines(row, {
         widths,
@@ -188,8 +275,8 @@ export function renderUnicodeTable(options: RenderUnicodeTableOptions): string {
     );
 
     if (
-      rowIndex < options.bodyRows.length - 1 &&
-      shouldDrawBodySeparator(rowIndex, options.usageRows)
+      rowIndex < normalizedBodyRows.length - 1 &&
+      shouldDrawBodySeparator(rowIndex, normalizedUsageRows)
     ) {
       renderedLines.push(
         buildBorderLine(widths, {
