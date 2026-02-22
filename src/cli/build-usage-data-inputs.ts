@@ -8,6 +8,7 @@ export type NormalizedBuildUsageInputs = {
   sourceFilter: Set<string> | undefined;
   modelFilter: string[] | undefined;
   explicitSourceIds: Set<string>;
+  pricingUrl: string | undefined;
 };
 
 export function validateDateInput(value: string, flagName: '--since' | '--until'): void {
@@ -23,10 +24,12 @@ export function validateDateInput(value: string, flagName: '--since' | '--until'
 }
 
 export function validateTimezone(timezone: string): void {
+  const normalizedTimezone = timezone.trim();
+
   try {
-    new Intl.DateTimeFormat('en-US', { timeZone: timezone }).format(new Date());
+    new Intl.DateTimeFormat('en-US', { timeZone: normalizedTimezone }).format(new Date());
   } catch {
-    throw new Error(`Invalid timezone: ${timezone}`);
+    throw new Error(`Invalid timezone: ${normalizedTimezone}`);
   }
 }
 
@@ -98,13 +101,19 @@ export function validateSourceFilterValues(
   );
 }
 
-export function validatePricingUrl(pricingUrl: string | undefined): void {
-  if (!pricingUrl) {
-    return;
+export function validatePricingUrl(pricingUrl: string | undefined): string | undefined {
+  if (pricingUrl === undefined) {
+    return undefined;
+  }
+
+  const normalizedPricingUrl = pricingUrl.trim();
+
+  if (normalizedPricingUrl.length === 0) {
+    throw new Error('--pricing-url must be a valid http(s) URL');
   }
 
   try {
-    const parsedUrl = new URL(pricingUrl);
+    const parsedUrl = new URL(normalizedPricingUrl);
 
     if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
       throw new Error('Unsupported protocol');
@@ -112,9 +121,13 @@ export function validatePricingUrl(pricingUrl: string | undefined): void {
   } catch {
     throw new Error('--pricing-url must be a valid http(s) URL');
   }
+
+  return normalizedPricingUrl;
 }
 
-export function validateBuildOptions(options: ReportCommandOptions): void {
+export function validateBuildOptions(options: ReportCommandOptions): {
+  normalizedPricingUrl: string | undefined;
+} {
   if (options.since) {
     validateDateInput(options.since, '--since');
   }
@@ -127,7 +140,9 @@ export function validateBuildOptions(options: ReportCommandOptions): void {
     throw new Error('--since must be less than or equal to --until');
   }
 
-  validatePricingUrl(options.pricingUrl);
+  return {
+    normalizedPricingUrl: validatePricingUrl(options.pricingUrl),
+  };
 }
 
 function parseSourceDirOverrideIds(sourceDirEntries: string[] | undefined): Set<string> {
@@ -188,9 +203,10 @@ export function resolveExplicitSourceIds(
 export function normalizeBuildUsageInputs(
   options: ReportCommandOptions,
 ): NormalizedBuildUsageInputs {
-  validateBuildOptions(options);
+  const { normalizedPricingUrl } = validateBuildOptions(options);
 
-  const timezone = options.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const timezoneInput = options.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const timezone = timezoneInput.trim();
   validateTimezone(timezone);
 
   const providerFilter = normalizeProviderFilter(options.provider);
@@ -204,6 +220,7 @@ export function normalizeBuildUsageInputs(
     sourceFilter,
     modelFilter,
     explicitSourceIds,
+    pricingUrl: normalizedPricingUrl,
   };
 }
 

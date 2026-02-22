@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { discoverJsonlFiles } from '../../src/utils/discover-jsonl-files.js';
 
 const tempDirs: string[] = [];
+const itWhenUnix = process.platform === 'win32' ? it.skip : it;
 
 afterEach(async () => {
   await Promise.all(tempDirs.map((dir) => rm(dir, { recursive: true, force: true })));
@@ -54,4 +55,33 @@ describe('discoverJsonlFiles', () => {
 
     await expect(discoverJsonlFiles(regularFile)).rejects.toThrow();
   });
+
+  itWhenUnix(
+    'skips unreadable nested directories and continues walking readable paths',
+    async () => {
+      const rootDir = await mkdtemp(path.join(os.tmpdir(), 'discover-jsonl-permissions-'));
+      tempDirs.push(rootDir);
+
+      const readableDir = path.join(rootDir, 'readable');
+      const blockedDir = path.join(rootDir, 'blocked');
+
+      await mkdir(readableDir, { recursive: true });
+      await mkdir(blockedDir, { recursive: true });
+
+      const readableFile = path.join(readableDir, 'keep.jsonl');
+      const blockedFile = path.join(blockedDir, 'hidden.jsonl');
+
+      await writeFile(readableFile, '{}\n', 'utf8');
+      await writeFile(blockedFile, '{}\n', 'utf8');
+
+      await chmod(blockedDir, 0o000);
+
+      try {
+        const discoveredFiles = await discoverJsonlFiles(rootDir);
+        expect(discoveredFiles).toEqual([readableFile]);
+      } finally {
+        await chmod(blockedDir, 0o755);
+      }
+    },
+  );
 });

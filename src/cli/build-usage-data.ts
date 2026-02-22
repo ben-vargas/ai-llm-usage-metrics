@@ -23,6 +23,20 @@ import type {
   UsageDataResult,
 } from './usage-data-contracts.js';
 
+function withNormalizedPricingUrl(
+  options: ReportCommandOptions,
+  normalizedPricingUrl: string | undefined,
+): ReportCommandOptions {
+  if (options.pricingUrl === normalizedPricingUrl) {
+    return options;
+  }
+
+  return {
+    ...options,
+    pricingUrl: normalizedPricingUrl,
+  };
+}
+
 export async function buildUsageData(
   granularity: ReportGranularity,
   options: ReportCommandOptions,
@@ -57,9 +71,11 @@ export async function buildUsageData(
     modelFilter: normalizedInputs.modelFilter,
   });
 
+  const pricingOptions = withNormalizedPricingUrl(options, normalizedInputs.pricingUrl);
+
   const { pricedEvents, pricingOrigin } = await resolveAndApplyPricingToEvents(
     filteredEvents,
-    options,
+    pricingOptions,
     pricingRuntimeConfig,
     loadPricingSource,
   );

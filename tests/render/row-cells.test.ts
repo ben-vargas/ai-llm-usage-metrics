@@ -1,0 +1,152 @@
+import { describe, expect, it } from 'vitest';
+
+import type { UsageReportRow } from '../../src/domain/usage-report-row.js';
+import { toUsageTableCells, usageTableHeaders } from '../../src/render/row-cells.js';
+
+describe('row-cells', () => {
+  it('renders compact layout fallbacks and grand-total source label', () => {
+    const rows: UsageReportRow[] = [
+      {
+        rowType: 'period_source',
+        periodKey: '2026-02-10',
+        source: 'pi',
+        models: [],
+        modelBreakdown: [],
+        inputTokens: 0,
+        outputTokens: 0,
+        reasoningTokens: 0,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+        totalTokens: 0,
+        costUsd: undefined,
+      },
+      {
+        rowType: 'grand_total',
+        periodKey: 'ALL',
+        source: 'combined',
+        models: ['gpt-4.1'],
+        modelBreakdown: [],
+        inputTokens: 1500,
+        outputTokens: 500,
+        reasoningTokens: 0,
+        cacheReadTokens: 25,
+        cacheWriteTokens: 10,
+        totalTokens: 2035,
+        costUsd: undefined,
+      },
+    ];
+
+    expect(usageTableHeaders).toEqual([
+      'Period',
+      'Source',
+      'Models',
+      'Input',
+      'Output',
+      'Reasoning',
+      'Cache Read',
+      'Cache Write',
+      'Total',
+      'Cost',
+    ]);
+
+    const cells = toUsageTableCells(rows);
+
+    expect(cells[0]).toEqual(['2026-02-10', 'pi', '-', '0', '0', '0', '0', '0', '0', '-']);
+    expect(cells[1]).toEqual([
+      'ALL',
+      'TOTAL',
+      '• gpt-4.1',
+      '1,500',
+      '500',
+      '0',
+      '25',
+      '10',
+      '2,035',
+      '-',
+    ]);
+  });
+
+  it('renders per-model columns with Σ TOTAL and aggregated metric lines', () => {
+    const rows: UsageReportRow[] = [
+      {
+        rowType: 'period_combined',
+        periodKey: '2026-02-10',
+        source: 'combined',
+        models: ['gpt-4.1', 'gpt-5'],
+        modelBreakdown: [
+          {
+            model: 'gpt-4.1',
+            inputTokens: 1234,
+            outputTokens: 321,
+            reasoningTokens: 0,
+            cacheReadTokens: 30,
+            cacheWriteTokens: 0,
+            totalTokens: 1585,
+            costUsd: 1.25,
+          },
+          {
+            model: 'gpt-5',
+            inputTokens: 766,
+            outputTokens: 179,
+            reasoningTokens: 120,
+            cacheReadTokens: 70,
+            cacheWriteTokens: 0,
+            totalTokens: 1135,
+            costUsd: undefined,
+          },
+        ],
+        inputTokens: 2000,
+        outputTokens: 500,
+        reasoningTokens: 120,
+        cacheReadTokens: 100,
+        cacheWriteTokens: 0,
+        totalTokens: 2720,
+        costUsd: undefined,
+      },
+    ];
+
+    const cells = toUsageTableCells(rows, { layout: 'per_model_columns' });
+
+    expect(cells[0]?.[2]).toBe('• gpt-4.1\n• gpt-5\nΣ TOTAL');
+    expect(cells[0]?.[3]).toBe('1,234\n766\n2,000');
+    expect(cells[0]?.[4]).toBe('321\n179\n500');
+    expect(cells[0]?.[5]).toBe('0\n120\n120');
+    expect(cells[0]?.[9]).toBe('$1.25\n-\n-');
+  });
+
+  it('does not append Σ TOTAL in per-model layout when only one model is present', () => {
+    const rows: UsageReportRow[] = [
+      {
+        rowType: 'period_source',
+        periodKey: '2026-02-10',
+        source: 'pi',
+        models: ['gpt-4.1'],
+        modelBreakdown: [
+          {
+            model: 'gpt-4.1',
+            inputTokens: 100,
+            outputTokens: 50,
+            reasoningTokens: 0,
+            cacheReadTokens: 0,
+            cacheWriteTokens: 0,
+            totalTokens: 150,
+            costUsd: 0.25,
+          },
+        ],
+        inputTokens: 100,
+        outputTokens: 50,
+        reasoningTokens: 0,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+        totalTokens: 150,
+        costUsd: 0.25,
+      },
+    ];
+
+    const cells = toUsageTableCells(rows, { layout: 'per_model_columns' });
+
+    expect(cells[0]?.[2]).toBe('• gpt-4.1');
+    expect(cells[0]?.[3]).toBe('100');
+    expect(cells[0]?.[9]).toBe('$0.25');
+  });
+});

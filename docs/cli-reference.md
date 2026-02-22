@@ -95,6 +95,10 @@ When outputting to terminal (default), the CLI emits:
 2. **Report header**: boxed title showing report type and timezone
 3. **Data table**: usage statistics with rounded borders and color-coded rows
 
+If the rendered table width exceeds the current TTY width, the CLI emits a warning on `stderr`:
+
+- `Report table is wider than terminal by N column(s). Use fullscreen/maximized terminal for better readability.`
+
 Row styling policy:
 
 - Period source names are color-coded (`pi` = cyan, `codex` = magenta, `opencode` = blue)

@@ -736,6 +736,50 @@ describe('buildUsageData', () => {
     ).rejects.toThrow('--model must contain at least one non-empty model filter');
   });
 
+  it('trims timezone and pricing-url values before using them', async () => {
+    const pricingLoaderSpy = vi.fn(
+      async (): Promise<PricingLoadResult> => ({
+        source: createDefaultOpenAiPricingSource(),
+        origin: 'network',
+      }),
+    );
+
+    const result = await buildUsageData(
+      'daily',
+      {
+        timezone: ' UTC ',
+        pricingUrl: ' https://example.test/pricing.json ',
+      },
+      {
+        ...withDeterministicRuntimeDeps(),
+        createAdapters: () => [
+          createAdapter('pi', {
+            '/tmp/pi-pricing-whitespace.jsonl': [
+              createEvent({
+                source: 'pi',
+                costMode: 'estimated',
+                costUsd: undefined,
+              }),
+            ],
+          }),
+        ],
+        resolvePricingSource: pricingLoaderSpy,
+      },
+    );
+
+    expect(result.diagnostics.timezone).toBe('UTC');
+    expect(pricingLoaderSpy).toHaveBeenCalledTimes(1);
+    expect(pricingLoaderSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pricingUrl: 'https://example.test/pricing.json',
+      }),
+      expect.objectContaining({
+        cacheTtlMs: 1_000,
+        fetchTimeoutMs: 1_000,
+      }),
+    );
+  });
+
   it.each(['cache', 'network', 'offline-cache'] as const)(
     'records pricing origin "%s" when pricing lookup is required',
     async (origin) => {
