@@ -5,6 +5,7 @@ import { asRecord } from './as-record.js';
 
 export async function* readJsonlObjects(
   filePath: string,
+  options: { shouldParseLine?: (lineText: string) => boolean } = {},
 ): AsyncGenerator<Record<string, unknown>, void, undefined> {
   const stream = createReadStream(filePath, {
     encoding: 'utf8',
@@ -24,6 +25,10 @@ export async function* readJsonlObjects(
       const lineText = normalizedLine.trim();
 
       if (!lineText) {
+        continue;
+      }
+
+      if (options.shouldParseLine && !options.shouldParseLine(lineText)) {
         continue;
       }
 

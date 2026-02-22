@@ -45,6 +45,15 @@ export type UsageEventInput = {
   costMode?: CostMode;
 };
 
+export function normalizeSourceId(value: unknown): SourceId | undefined {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const normalized = value.trim();
+  return normalized || undefined;
+}
+
 function requireText(value: string, fieldName: string): string {
   const normalized = value.trim();
 
@@ -87,6 +96,12 @@ function resolveCostMode(costMode: CostMode | undefined, costUsd: number | undef
 }
 
 export function createUsageEvent(input: UsageEventInput): UsageEvent {
+  const source = normalizeSourceId(input.source);
+
+  if (!source) {
+    throw new Error('UsageEvent source must be a non-empty string');
+  }
+
   const inputTokens = normalizeNonNegativeInteger(input.inputTokens);
   const outputTokens = normalizeNonNegativeInteger(input.outputTokens);
   const reasoningTokens = normalizeNonNegativeInteger(input.reasoningTokens);
@@ -101,7 +116,7 @@ export function createUsageEvent(input: UsageEventInput): UsageEvent {
   const costMode = resolveCostMode(input.costMode, costUsd);
 
   return {
-    source: requireText(input.source, 'source') as SourceId,
+    source,
     sessionId: requireText(input.sessionId, 'sessionId'),
     timestamp: normalizeTimestamp(input.timestamp),
     provider: normalizeOptionalText(input.provider),

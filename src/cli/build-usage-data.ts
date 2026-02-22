@@ -59,6 +59,14 @@ export async function buildUsageData(
   const { successfulParseResults, sourceFailures } = await parseSelectedAdapters(
     adaptersToParse,
     parsingRuntimeConfig.maxParallelFileParsing,
+    {
+      parseCache: {
+        enabled: parsingRuntimeConfig.parseCacheEnabled,
+        ttlMs: parsingRuntimeConfig.parseCacheTtlMs,
+        maxEntries: parsingRuntimeConfig.parseCacheMaxEntries,
+        maxBytes: parsingRuntimeConfig.parseCacheMaxBytes,
+      },
+    },
   );
 
   throwOnExplicitSourceFailures(sourceFailures, normalizedInputs.explicitSourceIds);

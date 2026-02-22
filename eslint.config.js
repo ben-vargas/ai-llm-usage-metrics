@@ -51,6 +51,7 @@ export default tseslint.config(
       ],
       '@typescript-eslint/no-import-type-side-effects': 'error',
       '@typescript-eslint/no-unnecessary-type-assertion': 'error',
+      '@typescript-eslint/no-unsafe-type-assertion': 'error',
       '@typescript-eslint/no-unnecessary-type-arguments': 'error',
       '@typescript-eslint/consistent-type-definitions': 'off',
       '@typescript-eslint/array-type': 'off',
@@ -74,6 +75,12 @@ export default tseslint.config(
           message: 'Inline dynamic imports are forbidden; use top-level static imports instead.',
         },
       ],
+    },
+  },
+  {
+    files: ['tests/**/*.ts', 'tests/**/*.tsx', 'tests/**/*.mts', 'tests/**/*.cts'],
+    rules: {
+      '@typescript-eslint/no-unsafe-type-assertion': 'off',
     },
   },
   prettierConfig,

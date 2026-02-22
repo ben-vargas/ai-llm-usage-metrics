@@ -33,6 +33,19 @@ export type CodexSourceAdapterOptions = {
   sessionsDir?: string;
 };
 
+const SESSION_META_LINE_PATTERN = /"type"\s*:\s*"session_meta"/u;
+const TURN_CONTEXT_LINE_PATTERN = /"type"\s*:\s*"turn_context"/u;
+const EVENT_MSG_LINE_PATTERN = /"type"\s*:\s*"event_msg"/u;
+const TOKEN_COUNT_LINE_PATTERN = /"type"\s*:\s*"token_count"/u;
+
+function shouldParseCodexJsonlLine(lineText: string): boolean {
+  if (SESSION_META_LINE_PATTERN.test(lineText) || TURN_CONTEXT_LINE_PATTERN.test(lineText)) {
+    return true;
+  }
+
+  return EVENT_MSG_LINE_PATTERN.test(lineText) && TOKEN_COUNT_LINE_PATTERN.test(lineText);
+}
+
 function toUsage(value: unknown): CodexUsage | undefined {
   const usage = asRecord(value);
 
@@ -135,7 +148,9 @@ export class CodexSourceAdapter implements SourceAdapter {
       provider: 'openai',
     };
 
-    for await (const line of readJsonlObjects(filePath)) {
+    for await (const line of readJsonlObjects(filePath, {
+      shouldParseLine: shouldParseCodexJsonlLine,
+    })) {
       if (line.type === 'session_meta') {
         const payload = asRecord(line.payload);
         state.sessionId = asTrimmedText(payload?.id) ?? state.sessionId;

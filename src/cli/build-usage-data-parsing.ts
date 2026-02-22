@@ -1,3 +1,5 @@
+import { stat } from 'node:fs/promises';
+
 import type { UsageEvent } from '../domain/usage-event.js';
 import { compareByCodePoint } from '../utils/compare-by-code-point.js';
 import type {
@@ -5,8 +7,9 @@ import type {
   SourceParseFileDiagnostics,
   SourceSkippedRowReasonStat,
 } from '../sources/source-adapter.js';
-import { asRecord } from '../utils/as-record.js';
+import { normalizeSkippedRowReasons } from './normalize-skipped-row-reasons.js';
 import { getPeriodKey } from '../utils/time-buckets.js';
+import { ParseFileCache } from './parse-file-cache.js';
 
 import type { UsageSourceFailure } from './usage-data-contracts.js';
 
@@ -23,6 +26,19 @@ export type ParsedAdaptersResult = {
   sourceFailures: UsageSourceFailure[];
 };
 
+export type ParseCacheRuntimeConfig = {
+  enabled: boolean;
+  ttlMs: number;
+  maxEntries: number;
+  maxBytes: number;
+};
+
+export type ParseSelectedAdaptersOptions = {
+  parseCache?: ParseCacheRuntimeConfig;
+  parseCacheFilePath?: string;
+  now?: () => number;
+};
+
 function getDefaultParseFileDiagnostics(events: UsageEvent[]): SourceParseFileDiagnostics {
   return { events, skippedRows: 0, skippedRowReasons: [] };
 }
@@ -35,35 +51,10 @@ function normalizeSkippedRowsCount(value: unknown): number {
   return Math.max(0, Math.trunc(value));
 }
 
-function normalizeSkippedRowReasons(value: unknown): Array<{ reason: string; count: number }> {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value.flatMap((entry) => {
-    const record = asRecord(entry);
-
-    if (!record) {
-      return [];
-    }
-
-    const reason = typeof record.reason === 'string' ? record.reason.trim() : '';
-    const count =
-      typeof record.count === 'number' && Number.isFinite(record.count) && record.count > 0
-        ? Math.trunc(record.count)
-        : 0;
-
-    if (!reason || count <= 0) {
-      return [];
-    }
-
-    return [{ reason, count }];
-  });
-}
-
 export async function parseAdapterEvents(
   adapter: SourceAdapter,
   maxParallelFileParsing: number,
+  parseFileCache?: ParseFileCache,
 ): Promise<AdapterParseResult> {
   const files = await adapter.discoverFiles();
 
@@ -92,9 +83,36 @@ export async function parseAdapterEvents(
       const fileIndex = nextFileIndex;
       nextFileIndex += 1;
 
-      const parseFileDiagnostics = adapter.parseFileWithDiagnostics
-        ? await adapter.parseFileWithDiagnostics(files[fileIndex])
-        : getDefaultParseFileDiagnostics(await adapter.parseFile(files[fileIndex]));
+      const filePath = files[fileIndex];
+      let fileFingerprint:
+        | {
+            size: number;
+            mtimeMs: number;
+          }
+        | undefined;
+      let parseFileDiagnostics: SourceParseFileDiagnostics | undefined;
+
+      if (parseFileCache) {
+        try {
+          const fileStat = await stat(filePath);
+          fileFingerprint = {
+            size: fileStat.size,
+            mtimeMs: fileStat.mtimeMs,
+          };
+          parseFileDiagnostics = parseFileCache.get(adapter.id, filePath, fileFingerprint);
+        } catch {
+          // Some adapters may return virtual/non-file identifiers. In that case, bypass cache.
+        }
+      }
+
+      if (!parseFileDiagnostics) {
+        parseFileDiagnostics = adapter.parseFileWithDiagnostics
+          ? await adapter.parseFileWithDiagnostics(filePath)
+          : getDefaultParseFileDiagnostics(await adapter.parseFile(filePath));
+        if (parseFileCache && fileFingerprint) {
+          parseFileCache.set(adapter.id, filePath, fileFingerprint, parseFileDiagnostics);
+        }
+      }
 
       parsedByFile[fileIndex] = parseFileDiagnostics.events;
       skippedRowsByFile[fileIndex] = normalizeSkippedRowsCount(parseFileDiagnostics.skippedRows);
@@ -131,10 +149,34 @@ function getErrorReason(error: unknown): string {
 export async function parseSelectedAdapters(
   adaptersToParse: SourceAdapter[],
   maxParallelFileParsing: number,
+  options: ParseSelectedAdaptersOptions = {},
 ): Promise<ParsedAdaptersResult> {
+  const parseCache = options.parseCache?.enabled
+    ? await ParseFileCache.load({
+        cacheFilePath: options.parseCacheFilePath,
+        limits: {
+          ttlMs: options.parseCache.ttlMs,
+          maxEntries: options.parseCache.maxEntries,
+          maxBytes: options.parseCache.maxBytes,
+        },
+        now: options.now,
+      })
+    : undefined;
+
   const parseResults = await Promise.allSettled(
-    adaptersToParse.map((adapter) => parseAdapterEvents(adapter, maxParallelFileParsing)),
+    adaptersToParse.map((adapter) =>
+      parseAdapterEvents(adapter, maxParallelFileParsing, parseCache),
+    ),
   );
+
+  if (parseCache) {
+    try {
+      await parseCache.persist();
+    } catch {
+      // Parse cache persistence is best-effort.
+    }
+  }
+
   const sourceFailures: UsageSourceFailure[] = [];
   const successfulParseResults: AdapterParseResult[] = [];
 

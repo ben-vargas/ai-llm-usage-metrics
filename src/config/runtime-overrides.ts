@@ -7,6 +7,10 @@ const UPDATE_FETCH_TIMEOUT_DEFAULT_MS = 1_000;
 const PRICING_CACHE_TTL_DEFAULT_MS = DAY_MS;
 const PRICING_FETCH_TIMEOUT_DEFAULT_MS = 4_000;
 const PARSE_MAX_PARALLEL_DEFAULT = 8;
+const PARSE_CACHE_ENABLED_DEFAULT = true;
+const PARSE_CACHE_TTL_DEFAULT_MS = 7 * DAY_MS;
+const PARSE_CACHE_MAX_ENTRIES_DEFAULT = 2_000;
+const PARSE_CACHE_MAX_BYTES_DEFAULT = 32 * 1024 * 1024;
 
 function resolveBoundedEnvInteger(
   envValue: string | undefined,
@@ -43,6 +47,28 @@ function resolveBoundedEnvInteger(
   return parsedValue;
 }
 
+function resolveEnvBoolean(envValue: string | undefined, fallback: boolean): boolean {
+  if (envValue === undefined) {
+    return fallback;
+  }
+
+  const normalizedValue = envValue.trim().toLowerCase();
+
+  if (normalizedValue.length === 0) {
+    return fallback;
+  }
+
+  if (['1', 'true', 'yes', 'on'].includes(normalizedValue)) {
+    return true;
+  }
+
+  if (['0', 'false', 'no', 'off'].includes(normalizedValue)) {
+    return false;
+  }
+
+  return fallback;
+}
+
 export type UpdateNotifierRuntimeConfig = {
   cacheTtlMs: number;
   fetchTimeoutMs: number;
@@ -55,6 +81,10 @@ export type PricingFetcherRuntimeConfig = {
 
 export type ParsingRuntimeConfig = {
   maxParallelFileParsing: number;
+  parseCacheEnabled: boolean;
+  parseCacheTtlMs: number;
+  parseCacheMaxEntries: number;
+  parseCacheMaxBytes: number;
 };
 
 export function getUpdateNotifierRuntimeConfig(
@@ -99,6 +129,25 @@ export function getParsingRuntimeConfig(
       fallback: PARSE_MAX_PARALLEL_DEFAULT,
       min: 1,
       max: 64,
+    }),
+    parseCacheEnabled: resolveEnvBoolean(
+      env.LLM_USAGE_PARSE_CACHE_ENABLED,
+      PARSE_CACHE_ENABLED_DEFAULT,
+    ),
+    parseCacheTtlMs: resolveBoundedEnvInteger(env.LLM_USAGE_PARSE_CACHE_TTL_MS, {
+      fallback: PARSE_CACHE_TTL_DEFAULT_MS,
+      min: HOUR_MS,
+      max: 30 * DAY_MS,
+    }),
+    parseCacheMaxEntries: resolveBoundedEnvInteger(env.LLM_USAGE_PARSE_CACHE_MAX_ENTRIES, {
+      fallback: PARSE_CACHE_MAX_ENTRIES_DEFAULT,
+      min: 100,
+      max: 20_000,
+    }),
+    parseCacheMaxBytes: resolveBoundedEnvInteger(env.LLM_USAGE_PARSE_CACHE_MAX_BYTES, {
+      fallback: PARSE_CACHE_MAX_BYTES_DEFAULT,
+      min: 1024 * 1024,
+      max: 512 * 1024 * 1024,
     }),
   };
 }

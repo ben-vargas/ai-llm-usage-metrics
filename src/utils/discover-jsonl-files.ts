@@ -2,9 +2,16 @@ import { readdir } from 'node:fs/promises';
 import type { Dirent } from 'node:fs';
 import path from 'node:path';
 
+import { asRecord } from './as-record.js';
+
+function getNodeErrorCode(error: unknown): string | undefined {
+  const record = asRecord(error);
+  return typeof record?.code === 'string' ? record.code : undefined;
+}
+
 function isSkippableDirectoryReadError(error: unknown): boolean {
-  const nodeError = error as NodeJS.ErrnoException;
-  return nodeError.code === 'EACCES' || nodeError.code === 'EPERM';
+  const code = getNodeErrorCode(error);
+  return code === 'EACCES' || code === 'EPERM';
 }
 
 async function walkDirectory(
@@ -46,9 +53,7 @@ export async function discoverJsonlFiles(rootDir: string): Promise<string[]> {
   try {
     await walkDirectory(rootDir, files, { allowPermissionSkip: false });
   } catch (error) {
-    const nodeError = error as NodeJS.ErrnoException;
-
-    if (nodeError.code === 'ENOENT') {
+    if (getNodeErrorCode(error) === 'ENOENT') {
       return [];
     }
 

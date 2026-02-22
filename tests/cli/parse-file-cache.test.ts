@@ -1,0 +1,287 @@
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+
+import { afterEach, describe, expect, it } from 'vitest';
+
+import { ParseFileCache } from '../../src/cli/parse-file-cache.js';
+import { createUsageEvent } from '../../src/domain/usage-event.js';
+
+const tempDirs: string[] = [];
+
+afterEach(async () => {
+  await Promise.all(tempDirs.map((tempDir) => rm(tempDir, { recursive: true, force: true })));
+  tempDirs.length = 0;
+});
+
+function createEvent(overrides: Partial<Parameters<typeof createUsageEvent>[0]> = {}) {
+  return createUsageEvent({
+    source: 'codex',
+    sessionId: 'session-1',
+    timestamp: '2026-02-01T00:00:00.000Z',
+    inputTokens: 1,
+    outputTokens: 2,
+    reasoningTokens: 0,
+    cacheReadTokens: 0,
+    cacheWriteTokens: 0,
+    totalTokens: 3,
+    costMode: 'estimated',
+    ...overrides,
+  });
+}
+
+describe('ParseFileCache', () => {
+  it('persists and reloads diagnostics while preserving nested skipped row reasons', async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), 'parse-file-cache-roundtrip-'));
+    tempDirs.push(tempDir);
+    const cacheFilePath = path.join(tempDir, 'parse-file-cache.json');
+    let nowMs = 10_000;
+    const now = () => nowMs;
+
+    const cache = await ParseFileCache.load({
+      cacheFilePath,
+      limits: { ttlMs: 60_000, maxEntries: 100, maxBytes: 1024 * 1024 },
+      now,
+    });
+
+    cache.set(
+      'codex',
+      '/tmp/a.jsonl',
+      { size: 5, mtimeMs: 11.75 },
+      {
+        events: [createEvent()],
+        skippedRows: 3,
+        skippedRowReasons: [{ reason: 'malformed json', count: 2 }],
+      },
+    );
+    await cache.persist();
+
+    nowMs += 1;
+
+    const reloaded = await ParseFileCache.load({
+      cacheFilePath,
+      limits: { ttlMs: 60_000, maxEntries: 100, maxBytes: 1024 * 1024 },
+      now,
+    });
+    const firstGet = reloaded.get('codex', '/tmp/a.jsonl', { size: 5, mtimeMs: 11.75 });
+
+    expect(firstGet).toEqual({
+      events: [createEvent()],
+      skippedRows: 3,
+      skippedRowReasons: [{ reason: 'malformed json', count: 2 }],
+    });
+
+    if (!firstGet) {
+      throw new Error('expected cached diagnostics');
+    }
+
+    firstGet.events[0].sessionId = 'mutated';
+    if (firstGet.skippedRowReasons) {
+      firstGet.skippedRowReasons[0].count = 999;
+    }
+
+    const secondGet = reloaded.get('codex', '/tmp/a.jsonl', { size: 5, mtimeMs: 11.75 });
+    expect(secondGet?.events[0]?.sessionId).toBe('session-1');
+    expect(secondGet?.skippedRowReasons?.[0]?.count).toBe(2);
+  });
+
+  it('returns undefined for fingerprint mismatches and expired entries', async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), 'parse-file-cache-expiry-'));
+    tempDirs.push(tempDir);
+    const cacheFilePath = path.join(tempDir, 'parse-file-cache.json');
+    let nowMs = 50_000;
+    const now = () => nowMs;
+    const limits = { ttlMs: 100, maxEntries: 100, maxBytes: 1024 * 1024 };
+
+    const cache = await ParseFileCache.load({ cacheFilePath, limits, now });
+    cache.set(
+      'codex',
+      '/tmp/b.jsonl',
+      { size: 10, mtimeMs: 20 },
+      { events: [createEvent()], skippedRows: 0 },
+    );
+
+    expect(cache.get('codex', '/tmp/b.jsonl', { size: 11, mtimeMs: 20 })).toBeUndefined();
+
+    nowMs += 101;
+    expect(cache.get('codex', '/tmp/b.jsonl', { size: 10, mtimeMs: 20 })).toBeUndefined();
+
+    await cache.persist();
+    const payload = JSON.parse(await readFile(cacheFilePath, 'utf8')) as { entries: unknown[] };
+    expect(payload.entries).toHaveLength(0);
+  });
+
+  it('normalizes disk payload entries and ignores malformed rows', async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), 'parse-file-cache-load-'));
+    tempDirs.push(tempDir);
+    const cacheFilePath = path.join(tempDir, 'parse-file-cache.json');
+    const validEvent = createEvent({ sessionId: 'from-cache' });
+
+    await writeFile(
+      cacheFilePath,
+      JSON.stringify({
+        version: 1,
+        entries: [
+          {
+            source: 'codex',
+            filePath: '/tmp/ok.jsonl',
+            fingerprint: { size: 12, mtimeMs: 34 },
+            cachedAt: 42,
+            diagnostics: {
+              events: [validEvent],
+              skippedRows: 9,
+              skippedRowReasons: [
+                { reason: ' truncated ', count: 3.9 },
+                { reason: 'zero', count: 0 },
+                { reason: '', count: 1 },
+              ],
+            },
+          },
+          {
+            source: 'codex',
+            filePath: '/tmp/bad.jsonl',
+            fingerprint: { size: 12, mtimeMs: 34 },
+            cachedAt: 42,
+            diagnostics: {
+              events: [{ source: 'codex' }],
+              skippedRows: 0,
+              skippedRowReasons: [{ reason: 'x', count: 1 }],
+            },
+          },
+          {
+            source: 'codex',
+            filePath: '/tmp/bad-source.jsonl',
+            fingerprint: { size: 12, mtimeMs: 34 },
+            cachedAt: 42,
+            diagnostics: {
+              events: [{ ...validEvent, source: '   ' }],
+              skippedRows: 0,
+              skippedRowReasons: [{ reason: 'x', count: 1 }],
+            },
+          },
+        ],
+      }),
+      'utf8',
+    );
+
+    const cache = await ParseFileCache.load({
+      cacheFilePath,
+      limits: { ttlMs: 60_000, maxEntries: 100, maxBytes: 1024 * 1024 },
+      now: () => 1_000,
+    });
+
+    expect(cache.get('codex', '/tmp/bad.jsonl', { size: 12, mtimeMs: 34 })).toBeUndefined();
+    expect(cache.get('codex', '/tmp/bad-source.jsonl', { size: 12, mtimeMs: 34 })).toBeUndefined();
+    expect(cache.get('codex', '/tmp/ok.jsonl', { size: 12, mtimeMs: 34 })).toEqual({
+      events: [validEvent],
+      skippedRows: 9,
+      skippedRowReasons: [{ reason: 'truncated', count: 3 }],
+    });
+
+    await cache.persist();
+    const persisted = JSON.parse(await readFile(cacheFilePath, 'utf8')) as { entries: unknown[] };
+    expect(persisted.entries).toHaveLength(1);
+  });
+
+  it('recovers from malformed cache JSON and rewrites a valid payload', async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), 'parse-file-cache-malformed-'));
+    tempDirs.push(tempDir);
+    const cacheFilePath = path.join(tempDir, 'parse-file-cache.json');
+    await writeFile(cacheFilePath, '{not-json', 'utf8');
+
+    const cache = await ParseFileCache.load({
+      cacheFilePath,
+      limits: { ttlMs: 60_000, maxEntries: 100, maxBytes: 1024 * 1024 },
+      now: () => 500,
+    });
+
+    await cache.persist();
+    const persisted = JSON.parse(await readFile(cacheFilePath, 'utf8')) as {
+      version: number;
+      entries: unknown[];
+    };
+    expect(persisted).toEqual({ version: 1, entries: [] });
+  });
+
+  it('handles unsupported cache versions by resetting payload on persist', async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), 'parse-file-cache-version-'));
+    tempDirs.push(tempDir);
+    const cacheFilePath = path.join(tempDir, 'parse-file-cache.json');
+    await writeFile(
+      cacheFilePath,
+      JSON.stringify({ version: 999, entries: [{ source: 'codex' }] }),
+      'utf8',
+    );
+
+    const cache = await ParseFileCache.load({
+      cacheFilePath,
+      limits: { ttlMs: 60_000, maxEntries: 100, maxBytes: 1024 * 1024 },
+      now: () => 500,
+    });
+
+    await cache.persist();
+    const persisted = JSON.parse(await readFile(cacheFilePath, 'utf8')) as {
+      version: number;
+      entries: unknown[];
+    };
+    expect(persisted).toEqual({ version: 1, entries: [] });
+  });
+
+  it('bounds persisted payload by max entries and max bytes', async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), 'parse-file-cache-bounds-'));
+    tempDirs.push(tempDir);
+    const cacheFilePath = path.join(tempDir, 'parse-file-cache.json');
+    let nowMs = 10;
+    const now = () => nowMs;
+
+    const cache = await ParseFileCache.load({
+      cacheFilePath,
+      limits: { ttlMs: 60_000, maxEntries: 2, maxBytes: 220 },
+      now,
+    });
+
+    const oversizedEvent = createEvent({ sessionId: 'x'.repeat(200) });
+    cache.set(
+      'codex',
+      '/tmp/one.jsonl',
+      { size: 1, mtimeMs: 1 },
+      { events: [oversizedEvent], skippedRows: 0 },
+    );
+    nowMs += 1;
+    cache.set(
+      'codex',
+      '/tmp/two.jsonl',
+      { size: 2, mtimeMs: 2 },
+      { events: [oversizedEvent], skippedRows: 0 },
+    );
+    nowMs += 1;
+    cache.set(
+      'codex',
+      '/tmp/three.jsonl',
+      { size: 3, mtimeMs: 3 },
+      { events: [oversizedEvent], skippedRows: 0 },
+    );
+
+    await cache.persist();
+    const persistedText = await readFile(cacheFilePath, 'utf8');
+    const persisted = JSON.parse(persistedText) as { entries: Array<{ filePath: string }> };
+
+    expect(Buffer.byteLength(persistedText, 'utf8')).toBeLessThanOrEqual(220);
+    expect(persisted.entries.length).toBeLessThanOrEqual(2);
+  });
+
+  it('does not write cache file when nothing changed', async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), 'parse-file-cache-pristine-'));
+    tempDirs.push(tempDir);
+    const cacheFilePath = path.join(tempDir, 'parse-file-cache.json');
+
+    const cache = await ParseFileCache.load({
+      cacheFilePath,
+      limits: { ttlMs: 60_000, maxEntries: 100, maxBytes: 1024 * 1024 },
+      now: () => 100,
+    });
+
+    await cache.persist();
+    await expect(readFile(cacheFilePath, 'utf8')).rejects.toThrow();
+  });
+});

@@ -16,6 +16,10 @@ const ENV_VARS_TO_DISPLAY: Array<{ name: string; description: string }> = [
   { name: 'LLM_USAGE_PRICING_CACHE_TTL_MS', description: 'pricing cache TTL' },
   { name: 'LLM_USAGE_PRICING_FETCH_TIMEOUT_MS', description: 'pricing fetch timeout' },
   { name: 'LLM_USAGE_PARSE_MAX_PARALLEL', description: 'max parallel file parsing' },
+  { name: 'LLM_USAGE_PARSE_CACHE_ENABLED', description: 'enable file parse cache' },
+  { name: 'LLM_USAGE_PARSE_CACHE_TTL_MS', description: 'file parse cache TTL' },
+  { name: 'LLM_USAGE_PARSE_CACHE_MAX_ENTRIES', description: 'file parse cache max entries' },
+  { name: 'LLM_USAGE_PARSE_CACHE_MAX_BYTES', description: 'file parse cache max bytes' },
 ];
 
 export function getActiveEnvVarOverrides(): EnvVarOverride[] {
