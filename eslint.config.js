@@ -6,12 +6,21 @@ import prettierConfig from 'eslint-config-prettier';
 import tseslint from 'typescript-eslint';
 
 const tsconfigRootDir = path.dirname(fileURLToPath(import.meta.url));
+const tsFiles = ['**/*.ts', '**/*.tsx', '**/*.mts', '**/*.cts'];
+
+function scopeToFiles(configs, files) {
+  return configs.map((config) => ({
+    ...config,
+    files: config.files ?? files,
+  }));
+}
 
 export default tseslint.config(
   {
     ignores: [
       'dist/**',
       'coverage/**',
+      'site/**',
       '.github/scripts/**',
       'scripts/**',
       '*.tgz',
@@ -19,11 +28,11 @@ export default tseslint.config(
     ],
   },
   js.configs.recommended,
-  ...tseslint.configs.recommendedTypeChecked,
-  ...tseslint.configs.strictTypeChecked,
-  ...tseslint.configs.stylisticTypeChecked,
+  ...scopeToFiles(tseslint.configs.recommendedTypeChecked, tsFiles),
+  ...scopeToFiles(tseslint.configs.strictTypeChecked, tsFiles),
+  ...scopeToFiles(tseslint.configs.stylisticTypeChecked, tsFiles),
   {
-    files: ['**/*.ts'],
+    files: tsFiles,
     languageOptions: {
       parserOptions: {
         projectService: true,
