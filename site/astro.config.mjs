@@ -47,6 +47,7 @@ export default defineConfig({
         },
       ],
       customCss: [
+        './src/styles/tokens.css',
         './src/styles/custom.css',
       ],
       editLink: {
