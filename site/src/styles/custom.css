@@ -60,12 +60,15 @@ html {
 /* ── Liquid Glass Component ─────────────────────────────── */
 .liquid-glass {
   background: var(--color-bg-card);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--border-subtle);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.05),
-    0 10px 40px -10px rgba(0, 0, 0, 0.5);
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 0 20px rgba(255, 255, 255, 0.02),
+    0 20px 40px -15px rgba(0, 0, 0, 0.5);
+  border-radius: var(--radius-xl);
+  transition: transform var(--transition-spring), box-shadow var(--transition-spring);
 }
 
 /* ── Grain Overlay ───────────────────────────────────────── */
