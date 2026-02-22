@@ -17,7 +17,7 @@
   ],
   "scripts": {
     "build": "tsup src/cli/index.ts --format esm --dts --clean --sourcemap",
-    "cli": "node --experimental-strip-types src/cli/index.ts",
+    "cli": "tsx src/cli/index.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --coverage",
@@ -62,6 +62,7 @@
     "prettier": "^3.8.1",
     "release-it": "^19.2.4",
     "tsup": "^8.5.1",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.56.0",
     "vitest": "^4.0.18"
