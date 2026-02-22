@@ -36,7 +36,6 @@ function createEmptyTotals(): UsageTotals {
     cacheReadTokens: 0,
     cacheWriteTokens: 0,
     totalTokens: 0,
-    costUsd: 0,
   };
 }
 
@@ -224,13 +223,20 @@ export function aggregateUsage(
     }
   }
 
+  const finalizedGrandTotals =
+    events.length === 0 &&
+    grandTotals.costUsd === undefined &&
+    grandTotals.costIncomplete !== true
+      ? { ...grandTotals, costUsd: 0 }
+      : grandTotals;
+
   const grandTotalRow: GrandTotalRow = {
     rowType: 'grand_total',
     periodKey: 'ALL',
     source: 'combined',
     models: normalizeModelList(grandModelTotals.keys()),
     modelBreakdown: toModelUsageBreakdown(grandModelTotals),
-    ...grandTotals,
+    ...finalizedGrandTotals,
   };
 
   rows.push(grandTotalRow);

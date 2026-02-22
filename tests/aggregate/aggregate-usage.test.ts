@@ -98,9 +98,9 @@ describe('aggregateUsage', () => {
       periodKey: '2026-02-11',
       source: 'pi',
       totalTokens: 5,
-      costUsd: 0,
       costIncomplete: true,
     });
+    expect(rows[3]?.costUsd).toBeUndefined();
     expect(rows[4]).toMatchObject({
       rowType: 'grand_total',
       periodKey: 'ALL',
@@ -307,5 +307,26 @@ describe('aggregateUsage', () => {
 
     const periodSourceRows = rows.filter((row) => row.rowType === 'period_source');
     expect(periodSourceRows.map((row) => row.source)).toEqual(['z-source', 'ä-source']);
+  });
+
+  it('keeps grand-total cost at zero when there are no events', () => {
+    const rows = aggregateUsage([], { granularity: 'daily', timezone: 'UTC' });
+
+    expect(rows).toEqual([
+      {
+        rowType: 'grand_total',
+        periodKey: 'ALL',
+        source: 'combined',
+        models: [],
+        modelBreakdown: [],
+        inputTokens: 0,
+        outputTokens: 0,
+        reasoningTokens: 0,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+        totalTokens: 0,
+        costUsd: 0,
+      },
+    ]);
   });
 });

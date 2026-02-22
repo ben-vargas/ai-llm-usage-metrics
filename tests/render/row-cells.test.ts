@@ -198,4 +198,42 @@ describe('row-cells', () => {
     const perModelCells = toUsageTableCells(rows, { layout: 'per_model_columns' });
     expect(perModelCells[0]?.[9]).toBe('~$1.25\n~$0.00\n~$1.25');
   });
+
+  it('renders unknown-only incomplete costs as dash instead of ~ $0.00', () => {
+    const rows: UsageReportRow[] = [
+      {
+        rowType: 'period_source',
+        periodKey: '2026-02-10',
+        source: 'pi',
+        models: ['gpt-4.1'],
+        modelBreakdown: [
+          {
+            model: 'gpt-4.1',
+            inputTokens: 10,
+            outputTokens: 10,
+            reasoningTokens: 0,
+            cacheReadTokens: 0,
+            cacheWriteTokens: 0,
+            totalTokens: 20,
+            costUsd: undefined,
+            costIncomplete: true,
+          },
+        ],
+        inputTokens: 10,
+        outputTokens: 10,
+        reasoningTokens: 0,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+        totalTokens: 20,
+        costUsd: undefined,
+        costIncomplete: true,
+      },
+    ];
+
+    const compactCells = toUsageTableCells(rows);
+    expect(compactCells[0]?.[9]).toBe('-');
+
+    const perModelCells = toUsageTableCells(rows, { layout: 'per_model_columns' });
+    expect(perModelCells[0]?.[9]).toBe('-');
+  });
 });
