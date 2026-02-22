@@ -97,7 +97,7 @@ export async function parseAdapterEvents(
           const fileStat = await stat(filePath);
           fileFingerprint = {
             size: fileStat.size,
-            mtimeMs: Math.trunc(fileStat.mtimeMs),
+            mtimeMs: fileStat.mtimeMs,
           };
           parseFileDiagnostics = parseFileCache.get(adapter.id, filePath, fileFingerprint);
         } catch {

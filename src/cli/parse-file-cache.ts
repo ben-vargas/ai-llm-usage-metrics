@@ -173,7 +173,7 @@ function normalizeCacheEntry(value: unknown): ParseFileCacheEntry | undefined {
   const fingerprint = asRecord(record.fingerprint);
   const diagnostics = asRecord(record.diagnostics);
   const size = toNonNegativeInteger(fingerprint?.size);
-  const mtimeMs = toNonNegativeInteger(fingerprint?.mtimeMs);
+  const mtimeMs = toNonNegativeNumber(fingerprint?.mtimeMs);
   const skippedRows = toNonNegativeInteger(diagnostics?.skippedRows) ?? 0;
   const events = normalizeCachedEvents(diagnostics?.events);
 
@@ -295,26 +295,31 @@ export class ParseFileCache {
       .filter((entry) => entry.cachedAt + this.limits.ttlMs >= this.now())
       .sort((left, right) => right.cachedAt - left.cachedAt);
 
-    const keptEntries: ParseFileCacheEntry[] = [];
+    const keptEntries = sortedEntries.slice(0, this.limits.maxEntries);
+    let payloadText = JSON.stringify(this.toPayload(keptEntries));
 
-    for (const entry of sortedEntries) {
-      if (keptEntries.length >= this.limits.maxEntries) {
-        break;
+    if (Buffer.byteLength(payloadText, 'utf8') > this.limits.maxBytes) {
+      let bestCount = 0;
+      let bestPayloadText = JSON.stringify(this.toPayload([]));
+      let low = 0;
+      let high = keptEntries.length;
+
+      while (low <= high) {
+        const mid = Math.floor((low + high) / 2);
+        const candidateText = JSON.stringify(this.toPayload(keptEntries.slice(0, mid)));
+
+        if (Buffer.byteLength(candidateText, 'utf8') <= this.limits.maxBytes) {
+          bestCount = mid;
+          bestPayloadText = candidateText;
+          low = mid + 1;
+          continue;
+        }
+
+        high = mid - 1;
       }
 
-      keptEntries.push(entry);
-    }
-
-    let payload = this.toPayload(keptEntries);
-    let payloadText = JSON.stringify(payload);
-
-    while (
-      Buffer.byteLength(payloadText, 'utf8') > this.limits.maxBytes &&
-      keptEntries.length > 0
-    ) {
-      keptEntries.pop();
-      payload = this.toPayload(keptEntries);
-      payloadText = JSON.stringify(payload);
+      keptEntries.length = bestCount;
+      payloadText = bestPayloadText;
     }
 
     await mkdir(path.dirname(this.cacheFilePath), { recursive: true });

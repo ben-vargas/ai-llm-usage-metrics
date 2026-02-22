@@ -47,7 +47,7 @@ describe('ParseFileCache', () => {
     cache.set(
       'codex',
       '/tmp/a.jsonl',
-      { size: 5, mtimeMs: 11 },
+      { size: 5, mtimeMs: 11.75 },
       {
         events: [createEvent()],
         skippedRows: 3,
@@ -63,7 +63,7 @@ describe('ParseFileCache', () => {
       limits: { ttlMs: 60_000, maxEntries: 100, maxBytes: 1024 * 1024 },
       now,
     });
-    const firstGet = reloaded.get('codex', '/tmp/a.jsonl', { size: 5, mtimeMs: 11 });
+    const firstGet = reloaded.get('codex', '/tmp/a.jsonl', { size: 5, mtimeMs: 11.75 });
 
     expect(firstGet).toEqual({
       events: [createEvent()],
@@ -80,7 +80,7 @@ describe('ParseFileCache', () => {
       firstGet.skippedRowReasons[0].count = 999;
     }
 
-    const secondGet = reloaded.get('codex', '/tmp/a.jsonl', { size: 5, mtimeMs: 11 });
+    const secondGet = reloaded.get('codex', '/tmp/a.jsonl', { size: 5, mtimeMs: 11.75 });
     expect(secondGet?.events[0]?.sessionId).toBe('session-1');
     expect(secondGet?.skippedRowReasons?.[0]?.count).toBe(2);
   });

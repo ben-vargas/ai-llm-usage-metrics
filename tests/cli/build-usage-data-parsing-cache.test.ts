@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, stat, utimes, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -121,6 +121,45 @@ describe('parseSelectedAdapters file cache', () => {
     expect(secondPassCalls.count).toBe(1);
     expect(secondRun.sourceFailures).toEqual([]);
     expect(secondRun.successfulParseResults[0]?.events).toHaveLength(2);
+  });
+
+  it('treats sub-millisecond mtime changes as cache fingerprint changes', async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), 'parse-cache-sub-ms-mtime-'));
+    tempDirs.push(tempDir);
+
+    const fileA = path.join(tempDir, 'a.jsonl');
+    const cacheFilePath = path.join(tempDir, 'parse-cache.json');
+    await writeFile(fileA, '{"line":1}\n', 'utf8');
+
+    const firstTimestampSeconds = 1_700_000_000.123_001;
+    await utimes(fileA, firstTimestampSeconds, firstTimestampSeconds);
+    const firstMtimeMs = (await stat(fileA)).mtimeMs;
+
+    const firstPassCalls = { count: 0 };
+    await parseSelectedAdapters([new CountingJsonlAdapter([fileA], firstPassCalls)], 8, {
+      ...parseCacheOptions,
+      parseCacheFilePath: cacheFilePath,
+    });
+    expect(firstPassCalls.count).toBe(1);
+
+    await writeFile(fileA, '{"line":2}\n', 'utf8');
+    const secondTimestampSeconds = 1_700_000_000.123_777;
+    await utimes(fileA, secondTimestampSeconds, secondTimestampSeconds);
+    const secondMtimeMs = (await stat(fileA)).mtimeMs;
+
+    // Some filesystems don't preserve sub-ms mtime precision. When that happens,
+    // this scenario cannot exercise the regression and is validated elsewhere.
+    if (firstMtimeMs === secondMtimeMs || Math.trunc(firstMtimeMs) !== Math.trunc(secondMtimeMs)) {
+      return;
+    }
+
+    const secondPassCalls = { count: 0 };
+    await parseSelectedAdapters([new CountingJsonlAdapter([fileA], secondPassCalls)], 8, {
+      ...parseCacheOptions,
+      parseCacheFilePath: cacheFilePath,
+    });
+
+    expect(secondPassCalls.count).toBe(1);
   });
 
   it('caps cache size and avoids unbounded growth', async () => {
