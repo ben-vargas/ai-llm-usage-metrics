@@ -35,6 +35,10 @@ export default defineConfig({
           link: '/configuration',
         },
         {
+          label: 'Caching',
+          link: '/caching',
+        },
+        {
           label: 'Output Formats',
           link: '/output-formats',
         },

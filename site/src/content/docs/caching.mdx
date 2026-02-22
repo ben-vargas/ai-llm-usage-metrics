@@ -1,0 +1,94 @@
+---
+title: Caching
+description: Why caching exists, how each cache works, and how to tune it.
+---
+
+`llm-usage-metrics` uses caching to keep runs fast, stable offline, and predictable.
+
+## Why caching exists
+
+- reduce repeated network calls (pricing + update checks)
+- avoid reparsing unchanged session files on every run
+- keep deterministic behavior when the network is unavailable
+
+## Cache layers
+
+| Cache | Purpose | Default TTL | Location |
+| --- | --- | --- | --- |
+| update-check cache | avoids querying npm on every startup | 1 hour | `<platform-cache-root>/llm-usage-metrics/update-check.json` |
+| pricing cache | stores normalized LiteLLM pricing data | 24 hours | `<platform-cache-root>/llm-usage-metrics/litellm-pricing-cache.json` |
+| parse-file cache | stores parsed file diagnostics/events keyed by file fingerprint | 7 days | `<platform-cache-root>/llm-usage-metrics/parse-file-cache.json` |
+
+On Linux with no `XDG_CACHE_HOME`, `<platform-cache-root>` defaults to `~/.cache`.
+
+## How each cache works
+
+### 1) Update-check cache
+
+- read cached npm version if still fresh
+- otherwise fetch latest npm version
+- on fetch failure, fallback to previous cached version when available
+- optional session-scoped mode creates a per-shell cache file
+
+Relevant env vars:
+
+- `LLM_USAGE_SKIP_UPDATE_CHECK`
+- `LLM_USAGE_UPDATE_CACHE_SCOPE` (`global` or `session`)
+- `LLM_USAGE_UPDATE_CACHE_SESSION_KEY`
+- `LLM_USAGE_UPDATE_CACHE_TTL_MS`
+- `LLM_USAGE_UPDATE_FETCH_TIMEOUT_MS`
+
+### 2) Pricing cache
+
+- tries fresh cache first
+- if cache is stale and network is enabled, fetches LiteLLM pricing and rewrites cache
+- if network fails, falls back to stale cache when possible
+- with `--pricing-offline`, uses cache only and fails if no cache exists
+
+Relevant options/env:
+
+- `--pricing-offline`
+- `--pricing-url`
+- `LLM_USAGE_PRICING_CACHE_TTL_MS`
+- `LLM_USAGE_PRICING_FETCH_TIMEOUT_MS`
+
+### 3) Parse-file cache
+
+- key is `(source, file path)`
+- cache validity requires matching file fingerprint (`size`, `mtimeMs`) and TTL
+- stores parse diagnostics and normalized events
+- persisted as best-effort JSON, bounded by max entries and max byte size
+
+Relevant env vars:
+
+- `LLM_USAGE_PARSE_CACHE_ENABLED`
+- `LLM_USAGE_PARSE_CACHE_TTL_MS`
+- `LLM_USAGE_PARSE_CACHE_MAX_ENTRIES`
+- `LLM_USAGE_PARSE_CACHE_MAX_BYTES`
+- `LLM_USAGE_PARSE_MAX_PARALLEL`
+
+## Tuning examples
+
+Use pricing cache only (offline mode):
+
+```bash
+llm-usage monthly --pricing-offline
+```
+
+Increase parsing throughput and keep parse cache enabled:
+
+```bash
+LLM_USAGE_PARSE_MAX_PARALLEL=16 llm-usage daily
+```
+
+Shorten pricing cache TTL to 2 hours:
+
+```bash
+LLM_USAGE_PRICING_CACHE_TTL_MS=7200000 llm-usage monthly
+```
+
+## Troubleshooting cache behavior
+
+- If pricing fails in offline mode, run once without `--pricing-offline` to warm the cache.
+- If reports look stale after source file changes, verify source files updated `mtime` and cache TTL settings.
+- If you need fresh update checks every run, set `LLM_USAGE_UPDATE_CACHE_TTL_MS=0`.

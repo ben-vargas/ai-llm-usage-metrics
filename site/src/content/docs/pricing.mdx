@@ -1,92 +1,41 @@
 ---
 title: Pricing
-description: Understand how llm-usage-metrics calculates costs using LiteLLM pricing data.
+description: How pricing is loaded and how row costs are computed.
 ---
 
-# Pricing
+`llm-usage-metrics` uses LiteLLM pricing data to estimate costs when events do not include explicit cost.
 
-`llm-usage-metrics` calculates costs by combining token usage data with up-to-date pricing information from LiteLLM's pricing repository.
+## Pricing source
 
-## Cost Calculation
-
-The cost formula is straightforward:
-
-```
-Cost = (Input Tokens × Input Price) + (Output Tokens × Output Price)
-```
-
-Where prices are per-million tokens in USD.
-
-### Example
-
-| Model | Input Tokens | Output Tokens | Input Price | Output Price | Calculated Cost |
-|-------|--------------|---------------|-------------|--------------|-----------------|
-| gpt-4 | 100,000 | 50,000 | $30/M | $60/M | $6.00 |
-
-Calculation:
-- Input: 100,000 × ($30 / 1,000,000) = $3.00
-- Output: 50,000 × ($60 / 1,000,000) = $3.00
-- **Total: $6.00**
-
-## Pricing Data Source
-
-Pricing data is sourced from [LiteLLM's pricing repository](https://github.com/BerriAI/litellm), which maintains current pricing for:
-
-- OpenAI (GPT-4, GPT-3.5, etc.)
-- Anthropic (Claude models)
-- Google (Gemini, PaLM)
-- Mistral AI
-- And many more
-
-### Update Frequency
-
-Pricing data is bundled with each CLI release. The bundled data is refreshed from LiteLLM's repository during the release process.
-
-## Offline Mode
-
-The CLI works fully offline using bundled pricing data. No network requests are made during cost calculation.
+- primary source: LiteLLM pricing JSON
+- cache: local pricing cache is used when available
+- offline mode: `--pricing-offline` uses cache only
 
 ```bash
-# Works without internet
-llm-usage daily
+llm-usage monthly --pricing-offline
 ```
 
-### Fallback Behavior
+If pricing cannot be loaded (or offline cache is unavailable), report generation fails.
 
-If a model's pricing is not found in the bundled data:
+For cache lifecycle and tuning knobs, see [Caching](/caching/).
 
-1. The CLI will emit a warning
-2. The model will be marked as "unknown price"
-3. Cost will be calculated as $0.00
+## Cost modes
 
-To see warnings:
+Each event is either:
+
+- `explicit`: source included a valid cost
+- `estimated`: cost derived from pricing data
+
+Explicit `costUsd: 0` events are re-priced from LiteLLM when model pricing exists.
+
+## Row cost rendering
+
+- `-` when all contributing events are unresolved
+- `~$...` when only part of the row cost is known
+- `$...` when row cost is fully resolved
+
+## Override pricing URL
 
 ```bash
-llm-usage daily --verbose
-```
-
-## Currency
-
-All costs are calculated and displayed in **USD** by default. Currency conversion is not currently supported.
-
-## Cost Aggregation
-
-Costs are aggregated at multiple levels:
-
-### By Session
-Individual coding agent sessions are costed separately.
-
-### By Source
-Costs are rolled up by source (pi, codex, opencode).
-
-### By Period
-Daily, weekly, and monthly reports sum all costs within the period.
-
-### Example Output
-
-```
-Total Cost: $12.34
-├── pi:      $5.67 (45%)
-├── codex:   $4.23 (34%)
-└── opencode: $2.44 (20%)
+llm-usage monthly --pricing-url https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json
 ```
