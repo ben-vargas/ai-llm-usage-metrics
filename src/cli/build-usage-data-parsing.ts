@@ -1,3 +1,5 @@
+import { stat } from 'node:fs/promises';
+
 import type { UsageEvent } from '../domain/usage-event.js';
 import { compareByCodePoint } from '../utils/compare-by-code-point.js';
 import type {
@@ -7,6 +9,7 @@ import type {
 } from '../sources/source-adapter.js';
 import { asRecord } from '../utils/as-record.js';
 import { getPeriodKey } from '../utils/time-buckets.js';
+import { ParseFileCache } from './parse-file-cache.js';
 
 import type { UsageSourceFailure } from './usage-data-contracts.js';
 
@@ -21,6 +24,19 @@ export type AdapterParseResult = {
 export type ParsedAdaptersResult = {
   successfulParseResults: AdapterParseResult[];
   sourceFailures: UsageSourceFailure[];
+};
+
+export type ParseCacheRuntimeConfig = {
+  enabled: boolean;
+  ttlMs: number;
+  maxEntries: number;
+  maxBytes: number;
+};
+
+export type ParseSelectedAdaptersOptions = {
+  parseCache?: ParseCacheRuntimeConfig;
+  parseCacheFilePath?: string;
+  now?: () => number;
 };
 
 function getDefaultParseFileDiagnostics(events: UsageEvent[]): SourceParseFileDiagnostics {
@@ -64,6 +80,7 @@ function normalizeSkippedRowReasons(value: unknown): Array<{ reason: string; cou
 export async function parseAdapterEvents(
   adapter: SourceAdapter,
   maxParallelFileParsing: number,
+  parseFileCache?: ParseFileCache,
 ): Promise<AdapterParseResult> {
   const files = await adapter.discoverFiles();
 
@@ -92,9 +109,32 @@ export async function parseAdapterEvents(
       const fileIndex = nextFileIndex;
       nextFileIndex += 1;
 
-      const parseFileDiagnostics = adapter.parseFileWithDiagnostics
-        ? await adapter.parseFileWithDiagnostics(files[fileIndex])
-        : getDefaultParseFileDiagnostics(await adapter.parseFile(files[fileIndex]));
+      const filePath = files[fileIndex];
+      let fileFingerprint:
+        | {
+            size: number;
+            mtimeMs: number;
+          }
+        | undefined;
+      let parseFileDiagnostics: SourceParseFileDiagnostics | undefined;
+
+      if (parseFileCache) {
+        const fileStat = await stat(filePath);
+        fileFingerprint = {
+          size: fileStat.size,
+          mtimeMs: Math.trunc(fileStat.mtimeMs),
+        };
+        parseFileDiagnostics = parseFileCache.get(adapter.id, filePath, fileFingerprint);
+      }
+
+      if (!parseFileDiagnostics) {
+        parseFileDiagnostics = adapter.parseFileWithDiagnostics
+          ? await adapter.parseFileWithDiagnostics(filePath)
+          : getDefaultParseFileDiagnostics(await adapter.parseFile(filePath));
+        if (parseFileCache && fileFingerprint) {
+          parseFileCache.set(adapter.id, filePath, fileFingerprint, parseFileDiagnostics);
+        }
+      }
 
       parsedByFile[fileIndex] = parseFileDiagnostics.events;
       skippedRowsByFile[fileIndex] = normalizeSkippedRowsCount(parseFileDiagnostics.skippedRows);
@@ -131,10 +171,34 @@ function getErrorReason(error: unknown): string {
 export async function parseSelectedAdapters(
   adaptersToParse: SourceAdapter[],
   maxParallelFileParsing: number,
+  options: ParseSelectedAdaptersOptions = {},
 ): Promise<ParsedAdaptersResult> {
+  const parseCache = options.parseCache?.enabled
+    ? await ParseFileCache.load({
+        cacheFilePath: options.parseCacheFilePath,
+        limits: {
+          ttlMs: options.parseCache.ttlMs,
+          maxEntries: options.parseCache.maxEntries,
+          maxBytes: options.parseCache.maxBytes,
+        },
+        now: options.now,
+      })
+    : undefined;
+
   const parseResults = await Promise.allSettled(
-    adaptersToParse.map((adapter) => parseAdapterEvents(adapter, maxParallelFileParsing)),
+    adaptersToParse.map((adapter) =>
+      parseAdapterEvents(adapter, maxParallelFileParsing, parseCache),
+    ),
   );
+
+  if (parseCache) {
+    try {
+      await parseCache.persist();
+    } catch {
+      // Parse cache persistence is best-effort.
+    }
+  }
+
   const sourceFailures: UsageSourceFailure[] = [];
   const successfulParseResults: AdapterParseResult[] = [];
 

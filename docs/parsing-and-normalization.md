@@ -4,6 +4,7 @@
 
 - Directory-backed adapters (`pi`, `codex`) use recursive discovery for `*.jsonl` files and return paths in deterministic sorted order.
 - OpenCode uses a deterministic SQLite DB path resolver (or `--opencode-db` when explicitly provided).
+- Parsed file outputs are cached by `source + filePath + size + mtimeMs` in a bounded cache file (`<platform-cache-root>/llm-usage-metrics/parse-file-cache.json`) with TTL and size/entry limits.
 
 ## `.pi` parsing
 
@@ -14,6 +15,8 @@ Source file: `src/sources/pi/pi-source-adapter.ts`
 - `session`: captures session id and backup timestamp
 - `model_change`: updates provider/model state
 - `message`: potential usage record
+
+The adapter applies a raw-line prefilter before JSON parsing and only parses lines that match these recognized `type` values.
 
 ### Usage extraction
 
@@ -45,6 +48,8 @@ Source file: `src/sources/codex/codex-source-adapter.ts`
 - `session_meta`: session id and model provider
 - `turn_context`: current model
 - `event_msg` with `payload.type = token_count`: usage info
+
+The adapter applies a raw-line prefilter before JSON parsing and only parses lines likely to contain these records.
 
 ### Delta logic
 

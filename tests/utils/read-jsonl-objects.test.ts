@@ -93,4 +93,31 @@ describe('readJsonlObjects', () => {
       }
     }).rejects.toThrow();
   });
+
+  it('supports raw-line parse filtering before JSON.parse', async () => {
+    const rootDir = await mkdtemp(path.join(os.tmpdir(), 'read-jsonl-filter-'));
+    tempDirs.push(rootDir);
+
+    const filePath = path.join(rootDir, 'filter.jsonl');
+
+    await writeFile(
+      filePath,
+      [
+        '{"type":"session","id":"a"}',
+        '{"type":"message","text":"keep"}',
+        '{"type":"message","text":"skip"}',
+      ].join('\n'),
+      'utf8',
+    );
+
+    const records: Array<Record<string, unknown>> = [];
+
+    for await (const record of readJsonlObjects(filePath, {
+      shouldParseLine: (lineText) => lineText.includes('"text":"keep"'),
+    })) {
+      records.push(record);
+    }
+
+    expect(records).toEqual([{ type: 'message', text: 'keep' }]);
+  });
 });

@@ -70,6 +70,14 @@ You can tune runtime behavior with environment variables:
 - `LLM_USAGE_PRICING_CACHE_TTL_MS`: pricing cache TTL in milliseconds (clamped: `60000..2592000000`)
 - `LLM_USAGE_PRICING_FETCH_TIMEOUT_MS`: pricing fetch timeout in milliseconds (clamped: `200..30000`)
 - `LLM_USAGE_PARSE_MAX_PARALLEL`: max concurrent file parses per source adapter (clamped: `1..64`)
+- `LLM_USAGE_PARSE_CACHE_ENABLED`: enable file parse cache (`1` by default; accepts `1/0`, `true/false`, `yes/no`)
+- `LLM_USAGE_PARSE_CACHE_TTL_MS`: file parse cache TTL in milliseconds (clamped: `3600000..2592000000`)
+- `LLM_USAGE_PARSE_CACHE_MAX_ENTRIES`: max cached file parse entries (clamped: `100..20000`)
+- `LLM_USAGE_PARSE_CACHE_MAX_BYTES`: max parse-cache file size in bytes (clamped: `1048576..536870912`)
+
+Parse cache location:
+
+- `<platform-cache-root>/llm-usage-metrics/parse-file-cache.json` (defaults to `~/.cache/llm-usage-metrics/parse-file-cache.json` on Linux when `XDG_CACHE_HOME` is unset)
 
 Example:
 

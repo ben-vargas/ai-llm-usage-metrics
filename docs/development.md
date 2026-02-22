@@ -49,6 +49,10 @@ Common variables:
 - `LLM_USAGE_PRICING_CACHE_TTL_MS=...`
 - `LLM_USAGE_PRICING_FETCH_TIMEOUT_MS=...`
 - `LLM_USAGE_PARSE_MAX_PARALLEL=...`
+- `LLM_USAGE_PARSE_CACHE_ENABLED=...`
+- `LLM_USAGE_PARSE_CACHE_TTL_MS=...`
+- `LLM_USAGE_PARSE_CACHE_MAX_ENTRIES=...`
+- `LLM_USAGE_PARSE_CACHE_MAX_BYTES=...`
 
 ## Build and packaging
 
@@ -152,6 +156,7 @@ Optional but recommended:
 2. Implement `SourceAdapter`
    - required: `discoverFiles()` and `parseFile(filePath)`
    - optional: `parseFileWithDiagnostics(filePath)` when you need per-file skipped-row counters
+   - for JSONL sources, consider `readJsonlObjects(filePath, { shouldParseLine })` to skip irrelevant lines before `JSON.parse`
 3. Normalize output through `createUsageEvent`
 4. Add fixture tests under `tests/sources`
 5. Register adapter in `src/sources/create-default-adapters.ts`

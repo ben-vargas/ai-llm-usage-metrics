@@ -9,7 +9,7 @@ The runtime pipeline is split into clear reporting layers:
 3. **CLI command parsing** (`src/cli/create-cli.ts`)
 4. **Usage data build** (`src/cli/build-usage-data.ts`)
    - option validation
-   - adapter wiring/discovery/parsing
+   - adapter wiring/discovery/parsing (with bounded file parse cache)
    - provider/date filtering
    - pricing resolution
    - aggregation

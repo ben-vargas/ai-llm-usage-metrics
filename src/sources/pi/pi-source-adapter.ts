@@ -36,6 +36,18 @@ export type PiSourceAdapterOptions = {
   providerFilter?: ProviderFilter;
 };
 
+const PI_MESSAGE_LINE_PATTERN = /"type"\s*:\s*"message"/u;
+const PI_SESSION_LINE_PATTERN = /"type"\s*:\s*"session"/u;
+const PI_MODEL_CHANGE_LINE_PATTERN = /"type"\s*:\s*"model_change"/u;
+
+function shouldParsePiJsonlLine(lineText: string): boolean {
+  return (
+    PI_MESSAGE_LINE_PATTERN.test(lineText) ||
+    PI_SESSION_LINE_PATTERN.test(lineText) ||
+    PI_MODEL_CHANGE_LINE_PATTERN.test(lineText)
+  );
+}
+
 const allowAllProviders: ProviderFilter = () => true;
 
 const UNIX_SECONDS_ABS_CUTOFF = 10_000_000_000;
@@ -151,7 +163,9 @@ export class PiSourceAdapter implements SourceAdapter {
     const events: UsageEvent[] = [];
     const state: PiSessionState = { sessionId: getFallbackSessionId(filePath) };
 
-    for await (const line of readJsonlObjects(filePath)) {
+    for await (const line of readJsonlObjects(filePath, {
+      shouldParseLine: shouldParsePiJsonlLine,
+    })) {
       if (line.type === 'session') {
         state.sessionId = asTrimmedText(line.id) ?? state.sessionId;
         state.sessionTimestamp = asTrimmedText(line.timestamp) ?? state.sessionTimestamp;
