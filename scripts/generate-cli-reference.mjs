@@ -28,7 +28,11 @@ function ensureDistBuild(options = {}) {
     return;
   }
 
-  console.log(forceRebuild ? 'Rebuilding CLI dist before docs generation...' : 'dist/index.js not found. Building CLI...');
+  console.log(
+    forceRebuild
+      ? 'Rebuilding CLI dist before docs generation...'
+      : 'dist/index.js not found. Building CLI...',
+  );
   run('pnpm', ['run', 'build'], { stdio: 'inherit' });
 }
 
