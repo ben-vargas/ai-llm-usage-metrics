@@ -10,6 +10,7 @@ const __dirname = dirname(__filename);
 const rootDir = join(__dirname, '..');
 const distEntrypoint = join(rootDir, 'dist', 'index.js');
 const outputPath = join(rootDir, 'site', 'src', 'content', 'docs', 'cli-reference.mdx');
+const reportCommands = ['daily', 'weekly', 'monthly'];
 
 function run(command, args, options = {}) {
   const output = execFileSync(command, args, {
@@ -36,12 +37,13 @@ function ensureDistBuild(options = {}) {
   run('pnpm', ['run', 'build'], { stdio: 'inherit' });
 }
 
-function normalizeDescription(text) {
-  return text
-    .replace(/\(default:\s*"[^"]+"\)/g, '(default: local system timezone)')
-    .replace(/\bmarkdown\b/giu, 'Markdown')
-    .replace(/\s+/g, ' ')
-    .trim();
+function normalizeDescription(text, optionLong) {
+  const timezoneNormalizedText =
+    optionLong === '--timezone'
+      ? text.replace(/\(default:\s*"[^"]+"\)/g, '(default: local system timezone)')
+      : text;
+
+  return timezoneNormalizedText.replace(/\bmarkdown\b/giu, 'Markdown').replace(/\s+/g, ' ').trim();
 }
 
 function parseOptions(helpText) {
@@ -76,14 +78,14 @@ function parseOptions(helpText) {
         short: short ?? '',
         long,
         arg: argPart.startsWith('--') ? '' : argPart,
-        description: normalizeDescription(description),
+        description: normalizeDescription(description, long),
       };
       options.push(current);
       continue;
     }
 
     if (current) {
-      current.description = normalizeDescription(`${current.description} ${line.trim()}`);
+      current.description = normalizeDescription(`${current.description} ${line.trim()}`, current.long);
     }
   }
 
@@ -134,11 +136,11 @@ function generateMarkdown(version, options) {
     '',
     'Commands:',
     '',
-    '- `daily`',
-    '- `weekly`',
-    '- `monthly`',
+    ...reportCommands.map((command) => `- \`${command}\``),
     '',
-    '## Shared options',
+    '## Options',
+    '',
+    'Generated from root + daily/weekly/monthly help output.',
     '',
     '| Option | Short | Argument | Description |',
     '| --- | --- | --- | --- |',
@@ -175,10 +177,12 @@ function main() {
 
   const version = run('node', ['dist/index.js', '--version']);
   const rootHelp = run('node', ['dist/index.js', '--help']);
-  const dailyHelp = run('node', ['dist/index.js', 'daily', '--help']);
+  const commandHelps = reportCommands.map((command) =>
+    run('node', ['dist/index.js', command, '--help']),
+  );
 
   const options = sortOptions(
-    deduplicateOptions([...parseOptions(rootHelp), ...parseOptions(dailyHelp)]),
+    deduplicateOptions([parseOptions(rootHelp), ...commandHelps.map((helpText) => parseOptions(helpText))].flat()),
   );
   const markdown = generateMarkdown(version, options);
 
