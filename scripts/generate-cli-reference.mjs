@@ -12,19 +12,23 @@ const distEntrypoint = join(rootDir, 'dist', 'index.js');
 const outputPath = join(rootDir, 'site', 'src', 'content', 'docs', 'cli-reference.mdx');
 
 function run(command, args, options = {}) {
-  return execFileSync(command, args, {
+  const output = execFileSync(command, args, {
     cwd: rootDir,
     encoding: 'utf8',
     ...options,
-  }).trimEnd();
+  });
+
+  return typeof output === 'string' ? output.trimEnd() : '';
 }
 
-function ensureDistBuild() {
-  if (existsSync(distEntrypoint)) {
+function ensureDistBuild(options = {}) {
+  const forceRebuild = options.forceRebuild ?? false;
+
+  if (!forceRebuild && existsSync(distEntrypoint)) {
     return;
   }
 
-  console.log('dist/index.js not found. Building CLI...');
+  console.log(forceRebuild ? 'Rebuilding CLI dist before docs generation...' : 'dist/index.js not found. Building CLI...');
   run('pnpm', ['run', 'build'], { stdio: 'inherit' });
 }
 
@@ -162,7 +166,8 @@ function generateMarkdown(version, options) {
 }
 
 function main() {
-  ensureDistBuild();
+  const forceRebuild = process.argv.includes('--rebuild');
+  ensureDistBuild({ forceRebuild });
 
   const version = run('node', ['dist/index.js', '--version']);
   const rootHelp = run('node', ['dist/index.js', '--help']);
