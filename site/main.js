@@ -2,16 +2,17 @@ document.addEventListener('DOMContentLoaded', function () {
   // ── Fetch version from npm registry ──────────────────
   var badge = document.getElementById('version-badge');
   if (badge) {
+    var textNode = badge.querySelector('.badge-text');
     fetch('https://registry.npmjs.org/llm-usage-metrics/latest')
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        if (data && data.version) {
-          badge.textContent = 'v' + data.version + ' on npm';
+        if (data && data.version && textNode) {
+          textNode.textContent = 'v' + data.version + ' on npm';
           badge.classList.remove('loading');
         }
       })
       .catch(function () {
-        badge.textContent = 'available on npm';
+        if(textNode) textNode.textContent = 'available on npm';
         badge.classList.remove('loading');
       });
   }
@@ -35,8 +36,8 @@ document.addEventListener('DOMContentLoaded', function () {
       toastTimerId = setTimeout(function () {
         tip.classList.remove('show');
         tip.classList.remove('error');
-        tip.textContent = 'Copied!';
-      }, 1200);
+        tip.textContent = 'Copied to clipboard';
+      }, 1500);
     }
 
     function fallbackCopy(text) {
@@ -64,14 +65,14 @@ document.addEventListener('DOMContentLoaded', function () {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(installCommand)
           .then(function () {
-            showToast('Copied!', false);
+            showToast('Copied to clipboard', false);
           })
           .catch(function (error) {
             console.error('Clipboard copy failed', error);
 
             try {
               if (fallbackCopy(installCommand)) {
-                showToast('Copied!', false);
+                showToast('Copied to clipboard', false);
                 return;
               }
             } catch (fallbackError) {
@@ -85,7 +86,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       try {
         if (fallbackCopy(installCommand)) {
-          showToast('Copied!', false);
+          showToast('Copied to clipboard', false);
           return;
         }
       } catch (error) {
@@ -112,4 +113,38 @@ document.addEventListener('DOMContentLoaded', function () {
       if (target) target.classList.add('active');
     });
   });
+  
+  // ── Infinite Scroll Simulation ─────────────────────────
+  const logContainer = document.querySelector('.infinite-scroll-y');
+  if (logContainer) {
+    const lines = [
+      '<span class="ti">fs.scan</span> ~/.pi/sessions/2026-02-12.json',
+      '<span class="ti">fs.scan</span> ~/.codex/history.log',
+      '<span class="ti">sqlite.connect</span> ~/.opencode/metrics.db',
+      '<span class="ti">api.fetch</span> litellm/pricing.json',
+      '<span class="td">calc</span> processing token buckets...',
+      '<span class="td">norm</span> aligning schema variants...',
+      '<span class="td">render</span> formatting payload...',
+    ];
+    
+    let lineIndex = 0;
+    setInterval(() => {
+        const div = document.createElement('div');
+        div.className = 'log-line dim';
+        div.innerHTML = lines[lineIndex % lines.length];
+        
+        logContainer.appendChild(div);
+        
+        // Keep only last 5
+        if(logContainer.children.length > 5) {
+            logContainer.removeChild(logContainer.firstElementChild);
+        }
+        
+        // Remove dim from previous last element
+        const prev = logContainer.children[logContainer.children.length - 2];
+        if (prev) prev.classList.remove('dim');
+        
+        lineIndex++;
+    }, 1500);
+  }
 });
