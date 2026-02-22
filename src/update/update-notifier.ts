@@ -104,6 +104,11 @@ export function isLikelyNpxExecution(argv: string[], env: NodeJS.ProcessEnv): bo
   return npmCommand === 'exec';
 }
 
+export function isLikelySourceExecution(argv: string[]): boolean {
+  const executablePath = argv[1] ?? '';
+  return /\.[cm]?tsx?$/iu.test(executablePath);
+}
+
 function toResolveLatestVersionOptions(
   options: UpdateNotifierOptions,
   env: NodeJS.ProcessEnv,
@@ -136,6 +141,10 @@ export async function checkForUpdatesAndMaybeRestart(
   }
 
   if (isLikelyNpxExecution(argv, env)) {
+    return { continueExecution: true };
+  }
+
+  if (isLikelySourceExecution(argv)) {
     return { continueExecution: true };
   }
 

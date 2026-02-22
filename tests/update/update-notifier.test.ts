@@ -9,6 +9,7 @@ import {
   compareVersions,
   isCacheFresh,
   isLikelyNpxExecution,
+  isLikelySourceExecution,
   resolveLatestVersion,
   shouldOfferUpdate,
   shouldSkipUpdateCheckForArgv,
@@ -317,6 +318,34 @@ describe('update-notifier', () => {
         npm_execpath: '/usr/lib/node_modules/pnpm/bin/pnpm.js',
       }),
     ).toBe(false);
+  });
+
+  it('detects local source execution entrypoints', () => {
+    expect(isLikelySourceExecution(['/usr/bin/bun', '/app/src/cli/index.ts', 'daily'])).toBe(true);
+    expect(isLikelySourceExecution(['/usr/bin/node', '/app/src/cli/index.mts', 'daily'])).toBe(
+      true,
+    );
+    expect(isLikelySourceExecution(['/usr/bin/node', '/app/dist/index.js', 'daily'])).toBe(false);
+  });
+
+  it('skips update checks for local source execution', async () => {
+    const fetchSpy = vi.fn(async () => {
+      throw new Error('fetch should not be called for local source execution');
+    });
+    const notify = vi.fn();
+
+    const result = await checkForUpdatesAndMaybeRestart({
+      packageName: 'llm-usage-metrics',
+      currentVersion: '0.1.11',
+      argv: ['/usr/bin/bun', '/app/src/cli/index.ts', 'monthly'],
+      env: {},
+      fetchImpl: fetchSpy,
+      notify,
+    });
+
+    expect(result).toEqual({ continueExecution: true });
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(notify).not.toHaveBeenCalled();
   });
 
   it('skips update checks for help/version invocations', async () => {
