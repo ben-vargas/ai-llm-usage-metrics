@@ -1,33 +1,142 @@
 ---
 title: Output Formats
+description: Understand the different output formats available in llm-usage-metrics.
 ---
 
 # Output Formats
 
-:::caution
-This page is a placeholder. Output format documentation will be expanded.
-:::
+`llm-usage-metrics` supports three output formats, each optimized for different use cases.
 
 ## Terminal (Default)
 
-Rich formatted output with colors and tables optimized for terminal display.
+Rich formatted output with ANSI colors and unicode table characters, optimized for terminal display.
 
 ```bash
-llm-usage
+llm-usage daily
+```
+
+### Features
+
+- Color-coded sections by source
+- Unicode box-drawing characters for tables
+- Human-readable numbers (1.2K, 3.4M)
+- Currency formatting with local symbols
+- Responsive column widths
+
+### When to Use
+
+- Interactive terminal sessions
+- Quick daily checks
+- Human consumption
+
+### Disable Colors
+
+For piping to other tools or when colors aren't supported:
+
+```bash
+llm-usage daily --no-color
 ```
 
 ## JSON
 
-Machine-readable JSON output for piping to other tools.
+Machine-readable JSON for programmatic consumption and pipeline integration.
 
 ```bash
-llm-usage --format json
+llm-usage daily --json
+```
+
+### Structure
+
+```json
+{
+  "period": {
+    "start": "2026-02-22T00:00:00Z",
+    "end": "2026-02-22T23:59:59Z"
+  },
+  "sources": {
+    "pi": {
+      "sessions": 12,
+      "inputTokens": 45200,
+      "outputTokens": 18900,
+      "cost": 0.847
+    }
+  },
+  "totalCost": 1.234,
+  "currency": "USD"
+}
+```
+
+### When to Use
+
+- CI/CD pipelines
+- Data analysis (jq, Python, etc.)
+- Storage and archiving
+- Integration with other tools
+
+### Examples
+
+```bash
+# Extract total cost
+llm-usage daily --json | jq '.totalCost'
+
+# Filter by source
+llm-usage weekly --json | jq '.sources.pi'
+
+# Save to file
+llm-usage monthly --json > usage-$(date +%Y-%m).json
 ```
 
 ## Markdown
 
-Formatted markdown tables suitable for documentation or GitHub issues.
+Formatted markdown tables suitable for documentation, GitHub issues, and reports.
 
 ```bash
-llm-usage --format markdown
+llm-usage monthly --markdown
 ```
+
+### Output Example
+
+```markdown
+## Usage Report: 2026-02-01 to 2026-02-28
+
+### Summary
+
+| Metric | Value |
+|--------|-------|
+| Total Cost | $12.34 |
+| Sessions | 45 |
+| Input Tokens | 452,000 |
+| Output Tokens | 189,000 |
+
+### By Source
+
+| Source | Sessions | Cost |
+|--------|----------|------|
+| pi | 20 | $5.67 |
+| codex | 15 | $4.23 |
+| opencode | 10 | $2.44 |
+```
+
+### When to Use
+
+- Documentation
+- GitHub issues/PRs
+- Email reports
+- Static reports
+
+### Redirect to File
+
+```bash
+llm-usage monthly --markdown > report.md
+```
+
+## Format Comparison
+
+| Feature | Terminal | JSON | Markdown |
+|---------|----------|------|----------|
+| Colors | ✅ | ❌ | ❌ |
+| Tables | ✅ | ❌ | ✅ |
+| Machine-readable | ❌ | ✅ | ❌ |
+| Human-readable | ✅ | ❌ | ✅ |
+| Pipes well | ❌ | ✅ | ✅ |
+| GitHub-friendly | ❌ | ❌ | ✅ |

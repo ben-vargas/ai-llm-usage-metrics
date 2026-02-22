@@ -1,23 +1,143 @@
 ---
 title: Troubleshooting
+description: Common issues and solutions for llm-usage-metrics.
 ---
 
 # Troubleshooting
 
-:::caution
-This page is a placeholder. Troubleshooting guides will be added here.
-:::
+## No Data Found
 
-## Common Issues
+**Symptom:** CLI reports "No usage data found" or empty results.
 
-### No data found
+**Solutions:**
 
-If the CLI reports no usage data found:
+1. **Verify source applications have been used**
+   ```bash
+   # Check if pi has session data
+   ls ~/.pi/sessions/
+   
+   # Check if codex has history
+   ls ~/.codex/
+   
+   # Check if opencode has metrics
+   ls ~/.opencode/
+   ```
 
-1. Verify the source application has been used
-2. Check the data directory location for your platform
-3. Use the `--verbose` flag for detailed diagnostics
+2. **Check the correct time period**
+   ```bash
+   # Try a wider date range
+   llm-usage monthly --verbose
+   ```
 
-### Permission errors
+3. **Verify data directory location**
+   ```bash
+   # Run with verbose output to see search paths
+   llm-usage daily --verbose
+   ```
 
-Ensure the CLI has read access to application data directories.
+4. **Specify custom data directory**
+   ```bash
+   llm-usage daily --data-dir /custom/path
+   ```
+
+## Permission Errors
+
+**Symptom:** "EACCES: permission denied" errors when reading data files.
+
+**Solutions:**
+
+1. **Check file permissions**
+   ```bash
+   ls -la ~/.pi/sessions/
+   ```
+
+2. **Ensure CLI has read access**
+   - On macOS/Linux: Check file ownership
+   - On Windows: Run terminal as appropriate user
+
+3. **Use environment variable for data dir**
+   ```bash
+   LLM_USAGE_DATA_DIR=/path/with/permissions llm-usage daily
+   ```
+
+## Incorrect Costs
+
+**Symptom:** Costs appear incorrect or show as $0.00.
+
+**Solutions:**
+
+1. **Check for unknown model warnings**
+   ```bash
+   llm-usage daily --verbose
+   ```
+
+2. **Verify model pricing is available**
+   - Some newer models may not have pricing data yet
+   - Pricing is updated with each CLI release
+
+3. **Check for pricing overrides**
+   - Ensure no local pricing overrides are affecting calculations
+
+## JSON Parsing Errors
+
+**Symptom:** "Unexpected token" or JSON parse errors.
+
+**Solutions:**
+
+1. **Check source data integrity**
+   - Corrupted session files can cause parsing failures
+   - Look for invalid JSON in session files
+
+2. **Enable verbose mode**
+   ```bash
+   llm-usage daily --verbose
+   ```
+
+3. **Filter to specific sources**
+   ```bash
+   # Isolate which source is causing issues
+   llm-usage daily --source pi --verbose
+   llm-usage daily --source codex --verbose
+   ```
+
+## Performance Issues
+
+**Symptom:** CLI is slow to generate reports.
+
+**Solutions:**
+
+1. **Limit date range**
+   ```bash
+   # Use specific dates instead of wide ranges
+   llm-usage daily --since 2026-02-22 --until 2026-02-22
+   ```
+
+2. **Filter by source**
+   ```bash
+   # Process only needed sources
+   llm-usage weekly --source pi
+   ```
+
+3. **Clear file cache**
+   The CLI caches file metadata. If you suspect cache corruption:
+   ```bash
+   # Cache is automatically invalidated on file changes
+   # Manual clearing: remove ~/.cache/llm-usage/ (if exists)
+   ```
+
+## Getting Help
+
+If issues persist:
+
+1. Run with verbose output and save to file:
+   ```bash
+   llm-usage daily --verbose 2> debug.log
+   ```
+
+2. Check the [GitHub Issues](https://github.com/ayagmar/llm-usage-metrics/issues) for similar problems
+
+3. Open a new issue with:
+   - CLI version (`llm-usage --version`)
+   - Operating system
+   - Verbose output (sanitized)
+   - Steps to reproduce

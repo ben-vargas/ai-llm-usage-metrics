@@ -1,32 +1,131 @@
 ---
 title: CLI Reference
+description: Complete reference for llm-usage-metrics command-line options and usage patterns.
 ---
 
 # CLI Reference
 
-:::caution
-This page is a placeholder. Full CLI reference will be auto-generated from the CLI source.
+:::tip
+This CLI reference is auto-generated from the source. For the most up-to-date information, run `llm-usage --help` in your terminal.
 :::
 
 ## Global Options
 
-| Option | Description |
-|--------|-------------|
-| `--format` | Output format: `terminal`, `json`, `markdown` |
-| `--source` | Filter by source: `pi`, `codex`, `opencode` |
-| `--help` | Display help information |
-| `--version` | Display version information |
+| Option | Short | Description | Default |
+|--------|-------|-------------|---------|
+| `--format` | `-f` | Output format: `terminal`, `json`, `markdown` | `terminal` |
+| `--source` | `-s` | Filter by source(s): `pi`, `codex`, `opencode` | all sources |
+| `--since` | | Start date (ISO 8601) | start of current period |
+| `--until` | | End date (ISO 8601) | end of current period |
+| `--timezone` | `-z` | Timezone for date calculations | system timezone |
+| `--model` | `-m` | Filter by model name pattern | - |
+| `--provider` | `-p` | Filter by provider | - |
+| `--data-dir` | | Override default data directory | auto-discovered |
+| `--verbose` | `-v` | Enable verbose diagnostic output | false |
+| `--no-color` | | Disable colored output | false |
+| `--help` | `-h` | Display help information | - |
+| `--version` | `-V` | Display version information | - |
 
 ## Commands
 
-### Default (no command)
+### Default (aggregate and display)
 
-Runs the aggregation and outputs formatted metrics.
+Run without arguments to aggregate usage data and display formatted metrics for the current day.
 
 ```bash
-llm-usage [options]
+llm-usage
+```
+
+### Temporal Periods
+
+#### Daily Report
+
+```bash
+llm-usage daily
+```
+
+#### Weekly Report
+
+```bash
+llm-usage weekly
+llm-usage weekly --timezone Europe/Paris
+```
+
+#### Monthly Report
+
+```bash
+llm-usage monthly
+llm-usage monthly --since 2026-01-01 --until 2026-01-31
+```
+
+## Filtering
+
+### By Source
+
+Isolate telemetry to specific coding agents:
+
+```bash
+llm-usage daily --source pi
+llm-usage daily --source pi,codex
+```
+
+### By Model
+
+Filter by model family or name:
+
+```bash
+llm-usage monthly --model claude
+llm-usage monthly --model gpt-4
+```
+
+### By Provider
+
+Filter by upstream LLM provider:
+
+```bash
+llm-usage monthly --provider openai
+llm-usage monthly --provider anthropic
+```
+
+## Output Formats
+
+### Terminal (Default)
+
+Rich formatted tables with ANSI colors, optimized for terminal display:
+
+```bash
+llm-usage daily
+```
+
+### JSON
+
+Machine-readable JSON for piping to other tools:
+
+```bash
+llm-usage daily --json
+llm-usage weekly --json | jq '.totalCost'
+```
+
+### Markdown
+
+Formatted markdown tables suitable for documentation:
+
+```bash
+llm-usage monthly --markdown > usage-report.md
 ```
 
 ## Environment Variables
 
-- `LLM_USAGE_DATA_DIR` - Override default data directory path
+| Variable | Description |
+|----------|-------------|
+| `LLM_USAGE_DATA_DIR` | Override default data directory path |
+| `TZ` | Timezone for date calculations |
+
+## Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| `0` | Success |
+| `1` | General error |
+| `2` | Invalid arguments |
+| `3` | No data found |

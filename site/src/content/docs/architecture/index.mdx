@@ -1,25 +1,124 @@
 ---
 title: Architecture
+description: Understanding the internal architecture and design of llm-usage-metrics.
 ---
 
 # Architecture
 
-:::caution
-This page is a placeholder. Architecture documentation will be detailed here.
-:::
-
 ## System Overview
 
-The `llm-usage-metrics` CLI follows a pipeline architecture:
+The `llm-usage-metrics` CLI follows a clean pipeline architecture for processing usage data:
 
 ```
-Parse → Normalize → Price → Render
+┌─────────┐   ┌──────────┐   ┌─────────┐   ┌────────┐
+│  Parse  │ → │ Normalize│ → │  Price  │ → │ Render │
+└─────────┘   └──────────┘   └─────────┘   └────────┘
 ```
 
-## Components
+Each stage in the pipeline is responsible for a specific transformation of the data.
 
-- **Sources**: Adapters for each LLM agent data format
-- **Domain**: Normalized data contracts
-- **Pricing**: Cost calculation engine
-- **Aggregate**: Usage bucketing and totals
-- **Render**: Output formatting (terminal, JSON, markdown)
+## Pipeline Stages
+
+### 1. Parse
+
+Source adapters parse raw session data from each coding agent:
+
+| Source | Format | Location |
+|--------|--------|----------|
+| **pi** | JSONL | `~/.pi/sessions/` |
+| **codex** | JSON | `~/.codex/history.log` |
+| **opencode** | SQLite | `~/.opencode/metrics.db` |
+
+Each adapter is responsible for:
+- Discovering relevant files
+- Parsing native format
+- Extracting usage events
+- Handling errors gracefully
+
+### 2. Normalize
+
+Raw events from all sources are normalized to a common schema:
+
+```typescript
+interface UsageEvent {
+  timestamp: Date;
+  source: 'pi' | 'codex' | 'opencode';
+  model: string;
+  provider: string;
+  inputTokens: number;
+  outputTokens: number;
+  sessionId?: string;
+}
+```
+
+Normalization ensures:
+- Consistent field names across sources
+- Standardized timestamp formats
+- Unified model identifiers
+- Common units (tokens)
+
+### 3. Price
+
+The cost engine calculates costs using LiteLLM pricing data:
+
+```
+Cost = (Input Tokens × Input Price) + (Output Tokens × Output Price)
+```
+
+Key components:
+- **Pricing Source**: Bundled LiteLLM pricing data
+- **Model Mapping**: Normalizes model names to pricing identifiers
+- **Offline Operation**: No network requests during calculation
+
+### 4. Aggregate
+
+Events are bucketed and aggregated by:
+
+- **Time period** (daily, weekly, monthly)
+- **Source** (pi, codex, opencode)
+- **Model** (optional filter)
+- **Provider** (optional filter)
+
+Aggregation produces:
+- Token counts (input/output)
+- Session counts
+- Calculated costs
+- Per-source breakdowns
+
+### 5. Render
+
+Final output is formatted based on the selected format:
+
+- **Terminal**: ANSI-colored tables
+- **JSON**: Structured machine-readable output
+- **Markdown**: Documentation-friendly tables
+
+## Directory Structure
+
+```
+src/
+├── cli/           # Command-line interface
+├── sources/       # Source adapters (pi, codex, opencode)
+├── domain/        # Core data types and contracts
+├── pricing/       # Cost calculation engine
+├── aggregate/     # Usage bucketing and totals
+└── render/        # Output formatting
+```
+
+## Key Design Decisions
+
+### Offline-First
+
+All pricing data is bundled. The CLI works without network access.
+
+### Source Isolation
+
+Each source adapter is independent. Failure in one doesn't affect others.
+
+### Streaming Processing
+
+Large files are processed incrementally to manage memory usage.
+
+### Immutable Data
+
+Data flows through the pipeline without mutation, enabling reliable caching.

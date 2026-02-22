@@ -1,21 +1,92 @@
 ---
 title: Pricing
+description: Understand how llm-usage-metrics calculates costs using LiteLLM pricing data.
 ---
 
 # Pricing
 
-:::caution
-This page is a placeholder. Pricing documentation will be detailed here.
-:::
+`llm-usage-metrics` calculates costs by combining token usage data with up-to-date pricing information from LiteLLM's pricing repository.
 
 ## Cost Calculation
 
-The CLI calculates costs based on:
+The cost formula is straightforward:
 
-- Token usage (input/output)
-- Model-specific pricing
-- Provider rate cards
+```
+Cost = (Input Tokens × Input Price) + (Output Tokens × Output Price)
+```
 
-## Offline Pricing
+Where prices are per-million tokens in USD.
 
-Pricing data is bundled with the CLI for offline operation. The pricing database is updated with each release.
+### Example
+
+| Model | Input Tokens | Output Tokens | Input Price | Output Price | Calculated Cost |
+|-------|--------------|---------------|-------------|--------------|-----------------|
+| gpt-4 | 100,000 | 50,000 | $30/M | $60/M | $6.00 |
+
+Calculation:
+- Input: 100,000 × ($30 / 1,000,000) = $3.00
+- Output: 50,000 × ($60 / 1,000,000) = $3.00
+- **Total: $6.00**
+
+## Pricing Data Source
+
+Pricing data is sourced from [LiteLLM's pricing repository](https://github.com/BerriAI/litellm), which maintains current pricing for:
+
+- OpenAI (GPT-4, GPT-3.5, etc.)
+- Anthropic (Claude models)
+- Google (Gemini, PaLM)
+- Mistral AI
+- And many more
+
+### Update Frequency
+
+Pricing data is bundled with each CLI release. The bundled data is refreshed from LiteLLM's repository during the release process.
+
+## Offline Mode
+
+The CLI works fully offline using bundled pricing data. No network requests are made during cost calculation.
+
+```bash
+# Works without internet
+llm-usage daily
+```
+
+### Fallback Behavior
+
+If a model's pricing is not found in the bundled data:
+
+1. The CLI will emit a warning
+2. The model will be marked as "unknown price"
+3. Cost will be calculated as $0.00
+
+To see warnings:
+
+```bash
+llm-usage daily --verbose
+```
+
+## Currency
+
+All costs are calculated and displayed in **USD** by default. Currency conversion is not currently supported.
+
+## Cost Aggregation
+
+Costs are aggregated at multiple levels:
+
+### By Session
+Individual coding agent sessions are costed separately.
+
+### By Source
+Costs are rolled up by source (pi, codex, opencode).
+
+### By Period
+Daily, weekly, and monthly reports sum all costs within the period.
+
+### Example Output
+
+```
+Total Cost: $12.34
+├── pi:      $5.67 (45%)
+├── codex:   $4.23 (34%)
+└── opencode: $2.44 (20%)
+```

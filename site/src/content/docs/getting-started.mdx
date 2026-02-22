@@ -1,24 +1,31 @@
 ---
 title: Getting Started
+description: Install and start using llm-usage-metrics to track your LLM usage.
 ---
 
 # Getting Started
 
-`llm-usage-metrics` is a CLI tool for aggregating local LLM usage metrics from pi, codex, and opencode sessions.
-
 ## Installation
 
-Install globally via npm:
+Install `llm-usage-metrics` globally via npm:
 
 ```bash
 npm install -g llm-usage-metrics
 ```
 
-Or use with npx:
+Or use with npx (no installation):
 
 ```bash
 npx llm-usage-metrics
 ```
+
+## Requirements
+
+- Node.js 24 or higher
+- One or more supported coding agents:
+  - [pi](https://pi.ai) coding agent
+  - [OpenAI Codex CLI](https://github.com/openai/codex)
+  - [opencode](https://github.com/opencode-ai/opencode)
 
 ## Quick Start
 
@@ -28,22 +35,78 @@ After installation, run the CLI to see your aggregated usage metrics:
 llm-usage
 ```
 
-This will automatically detect usage data from supported sources and display a formatted report.
+This displays usage for the current day across all supported sources.
+
+## First Run
+
+On first run, the CLI will:
+
+1. **Discover data sources** - Automatically find session data from pi, codex, and opencode
+2. **Parse sessions** - Extract usage events from each source
+3. **Calculate costs** - Apply LiteLLM pricing to token usage
+4. **Display report** - Show formatted results in your terminal
+
+Example output:
+
+```
+Daily Usage Report: 2026-02-22
+
+Total Cost: $1.23
+┌──────────┬──────────┬────────────┬─────────────┬────────┐
+│ Source   │ Sessions │ Input Tok  │ Output Tok  │ Cost   │
+├──────────┼──────────┼────────────┼─────────────┼────────┤
+│ pi       │ 5        │ 12,450     │ 8,230       │ $0.67  │
+│ codex    │ 3        │ 8,120      │ 4,560       │ $0.42  │
+│ opencode │ 2        │ 5,340      │ 3,120       │ $0.14  │
+└──────────┴──────────┴────────────┴─────────────┴────────┘
+```
+
+## Common Tasks
+
+### View Weekly Usage
+
+```bash
+llm-usage weekly
+```
+
+### View Monthly Usage
+
+```bash
+llm-usage monthly
+```
+
+### Filter by Source
+
+```bash
+llm-usage daily --source pi
+llm-usage weekly --source pi,codex
+```
+
+### Export as JSON
+
+```bash
+llm-usage daily --json > usage.json
+```
+
+### Export as Markdown
+
+```bash
+llm-usage monthly --markdown > usage-report.md
+```
 
 ## Data Sources
 
-The CLI automatically discovers and parses usage data from:
+The CLI automatically discovers data from:
 
-- **pi** - Parse pi coding agent session data
-- **codex** - Parse OpenAI Codex CLI session data
-- **opencode** - Parse opencode session data
+| Source | macOS | Linux | Windows |
+|--------|-------|-------|---------|
+| **pi** | `~/Library/Application Support/pi/` | `~/.config/pi/` | `%APPDATA%/pi/` |
+| **codex** | `~/.codex/` | `~/.codex/` | `%USERPROFILE%/.codex/` |
+| **opencode** | `~/.opencode/` | `~/.opencode/` | `%USERPROFILE%/.opencode/` |
 
-## Output Formats
+## Next Steps
 
-Results can be displayed in multiple formats:
-
-- **Terminal** (default) - Rich formatted tables with colors
-- **JSON** - Structured data for piping to other tools
-- **Markdown** - Formatted tables suitable for documentation
-
-Learn more in the [CLI Reference](./cli-reference).
+- Learn about [CLI options](./cli-reference)
+- Understand [output formats](./output-formats)
+- Configure [custom paths](./configuration)
+- See [pricing details](./pricing)

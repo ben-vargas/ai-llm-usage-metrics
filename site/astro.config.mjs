@@ -46,6 +46,10 @@ export default defineConfig({
           label: 'Troubleshooting',
           link: '/troubleshooting',
         },
+        {
+          label: 'Architecture',
+          link: '/architecture',
+        },
       ],
       customCss: [
         './src/styles/tokens.css',

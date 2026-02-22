@@ -1,25 +1,100 @@
 ---
 title: Configuration
+description: Configure llm-usage-metrics behavior through configuration files and environment variables.
 ---
 
 # Configuration
 
-:::caution
-This page is a placeholder. Configuration options will be documented here.
-:::
+`llm-usage-metrics` can be configured through configuration files, environment variables, and command-line options. Configuration is applied in the following order of precedence (highest to lowest):
+
+1. Command-line options
+2. Environment variables
+3. Configuration file (`~/.llm-usagerc`)
+4. Default values
 
 ## Configuration File
 
-The CLI can read configuration from:
+Create a `.llm-usagerc` file in your home directory:
 
-- `.llm-usagerc` in the current directory
-- `~/.llm-usagerc` in the home directory
+```json
+{
+  "format": "terminal",
+  "timezone": "UTC",
+  "sources": ["pi", "codex", "opencode"],
+  "dataDir": "~/.local/share/llm-usage"
+}
+```
 
-## Options
+### Configuration Options
 
-Configuration options include:
+| Option | Type | Description |
+|--------|------|-------------|
+| `format` | string | Default output format: `terminal`, `json`, `markdown` |
+| `timezone` | string | Default timezone for date calculations |
+| `sources` | string[] | Default sources to include |
+| `dataDir` | string | Override default data directory |
+| `noColor` | boolean | Disable colored output by default |
 
-- Default output format
-- Custom data directories
-- Pricing overrides
-- Source-specific settings
+## Environment Variables
+
+### `LLM_USAGE_DATA_DIR`
+
+Override the default data directory path where the CLI looks for session data:
+
+```bash
+export LLM_USAGE_DATA_DIR=/custom/path/to/data
+llm-usage daily
+```
+
+### `TZ`
+
+Set the timezone for date calculations:
+
+```bash
+TZ=America/New_York llm-usage weekly
+```
+
+## Source-Specific Configuration
+
+### Custom Source Paths
+
+You can configure custom paths for individual sources in your config file:
+
+```json
+{
+  "sources": {
+    "pi": {
+      "path": "~/custom/pi/sessions"
+    },
+    "codex": {
+      "path": "~/custom/codex/history"
+    },
+    "opencode": {
+      "path": "~/custom/opencode/metrics.db"
+    }
+  }
+}
+```
+
+## Default Data Locations
+
+By default, the CLI discovers data in platform-specific directories:
+
+| Source | macOS | Linux | Windows |
+|--------|-------|-------|---------|
+| **pi** | `~/Library/Application Support/pi/` | `~/.config/pi/` | `%APPDATA%/pi/` |
+| **codex** | `~/.codex/` | `~/.codex/` | `%USERPROFILE%/.codex/` |
+| **opencode** | `~/.opencode/` | `~/.opencode/` | `%USERPROFILE%/.opencode/` |
+
+## Pricing Configuration
+
+Pricing data is bundled with the CLI and updated with each release. The CLI uses LiteLLM's pricing repository as the source of truth.
+
+### Offline Mode
+
+The CLI works fully offline using bundled pricing data. To update pricing without upgrading the CLI:
+
+```bash
+# Pricing cache is automatically refreshed when online
+# No manual configuration required
+```
