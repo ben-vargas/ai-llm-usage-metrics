@@ -15,7 +15,7 @@ CLI to aggregate local LLM usage from:
 
 Reports are available for daily, weekly (Monday-start), and monthly periods.
 
-Project documentation is available in [`docs/`](./docs/README.md).
+**Documentation: [ayagmar.github.io/llm-usage-metrics](https://ayagmar.github.io/llm-usage-metrics/)**
 
 Built-in adapters currently support 3 sources: `.pi`, `.codex`, and OpenCode SQLite. The codebase is structured to add more sources (for example Claude/Gemini exports) through the `SourceAdapter` pattern. See [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
