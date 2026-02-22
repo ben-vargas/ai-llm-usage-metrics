@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module';
 
+import { asRecord } from '../../utils/as-record.js';
 import { withSuppressedSqliteExperimentalWarning } from './sqlite-warning-suppression.js';
 
 export type SqliteModule = {
@@ -22,9 +23,20 @@ type RequireFn = (moduleId: string) => unknown;
 
 const require = createRequire(import.meta.url);
 
+function isSqliteModule(value: unknown): value is SqliteModule {
+  const moduleRecord = asRecord(value);
+  return typeof moduleRecord?.DatabaseSync === 'function';
+}
+
 export function loadNodeSqliteModuleFromRequire(requireFn: RequireFn): SqliteModule {
   try {
-    return withSuppressedSqliteExperimentalWarning(() => requireFn('node:sqlite') as SqliteModule);
+    const moduleValue = withSuppressedSqliteExperimentalWarning(() => requireFn('node:sqlite'));
+
+    if (!isSqliteModule(moduleValue)) {
+      throw new Error('node:sqlite loaded but did not expose a DatabaseSync constructor.');
+    }
+
+    return moduleValue;
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
     throw new Error(

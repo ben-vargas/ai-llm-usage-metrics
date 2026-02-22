@@ -148,6 +148,17 @@ describe('ParseFileCache', () => {
               skippedRowReasons: [{ reason: 'x', count: 1 }],
             },
           },
+          {
+            source: 'codex',
+            filePath: '/tmp/bad-source.jsonl',
+            fingerprint: { size: 12, mtimeMs: 34 },
+            cachedAt: 42,
+            diagnostics: {
+              events: [{ ...validEvent, source: '   ' }],
+              skippedRows: 0,
+              skippedRowReasons: [{ reason: 'x', count: 1 }],
+            },
+          },
         ],
       }),
       'utf8',
@@ -160,6 +171,7 @@ describe('ParseFileCache', () => {
     });
 
     expect(cache.get('codex', '/tmp/bad.jsonl', { size: 12, mtimeMs: 34 })).toBeUndefined();
+    expect(cache.get('codex', '/tmp/bad-source.jsonl', { size: 12, mtimeMs: 34 })).toBeUndefined();
     expect(cache.get('codex', '/tmp/ok.jsonl', { size: 12, mtimeMs: 34 })).toEqual({
       events: [validEvent],
       skippedRows: 9,

@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import type { UsageEvent } from '../domain/usage-event.js';
+import { normalizeSourceId, type UsageEvent } from '../domain/usage-event.js';
 import type {
   SourceParseFileDiagnostics,
   SourceSkippedRowReasonStat,
@@ -64,7 +64,7 @@ function normalizeCachedUsageEvent(value: unknown): UsageEvent | undefined {
     return undefined;
   }
 
-  const source = typeof record.source === 'string' ? record.source.trim() : '';
+  const source = normalizeSourceId(record.source);
   const sessionId = typeof record.sessionId === 'string' ? record.sessionId.trim() : '';
   const timestamp = typeof record.timestamp === 'string' ? record.timestamp.trim() : '';
 
