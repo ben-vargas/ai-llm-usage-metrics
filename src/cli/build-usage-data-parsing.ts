@@ -32,9 +32,7 @@ function normalizeSkippedRowsCount(value: unknown): number {
   return Math.max(0, Math.trunc(value));
 }
 
-function normalizeSkippedRowReasons(
-  value: unknown,
-): Array<{ reason: string; count: number }> {
+function normalizeSkippedRowReasons(value: unknown): Array<{ reason: string; count: number }> {
   if (!Array.isArray(value)) {
     return [];
   }

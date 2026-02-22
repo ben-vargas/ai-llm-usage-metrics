@@ -126,9 +126,7 @@ describe('emitDiagnostics', () => {
     );
 
     expect(diagnosticsLogger.warn).toHaveBeenCalledWith('Skipped 3 malformed rows');
-    expect(diagnosticsLogger.dim).toHaveBeenCalledWith(
-      '  pi: 1 skipped (missing_timestamp: 1)',
-    );
+    expect(diagnosticsLogger.dim).toHaveBeenCalledWith('  pi: 1 skipped (missing_timestamp: 1)');
     expect(diagnosticsLogger.dim).toHaveBeenCalledWith(
       '  codex: 2 skipped (invalid_data_json: 1, missing_usage_signal: 1)',
     );
