@@ -7,7 +7,7 @@ export type UsageTotals = {
   cacheReadTokens: number;
   cacheWriteTokens: number;
   totalTokens: number;
-  costUsd: number;
+  costUsd?: number;
 };
 
 export type ModelUsageBreakdown = UsageTotals & {

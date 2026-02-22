@@ -80,3 +80,5 @@ input + output + cacheRead + cacheWrite + optional reasoning
 Reasoning tokens are billed only when pricing says `reasoningBilling = separate`.
 
 If model pricing is not found, event stays in estimated mode with `costUsd` left undefined.
+
+During aggregation, if any event in a row has undefined `costUsd`, the row cost remains unknown and is rendered as `-` instead of a numeric USD total.

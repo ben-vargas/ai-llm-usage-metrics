@@ -3,6 +3,7 @@ import { emitDiagnostics } from './emit-diagnostics.js';
 import type { ReportCommandOptions, UsageDiagnostics } from './usage-data-contracts.js';
 import { renderUsageReport, type UsageReportFormat } from '../render/render-usage-report.js';
 import type { UsageTableLayout } from '../render/row-cells.js';
+import { resolveTtyColumns, visibleWidth } from '../render/table-text-layout.js';
 import { logger } from '../utils/logger.js';
 import type { ReportGranularity } from '../utils/time-buckets.js';
 
@@ -32,6 +33,34 @@ function resolveReportFormat(options: ReportCommandOptions): UsageReportFormat {
 
 function resolveTableLayout(options: ReportCommandOptions): UsageTableLayout {
   return options.perModelColumns ? 'per_model_columns' : 'compact';
+}
+
+function detectTerminalOverflowColumns(reportOutput: string): number | undefined {
+  const stdoutState = process.stdout as { isTTY?: unknown; columns?: unknown };
+  const terminalColumns = resolveTtyColumns(stdoutState);
+
+  if (terminalColumns === undefined) {
+    return undefined;
+  }
+
+  const allLines = reportOutput.trimEnd().split('\n');
+  const tableLikeLinePattern = /[│╭╮╰╯├┼┬┴┌┐└┘]|^\s*\|.*\|\s*$/u;
+  const tableLines = allLines.filter((line) => tableLikeLinePattern.test(line));
+
+  if (tableLines.length === 0) {
+    return undefined;
+  }
+
+  const maxLineWidth = tableLines.reduce(
+    (maxWidth, line) => Math.max(maxWidth, visibleWidth(line)),
+    0,
+  );
+
+  if (maxLineWidth <= terminalColumns) {
+    return undefined;
+  }
+
+  return maxLineWidth - terminalColumns;
 }
 
 async function prepareUsageReport(
@@ -67,6 +96,16 @@ export async function runUsageReport(
 ): Promise<void> {
   const preparedReport = await prepareUsageReport(granularity, options);
   emitDiagnostics(preparedReport.diagnostics, logger);
+
+  if (preparedReport.format === 'terminal') {
+    const overflowColumns = detectTerminalOverflowColumns(preparedReport.output);
+
+    if (overflowColumns !== undefined) {
+      logger.warn(
+        `Report table is wider than terminal by ${overflowColumns} column(s). Use fullscreen/maximized terminal for better readability.`,
+      );
+    }
+  }
 
   console.log(preparedReport.output);
 }

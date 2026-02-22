@@ -1,3 +1,5 @@
+import path from 'node:path';
+
 import { describe, expect, it, vi } from 'vitest';
 
 import { OpenCodeSourceAdapter } from '../../src/sources/opencode/opencode-source-adapter.js';
@@ -59,14 +61,14 @@ function createSqliteLoader(scenario: FakeSqliteScenario): () => Promise<TestSql
         };
       }
 
-      if (sql.includes("PRAGMA table_info('message')")) {
+      if (/PRAGMA\s+table_info\(/iu.test(sql)) {
         const columns = scenario.messageColumns ?? ['id', 'time_created', 'session_id', 'data'];
         return {
           all: () => columns.map((name) => ({ name })),
         };
       }
 
-      if (sql.includes('WHERE json_extract')) {
+      if (sql.includes('json_extract(')) {
         const queryError = scenario.primaryQueryErrors?.shift();
 
         if (queryError) {
@@ -92,6 +94,14 @@ function createSqliteLoader(scenario: FakeSqliteScenario): () => Promise<TestSql
 }
 
 describe('OpenCodeSourceAdapter', () => {
+  it('fails discovery when explicit --opencode-db path is blank', async () => {
+    const adapter = new OpenCodeSourceAdapter({
+      dbPath: '   ',
+    });
+
+    await expect(adapter.discoverFiles()).rejects.toThrow('--opencode-db must be a non-empty path');
+  });
+
   it('fails discovery when explicit --opencode-db path is missing or unreadable', async () => {
     const adapter = new OpenCodeSourceAdapter({
       dbPath: '/tmp/missing-opencode.db',
@@ -132,6 +142,18 @@ describe('OpenCodeSourceAdapter', () => {
 
     await expect(adapter.discoverFiles()).rejects.toThrow(
       'OpenCode DB path is unreadable: /tmp/opencode.db',
+    );
+  });
+
+  it('surfaces unreadable existing default candidate using built-in pathExists fallback', async () => {
+    const existingPath = path.resolve('package.json');
+    const adapter = new OpenCodeSourceAdapter({
+      resolveDefaultDbPaths: () => [existingPath],
+      pathReadable: async () => false,
+    });
+
+    await expect(adapter.discoverFiles()).rejects.toThrow(
+      `OpenCode DB path is unreadable: ${existingPath}`,
     );
   });
 
@@ -186,6 +208,16 @@ describe('OpenCodeSourceAdapter', () => {
               tokens: { input: 0, output: 0, total: 0 },
             }),
           },
+          {
+            row_id: 'msg-6',
+            row_session_id: 'session-6',
+            row_time: 'not-a-timestamp',
+            data_json: JSON.stringify({
+              role: 'assistant',
+              modelID: 'gpt-4.1',
+              tokens: { input: 1, output: 1, total: 2 },
+            }),
+          },
         ],
       }),
     });
@@ -193,7 +225,7 @@ describe('OpenCodeSourceAdapter', () => {
     const parseDiagnostics = await adapter.parseFileWithDiagnostics('/tmp/opencode.db');
 
     expect(parseDiagnostics.events).toHaveLength(1);
-    expect(parseDiagnostics.skippedRows).toBe(3);
+    expect(parseDiagnostics.skippedRows).toBe(4);
     expect(parseDiagnostics.events[0]).toMatchObject({
       source: 'opencode',
       sessionId: 'session-1',
@@ -209,6 +241,71 @@ describe('OpenCodeSourceAdapter', () => {
       costUsd: 1.5,
       costMode: 'explicit',
     });
+  });
+
+  it('handles message table and columns with non-lowercase schema names', async () => {
+    const adapter = new OpenCodeSourceAdapter({
+      pathReadable: async () => true,
+      loadSqliteModule: createSqliteLoader({
+        tables: ['Message'],
+        messageColumns: ['ID', 'TIME_CREATED', 'SESSION_ID', 'DATA'],
+        primaryRows: [
+          {
+            row_id: 'msg-1',
+            row_session_id: 'session-1',
+            row_time: 1_737_000_000_000,
+            data_json: JSON.stringify({
+              role: 'assistant',
+              modelID: 'gpt-4.1',
+              tokens: {
+                input: 10,
+                output: 5,
+                total: 15,
+              },
+            }),
+          },
+        ],
+      }),
+    });
+
+    const events = await adapter.parseFile('/tmp/opencode.db');
+
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      source: 'opencode',
+      sessionId: 'session-1',
+      model: 'gpt-4.1',
+      totalTokens: 15,
+    });
+  });
+
+  it('builds primary query that filters assistant rows by role or type', async () => {
+    const seenQueries: string[] = [];
+    const adapter = new OpenCodeSourceAdapter({
+      pathReadable: async () => true,
+      loadSqliteModule: createSqliteLoader({
+        primaryRows: [
+          {
+            row_id: 'msg-1',
+            row_session_id: 'session-1',
+            row_time: 1_737_000_000_000,
+            data_json: JSON.stringify({
+              type: 'assistant',
+              modelID: 'gpt-4.1',
+              tokens: { input: 10, output: 5, total: 15 },
+            }),
+          },
+        ],
+        seenQueries,
+      }),
+    });
+
+    const events = await adapter.parseFile('/tmp/opencode.db');
+
+    expect(events).toHaveLength(1);
+    expect(seenQueries.some((query) => query.includes('$.role') && query.includes('$.type'))).toBe(
+      true,
+    );
   });
 
   it('falls back to non-json_extract query shape and filters assistant role in JS', async () => {
@@ -255,7 +352,7 @@ describe('OpenCodeSourceAdapter', () => {
       totalTokens: 30,
       costMode: 'estimated',
     });
-    expect(seenQueries.some((query) => query.includes('WHERE json_extract'))).toBe(true);
+    expect(seenQueries.some((query) => query.includes('json_extract'))).toBe(true);
     expect(
       seenQueries.some(
         (query) => query.includes('FROM "message"') && !query.includes('WHERE json_extract'),
@@ -274,6 +371,100 @@ describe('OpenCodeSourceAdapter', () => {
     await expect(adapter.parseFile('/tmp/opencode.db')).rejects.toThrow(
       'OpenCode schema drift: required "message" table not found.',
     );
+  });
+
+  it('throws actionable schema-drift error when message.data column is unavailable', async () => {
+    const adapter = new OpenCodeSourceAdapter({
+      pathReadable: async () => true,
+      loadSqliteModule: createSqliteLoader({
+        messageColumns: ['id', 'time_created', 'session_id'],
+      }),
+    });
+
+    await expect(adapter.parseFile('/tmp/opencode.db')).rejects.toThrow(
+      'OpenCode schema drift: "message.data" column not found.',
+    );
+  });
+
+  it('throws actionable schema-drift error when message id/timestamp columns are unavailable', async () => {
+    const adapter = new OpenCodeSourceAdapter({
+      pathReadable: async () => true,
+      loadSqliteModule: createSqliteLoader({
+        messageColumns: ['session_id', 'data'],
+      }),
+    });
+
+    await expect(adapter.parseFile('/tmp/opencode.db')).rejects.toThrow(
+      'OpenCode schema drift: required message id/timestamp columns are unavailable.',
+    );
+  });
+
+  it('uses NULL session alias in primary/fallback queries when session column is missing', async () => {
+    const seenQueries: string[] = [];
+    const adapter = new OpenCodeSourceAdapter({
+      pathReadable: async () => true,
+      loadSqliteModule: createSqliteLoader({
+        messageColumns: ['id', 'time_created', 'data'],
+        primaryQueryErrors: [new Error('no such function: json_extract')],
+        fallbackRows: [
+          {
+            row_id: 'msg-1',
+            row_time: 1_737_000_000_000,
+            data_json: JSON.stringify({
+              role: 'assistant',
+              sessionID: 'session-from-payload',
+              modelID: 'gpt-4.1',
+              tokens: { input: 1, output: 1, total: 2 },
+            }),
+          },
+        ],
+        seenQueries,
+      }),
+    });
+
+    const events = await adapter.parseFile('/tmp/opencode.db');
+
+    expect(events).toHaveLength(1);
+    expect(events[0]?.sessionId).toBe('session-from-payload');
+    expect(
+      seenQueries.some(
+        (query) => query.includes('NULL AS row_session_id') && query.includes('FROM'),
+      ),
+    ).toBe(true);
+  });
+
+  it('falls back to row id for session id and skips rows where every session id source is blank', async () => {
+    const adapter = new OpenCodeSourceAdapter({
+      pathReadable: async () => true,
+      loadSqliteModule: createSqliteLoader({
+        primaryRows: [
+          {
+            row_id: 'msg-fallback-id',
+            row_time: 1_737_000_000_000,
+            data_json: JSON.stringify({
+              role: 'assistant',
+              modelID: 'gpt-4.1',
+              tokens: { input: 2, output: 3, total: 5 },
+            }),
+          },
+          {
+            row_id: '',
+            row_time: 1_737_000_001_000,
+            data_json: JSON.stringify({
+              role: 'assistant',
+              modelID: 'gpt-4.1',
+              tokens: { input: 1, output: 1, total: 2 },
+            }),
+          },
+        ],
+      }),
+    });
+
+    const parseDiagnostics = await adapter.parseFileWithDiagnostics('/tmp/opencode.db');
+
+    expect(parseDiagnostics.events).toHaveLength(1);
+    expect(parseDiagnostics.events[0]?.sessionId).toBe('msg-fallback-id');
+    expect(parseDiagnostics.skippedRows).toBe(1);
   });
 
   it('retries busy/locked errors and succeeds when lock clears within retry budget', async () => {
@@ -306,6 +497,33 @@ describe('OpenCodeSourceAdapter', () => {
     expect(events).toHaveLength(1);
     expect(sleepSpy).toHaveBeenCalledTimes(1);
     expect(sleepSpy).toHaveBeenCalledWith(5);
+  });
+
+  it('uses default sleep implementation between retries when no custom sleep is provided', async () => {
+    const adapter = new OpenCodeSourceAdapter({
+      pathReadable: async () => true,
+      maxBusyRetries: 1,
+      busyRetryDelayMs: 1,
+      loadSqliteModule: createSqliteLoader({
+        primaryQueryErrors: [createBusyError()],
+        primaryRows: [
+          {
+            row_id: 'msg-1',
+            row_session_id: 'session-1',
+            row_time: 1_737_000_000_000,
+            data_json: JSON.stringify({
+              role: 'assistant',
+              providerID: 'openai',
+              modelID: 'gpt-4.1',
+              tokens: { input: 2, output: 3 },
+            }),
+          },
+        ],
+      }),
+    });
+
+    const events = await adapter.parseFile('/tmp/opencode.db');
+    expect(events).toHaveLength(1);
   });
 
   it('fails with actionable guidance when busy/locked retries are exhausted', async () => {

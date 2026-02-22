@@ -1,17 +1,24 @@
 import { mkdtemp, rm } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { buildUsageReport, runUsageReport } from '../../src/cli/run-usage-report.js';
+import { withSuppressedSqliteExperimentalWarning } from '../../src/sources/opencode/sqlite-warning-suppression.js';
 
 type OpenCodeMessageFixture = {
   id: string;
   sessionId: string;
   timeCreated: number;
   data: string;
+};
+
+type FixtureDatabaseSync = new (filePath: string) => {
+  exec: (sql: string) => void;
+  prepare: (sql: string) => { run: (...args: unknown[]) => void };
+  close: () => void;
 };
 
 const tempDirs: string[] = [];
@@ -54,6 +61,7 @@ afterEach(async () => {
 });
 
 function createOpenCodeFixtureDb(dbPath: string, messages: OpenCodeMessageFixture[]): void {
+  const DatabaseSync = loadDatabaseSync();
   const database = new DatabaseSync(dbPath);
 
   try {
@@ -171,6 +179,7 @@ describe('opencode e2e', () => {
     tempDirs.push(tempDir);
 
     const opencodeDbPath = path.join(tempDir, 'opencode-bad.db');
+    const DatabaseSync = loadDatabaseSync();
     const database = new DatabaseSync(opencodeDbPath);
     database.exec('CREATE TABLE session (id TEXT PRIMARY KEY);');
     database.close();
@@ -234,3 +243,36 @@ describe('opencode e2e', () => {
     }
   });
 });
+const require = createRequire(import.meta.url);
+
+function createNodeSqliteFixtureError(reason: string): Error {
+  return new Error(
+    [
+      'OpenCode e2e fixtures require node:sqlite DatabaseSync support.',
+      'Use Node.js v22.5.0+.',
+      'For Node.js v22.5.0-v22.12.x and v23.0.0-v23.3.x, start with --experimental-sqlite.',
+      `Runtime load failure: ${reason}`,
+    ].join(' '),
+  );
+}
+
+function loadDatabaseSync(): FixtureDatabaseSync {
+  let sqliteModule: unknown;
+
+  try {
+    sqliteModule = withSuppressedSqliteExperimentalWarning(() => require('node:sqlite') as unknown);
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    throw createNodeSqliteFixtureError(reason);
+  }
+
+  const moduleRecord = sqliteModule as { DatabaseSync?: unknown } | undefined;
+
+  if (typeof moduleRecord?.DatabaseSync !== 'function') {
+    throw createNodeSqliteFixtureError(
+      'node:sqlite loaded but did not expose a DatabaseSync constructor.',
+    );
+  }
+
+  return moduleRecord.DatabaseSync as FixtureDatabaseSync;
+}

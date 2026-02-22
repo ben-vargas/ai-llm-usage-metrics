@@ -157,6 +157,7 @@ Important guarantees:
 
 - token fields are non-negative integers
 - timestamp is valid ISO string
+- model id is normalized to lowercase (when provided)
 - `costMode` is either `explicit` or `estimated`
 
 ### Report rows

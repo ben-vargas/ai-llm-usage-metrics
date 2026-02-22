@@ -64,6 +64,16 @@ function normalizeOptionalText(value: string | undefined): string | undefined {
   return normalized || undefined;
 }
 
+function normalizeOptionalModel(value: string | undefined): string | undefined {
+  const normalized = normalizeOptionalText(value);
+
+  if (!normalized) {
+    return undefined;
+  }
+
+  return normalized.toLowerCase();
+}
+
 function resolveCostMode(costMode: CostMode | undefined, costUsd: number | undefined): CostMode {
   if (costMode === 'explicit' && costUsd === undefined) {
     throw new Error('UsageEvent with costMode "explicit" requires costUsd');
@@ -95,7 +105,7 @@ export function createUsageEvent(input: UsageEventInput): UsageEvent {
     sessionId: requireText(input.sessionId, 'sessionId'),
     timestamp: normalizeTimestamp(input.timestamp),
     provider: normalizeOptionalText(input.provider),
-    model: normalizeOptionalText(input.model),
+    model: normalizeOptionalModel(input.model),
     inputTokens,
     outputTokens,
     reasoningTokens,

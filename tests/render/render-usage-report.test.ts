@@ -129,13 +129,14 @@ describe('renderUsageReport', () => {
 
     expect(rendered).toContain('Active environment overrides:');
     expect(rendered).toContain('LLM_USAGE_PARSE_MAX_PARALLEL=8');
-    expect(rendered).toContain('Monthly Token Usage Report (Timezone: UTC)');
+    expect(rendered).toContain('Monthly Token Usage Report');
+    expect(rendered).not.toContain('Timezone');
     expect(rendered).toContain('│ Period');
     expect(rendered.startsWith('\n')).toBe(false);
     expect(rendered.includes(`${String.fromCharCode(27)}[`)).toBe(false);
 
     const envSectionIndex = rendered.indexOf('Active environment overrides:');
-    const headerIndex = rendered.indexOf('Monthly Token Usage Report (Timezone: UTC)');
+    const headerIndex = rendered.indexOf('Monthly Token Usage Report');
     const tableIndex = rendered.indexOf('╭');
 
     expect(headerIndex).toBeGreaterThan(envSectionIndex);

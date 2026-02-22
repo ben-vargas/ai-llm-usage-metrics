@@ -49,6 +49,7 @@ Commands:
 - source filter defaults to all parsed sources
 - output defaults to terminal table
 - table layout defaults to compact models column (names only); use `--per-model-columns` for detailed per-model columns
+- cost cells render `-` when any contributing event has unresolved `costUsd`
 
 ## Startup update notifier
 

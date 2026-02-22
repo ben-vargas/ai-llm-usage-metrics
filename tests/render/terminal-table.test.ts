@@ -105,7 +105,28 @@ const sampleRows: UsageReportRow[] = [
 const originalNoColor = process.env.NO_COLOR;
 const originalForceColor = process.env.FORCE_COLOR;
 const stdout = process.stdout as NodeJS.WriteStream;
-const originalStdoutIsTTY = stdout.isTTY;
+const stdoutRestoreStack: Array<() => void> = [];
+
+function overrideStdoutProperty<Key extends 'isTTY' | 'columns'>(
+  property: Key,
+  value: NodeJS.WriteStream[Key],
+): void {
+  const previousDescriptor = Object.getOwnPropertyDescriptor(stdout, property);
+
+  Object.defineProperty(stdout, property, {
+    configurable: true,
+    value,
+  });
+
+  stdoutRestoreStack.push(() => {
+    if (previousDescriptor) {
+      Object.defineProperty(stdout, property, previousDescriptor);
+      return;
+    }
+
+    Reflect.deleteProperty(stdout, property);
+  });
+}
 
 afterEach(() => {
   if (originalNoColor === undefined) {
@@ -120,7 +141,10 @@ afterEach(() => {
     process.env.FORCE_COLOR = originalForceColor;
   }
 
-  stdout.isTTY = originalStdoutIsTTY;
+  while (stdoutRestoreStack.length > 0) {
+    const restore = stdoutRestoreStack.pop();
+    restore?.();
+  }
 });
 
 describe('renderTerminalTable', () => {
@@ -561,13 +585,88 @@ describe('renderTerminalTable', () => {
 
     expect(separatorLines).toHaveLength(2);
   });
+
+  it('renders unknown cost values as "-" instead of NaN', () => {
+    const rendered = renderTerminalTable(
+      [
+        {
+          rowType: 'period_source',
+          periodKey: '2026-01-01',
+          source: 'pi',
+          models: ['gpt-4.1'],
+          modelBreakdown: [],
+          inputTokens: 10,
+          outputTokens: 5,
+          reasoningTokens: 0,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          totalTokens: 15,
+          costUsd: undefined,
+        },
+        {
+          rowType: 'grand_total',
+          periodKey: 'ALL',
+          source: 'combined',
+          models: ['gpt-4.1'],
+          modelBreakdown: [],
+          inputTokens: 10,
+          outputTokens: 5,
+          reasoningTokens: 0,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          totalTokens: 15,
+          costUsd: undefined,
+        },
+      ],
+      { useColor: false },
+    );
+
+    expect(rendered).toContain('│    - │');
+    expect(rendered).not.toContain('NaN');
+  });
+
+  it('ignores invalid tty width metadata when no explicit terminal width override is set', () => {
+    overrideStdoutProperty('isTTY', true);
+    overrideStdoutProperty('columns', 0);
+
+    const withInvalidColumns = renderTerminalTable(sampleRows, { useColor: false });
+    const withExplicitWidth = renderTerminalTable(sampleRows, {
+      useColor: false,
+      terminalWidth: 200,
+    });
+
+    expect(withInvalidColumns).toBe(withExplicitWidth);
+  });
+
+  it('shrinks models column when terminal width is constrained', () => {
+    const unconstrained = renderTerminalTable(sampleRows, {
+      useColor: false,
+      terminalWidth: 200,
+    });
+    const constrained = renderTerminalTable(sampleRows, {
+      useColor: false,
+      terminalWidth: 118,
+    });
+
+    const unconstrainedWidth = unconstrained
+      .trimEnd()
+      .split('\n')
+      .reduce((maxWidth, line) => Math.max(maxWidth, visibleWidth(line)), 0);
+    const constrainedWidth = constrained
+      .trimEnd()
+      .split('\n')
+      .reduce((maxWidth, line) => Math.max(maxWidth, visibleWidth(line)), 0);
+
+    expect(constrainedWidth).toBeLessThan(unconstrainedWidth);
+    expect(constrainedWidth).toBeLessThanOrEqual(118);
+  });
 });
 
 describe('shouldUseColorByDefault', () => {
   it('returns false when FORCE_COLOR=0', () => {
     delete process.env.NO_COLOR;
     process.env.FORCE_COLOR = '0';
-    stdout.isTTY = true;
+    overrideStdoutProperty('isTTY', true);
 
     expect(shouldUseColorByDefault()).toBe(false);
   });
@@ -575,7 +674,7 @@ describe('shouldUseColorByDefault', () => {
   it('returns true when FORCE_COLOR is a non-zero value', () => {
     delete process.env.NO_COLOR;
     process.env.FORCE_COLOR = '1';
-    stdout.isTTY = false;
+    overrideStdoutProperty('isTTY', false);
 
     expect(shouldUseColorByDefault()).toBe(true);
   });
@@ -583,7 +682,7 @@ describe('shouldUseColorByDefault', () => {
   it('returns false when stdout is not a tty and no color env override is set', () => {
     delete process.env.NO_COLOR;
     delete process.env.FORCE_COLOR;
-    stdout.isTTY = false;
+    overrideStdoutProperty('isTTY', false);
 
     expect(shouldUseColorByDefault()).toBe(false);
   });

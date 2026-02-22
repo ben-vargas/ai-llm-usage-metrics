@@ -188,4 +188,42 @@ describe('renderMarkdownTable', () => {
     expect(rendered).toContain('<br>');
     expect(rendered).not.toContain('\r');
   });
+
+  it('renders unknown cost values as "-" instead of NaN', () => {
+    const rendered = renderMarkdownTable([
+      {
+        rowType: 'period_source',
+        periodKey: '2026-02-10',
+        source: 'pi',
+        models: ['gpt-4.1'],
+        modelBreakdown: [],
+        inputTokens: 10,
+        outputTokens: 5,
+        reasoningTokens: 0,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+        totalTokens: 15,
+        costUsd: undefined,
+      },
+      {
+        rowType: 'grand_total',
+        periodKey: 'ALL',
+        source: 'combined',
+        models: ['gpt-4.1'],
+        modelBreakdown: [],
+        inputTokens: 10,
+        outputTokens: 5,
+        reasoningTokens: 0,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+        totalTokens: 15,
+        costUsd: undefined,
+      },
+    ]);
+
+    expect(rendered).toContain('2026-02-10');
+    expect(rendered).toContain('• gpt-4.1');
+    expect(rendered).toContain('|    - |');
+    expect(rendered).not.toContain('NaN');
+  });
 });
