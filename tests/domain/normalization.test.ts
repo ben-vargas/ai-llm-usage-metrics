@@ -52,4 +52,8 @@ describe('normalizeModelList', () => {
       'gpt-4o',
     ]);
   });
+
+  it('uses deterministic code-point ordering regardless of locale', () => {
+    expect(normalizeModelList(['ä-model', 'z-model'])).toEqual(['z-model', 'ä-model']);
+  });
 });

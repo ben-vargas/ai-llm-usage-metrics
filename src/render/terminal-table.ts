@@ -39,8 +39,12 @@ function colorizeHeader(useColor: boolean): string[] {
   return headerCells.map((header) => pc.bold(pc.white(header)));
 }
 
+function isValidTerminalWidth(width: unknown): width is number {
+  return typeof width === 'number' && Number.isFinite(width) && width > 0;
+}
+
 function resolveTerminalWidth(override: number | undefined): number | undefined {
-  if (typeof override === 'number' && Number.isFinite(override) && override > 0) {
+  if (isValidTerminalWidth(override)) {
     return Math.floor(override);
   }
 
@@ -85,20 +89,34 @@ export function renderTerminalTable(
 ): string {
   const useColor = options.useColor ?? shouldUseColorByDefault();
   const tableLayout = options.tableLayout ?? 'compact';
+  const hasExplicitTerminalWidth = isValidTerminalWidth(options.terminalWidth);
   const terminalWidth = resolveTerminalWidth(options.terminalWidth);
   let modelsColumnWidth = defaultModelsColumnWidth;
   let renderedTable = renderTableWithModelsWidth(rows, tableLayout, useColor, modelsColumnWidth);
 
   if (terminalWidth !== undefined) {
-    const renderedTableWidth = measureTableWidth(renderedTable);
+    let renderedTableWidth = measureTableWidth(renderedTable);
 
-    if (renderedTableWidth > terminalWidth) {
+    while (renderedTableWidth > terminalWidth && modelsColumnWidth > minimumModelsColumnWidth) {
       const overflowColumns = renderedTableWidth - terminalWidth;
-      modelsColumnWidth = Math.max(minimumModelsColumnWidth, modelsColumnWidth - overflowColumns);
+      const nextModelsColumnWidth = Math.max(
+        minimumModelsColumnWidth,
+        modelsColumnWidth - overflowColumns,
+      );
 
-      if (modelsColumnWidth !== defaultModelsColumnWidth) {
-        renderedTable = renderTableWithModelsWidth(rows, tableLayout, useColor, modelsColumnWidth);
+      if (nextModelsColumnWidth === modelsColumnWidth) {
+        break;
       }
+
+      modelsColumnWidth = nextModelsColumnWidth;
+      renderedTable = renderTableWithModelsWidth(rows, tableLayout, useColor, modelsColumnWidth);
+      renderedTableWidth = measureTableWidth(renderedTable);
+    }
+
+    if (hasExplicitTerminalWidth && renderedTableWidth > terminalWidth) {
+      throw new Error(
+        `Configured terminal width (${terminalWidth}) is too narrow for table rendering (minimum ${renderedTableWidth}).`,
+      );
     }
   }
 

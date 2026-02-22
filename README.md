@@ -125,7 +125,8 @@ Pricing behavior notes:
 
 - LiteLLM is the active pricing source.
 - explicit `costUsd: 0` events are re-priced from LiteLLM when model pricing is available.
-- if any events in a row have unresolved cost, the row `Cost` is rendered as `-`.
+- if all contributing events in a row have unresolved cost, the row `Cost` is rendered as `-`.
+- if only part of a row cost is known, the row `Cost` is rendered as `~$...` to mark incomplete pricing.
 - when pricing cannot be loaded from LiteLLM (or cache in offline mode), report generation fails fast.
 
 ### Custom session directories
@@ -273,6 +274,8 @@ The CLI provides an enhanced terminal output with:
 
 - **Boxed report header** showing the report type and timezone
 - **Session summary** displayed at startup (session files and event counts per source)
+- **Malformed-row summary** when rows are skipped, including per-source reason counts
+- **Source failure summary** when one or more sources fail to parse
 - **Pricing source info** indicating whether data was loaded from cache or fetched remotely
 - **Environment variable overrides** displayed when active
 - **Models displayed as bullet points** for better readability

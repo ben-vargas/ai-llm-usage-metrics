@@ -49,7 +49,7 @@ Commands:
 - source filter defaults to all parsed sources
 - output defaults to terminal table
 - table layout defaults to compact models column (names only); use `--per-model-columns` for detailed per-model columns
-- cost cells render `-` when any contributing event has unresolved `costUsd`
+- cost cells render `~$...` when only a partial known cost is available because some contributing events have unresolved `costUsd`
 
 ## Startup update notifier
 
@@ -87,7 +87,9 @@ When outputting to terminal (default), the CLI emits:
 ### `stderr` diagnostics
 
 1. **Session summary**: total files/events and per-source breakdown
-2. **Pricing source message**: cache / network / offline-cache
+2. **Source failure summary** (when present): failing source ids and reasons
+3. **Malformed-row summary** (when present): skipped rows with per-source reason counts
+4. **Pricing source message**: cache / network / offline-cache
 
 ### `stdout` report body
 

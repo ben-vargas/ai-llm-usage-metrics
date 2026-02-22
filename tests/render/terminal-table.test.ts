@@ -586,6 +586,71 @@ describe('renderTerminalTable', () => {
     expect(separatorLines).toHaveLength(2);
   });
 
+  it('normalizes row grouping before separator decisions when input rows are out of order', () => {
+    const rendered = renderTerminalTable(
+      [
+        {
+          rowType: 'grand_total',
+          periodKey: 'ALL',
+          source: 'combined',
+          models: ['gpt-4.1'],
+          modelBreakdown: [],
+          inputTokens: 3,
+          outputTokens: 3,
+          reasoningTokens: 0,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          totalTokens: 6,
+          costUsd: 0.03,
+        },
+        {
+          rowType: 'period_combined',
+          periodKey: '2026-02-10',
+          source: 'combined',
+          models: ['gpt-4.1'],
+          modelBreakdown: [],
+          inputTokens: 2,
+          outputTokens: 2,
+          reasoningTokens: 0,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          totalTokens: 4,
+          costUsd: 0.02,
+        },
+        {
+          rowType: 'period_source',
+          periodKey: '2026-02-10',
+          source: 'pi',
+          models: ['gpt-4.1'],
+          modelBreakdown: [],
+          inputTokens: 1,
+          outputTokens: 1,
+          reasoningTokens: 0,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          totalTokens: 2,
+          costUsd: 0.01,
+        },
+      ],
+      { useColor: false },
+    );
+
+    const lines = rendered.split('\n');
+    const periodSourceLineIndex = lines.findIndex((line) => line.includes('│ 2026-02-10 │ pi'));
+    const periodCombinedLineIndex = lines.findIndex((line) =>
+      line.includes('│ 2026-02-10 │ combined'),
+    );
+    const grandTotalLineIndex = lines.findIndex((line) => line.includes('│ ALL        │ TOTAL'));
+    const separatorLines = lines.filter((line) => line.startsWith('├'));
+
+    expect(periodSourceLineIndex).toBeGreaterThan(-1);
+    expect(periodCombinedLineIndex).toBeGreaterThan(-1);
+    expect(grandTotalLineIndex).toBeGreaterThan(-1);
+    expect(periodSourceLineIndex).toBeLessThan(periodCombinedLineIndex);
+    expect(periodCombinedLineIndex).toBeLessThan(grandTotalLineIndex);
+    expect(separatorLines).toHaveLength(2);
+  });
+
   it('renders unknown cost values as "-" instead of NaN', () => {
     const rendered = renderTerminalTable(
       [
@@ -659,6 +724,15 @@ describe('renderTerminalTable', () => {
 
     expect(constrainedWidth).toBeLessThan(unconstrainedWidth);
     expect(constrainedWidth).toBeLessThanOrEqual(118);
+  });
+
+  it('throws when explicit terminal width override is too narrow to render table', () => {
+    expect(() =>
+      renderTerminalTable(sampleRows, {
+        useColor: false,
+        terminalWidth: 40,
+      }),
+    ).toThrow('Configured terminal width (40) is too narrow for table rendering');
   });
 });
 

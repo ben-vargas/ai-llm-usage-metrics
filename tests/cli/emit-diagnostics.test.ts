@@ -107,15 +107,28 @@ describe('emitDiagnostics', () => {
     emitDiagnostics(
       createDiagnostics({
         skippedRows: [
-          { source: 'pi', skippedRows: 1 },
-          { source: 'codex', skippedRows: 2 },
+          {
+            source: 'pi',
+            skippedRows: 1,
+            reasons: [{ reason: 'missing_timestamp', count: 1 }],
+          },
+          {
+            source: 'codex',
+            skippedRows: 2,
+            reasons: [
+              { reason: 'invalid_data_json', count: 1 },
+              { reason: 'missing_usage_signal', count: 1 },
+            ],
+          },
         ],
       }),
       diagnosticsLogger,
     );
 
     expect(diagnosticsLogger.warn).toHaveBeenCalledWith('Skipped 3 malformed rows');
-    expect(diagnosticsLogger.dim).toHaveBeenCalledWith('  pi: 1 skipped');
-    expect(diagnosticsLogger.dim).toHaveBeenCalledWith('  codex: 2 skipped');
+    expect(diagnosticsLogger.dim).toHaveBeenCalledWith('  pi: 1 skipped (missing_timestamp: 1)');
+    expect(diagnosticsLogger.dim).toHaveBeenCalledWith(
+      '  codex: 2 skipped (invalid_data_json: 1, missing_usage_signal: 1)',
+    );
   });
 });

@@ -12,6 +12,7 @@ export type SqliteModule = {
   ) => {
     prepare: (sql: string) => {
       all: (...anonymousParameters: unknown[]) => Record<string, unknown>[];
+      iterate?: (...anonymousParameters: unknown[]) => IterableIterator<Record<string, unknown>>;
     };
     close: () => void;
   };
@@ -28,6 +29,7 @@ export function loadNodeSqliteModuleFromRequire(requireFn: RequireFn): SqliteMod
     const reason = error instanceof Error ? error.message : String(error);
     throw new Error(
       `OpenCode source requires Node.js 24+ runtime with node:sqlite support: ${reason}`,
+      { cause: error },
     );
   }
 }

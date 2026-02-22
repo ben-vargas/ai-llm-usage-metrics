@@ -35,7 +35,11 @@ export function buildUsageDiagnostics(params: BuildUsageDiagnosticsParams): Usag
 
   const skippedRows = params.successfulParseResults
     .filter((result) => result.skippedRows > 0)
-    .map((result) => ({ source: result.source, skippedRows: result.skippedRows }));
+    .map((result) => ({
+      source: result.source,
+      skippedRows: result.skippedRows,
+      reasons: result.skippedRowReasons,
+    }));
 
   return {
     sessionStats,

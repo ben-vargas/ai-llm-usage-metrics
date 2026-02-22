@@ -9,6 +9,7 @@ import {
   compareVersions,
   isCacheFresh,
   isLikelyNpxExecution,
+  isLikelySourceExecution,
   resolveLatestVersion,
   shouldOfferUpdate,
   shouldSkipUpdateCheckForArgv,
@@ -124,7 +125,7 @@ describe('update-notifier', () => {
     expect(fetchSpy).toHaveBeenCalledOnce();
   });
 
-  it('uses stale cache when network check fails and refreshes checkedAt', async () => {
+  it('uses stale cache when network check fails without refreshing checkedAt', async () => {
     const cacheFilePath = await createTempCachePath('update-cache-stale-');
     const nowValue = 1_000_000;
 
@@ -147,10 +148,11 @@ describe('update-notifier', () => {
       cacheTtlMs: 5_000,
       fetchImpl: fetchSpy,
       now: () => nowValue,
+      sleep: async () => undefined,
     });
 
     expect(latestVersion).toBe('9.9.9');
-    expect(fetchSpy).toHaveBeenCalledOnce();
+    expect(fetchSpy).toHaveBeenCalledTimes(3);
 
     const updatedCache = JSON.parse(await readFile(cacheFilePath, 'utf8')) as {
       checkedAt: number;
@@ -158,7 +160,7 @@ describe('update-notifier', () => {
     };
 
     expect(updatedCache).toEqual({
-      checkedAt: nowValue,
+      checkedAt: nowValue - 10_000,
       latestVersion: '9.9.9',
     });
   });
@@ -316,6 +318,34 @@ describe('update-notifier', () => {
         npm_execpath: '/usr/lib/node_modules/pnpm/bin/pnpm.js',
       }),
     ).toBe(false);
+  });
+
+  it('detects local source execution entrypoints', () => {
+    expect(isLikelySourceExecution(['/usr/bin/bun', '/app/src/cli/index.ts', 'daily'])).toBe(true);
+    expect(isLikelySourceExecution(['/usr/bin/node', '/app/src/cli/index.mts', 'daily'])).toBe(
+      true,
+    );
+    expect(isLikelySourceExecution(['/usr/bin/node', '/app/dist/index.js', 'daily'])).toBe(false);
+  });
+
+  it('skips update checks for local source execution', async () => {
+    const fetchSpy = vi.fn(async () => {
+      throw new Error('fetch should not be called for local source execution');
+    });
+    const notify = vi.fn();
+
+    const result = await checkForUpdatesAndMaybeRestart({
+      packageName: 'llm-usage-metrics',
+      currentVersion: '0.1.11',
+      argv: ['/usr/bin/bun', '/app/src/cli/index.ts', 'monthly'],
+      env: {},
+      fetchImpl: fetchSpy,
+      notify,
+    });
+
+    expect(result).toEqual({ continueExecution: true });
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(notify).not.toHaveBeenCalled();
   });
 
   it('skips update checks for help/version invocations', async () => {

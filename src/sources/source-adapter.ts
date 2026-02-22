@@ -1,9 +1,15 @@
 import type { UsageEvent, SourceId } from '../domain/usage-event.js';
 import { asRecord } from '../utils/as-record.js';
 
+export type SourceSkippedRowReasonStat = {
+  reason: string;
+  count: number;
+};
+
 export type SourceParseFileDiagnostics<Event extends UsageEvent = UsageEvent> = {
   events: Event[];
   skippedRows: number;
+  skippedRowReasons?: SourceSkippedRowReasonStat[];
 };
 
 export interface SourceAdapter<Event extends UsageEvent = UsageEvent> {

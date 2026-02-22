@@ -74,6 +74,7 @@ function createAdapterWithDiagnostics(
       {
         events: ReturnType<typeof createUsageEvent>[];
         skippedRows: number;
+        skippedRowReasons?: Array<{ reason: string; count: number }>;
       }
     >
   >,
@@ -219,6 +220,7 @@ describe('build-usage-data helper modules', () => {
           ],
           filesFound: 2,
           skippedRows: 3,
+          skippedRowReasons: [{ reason: 'invalid_data_json', count: 3 }],
         },
       ],
       sourceFailures: [{ source: 'pi', reason: 'pi parse failed' }],
@@ -233,7 +235,13 @@ describe('build-usage-data helper modules', () => {
         { source: 'codex', filesFound: 2, eventsParsed: 2 },
       ],
       sourceFailures: [{ source: 'pi', reason: 'pi parse failed' }],
-      skippedRows: [{ source: 'codex', skippedRows: 3 }],
+      skippedRows: [
+        {
+          source: 'codex',
+          skippedRows: 3,
+          reasons: [{ reason: 'invalid_data_json', count: 3 }],
+        },
+      ],
       pricingOrigin: 'none',
       timezone: 'UTC',
     });
@@ -447,6 +455,10 @@ describe('buildUsageData', () => {
             '/tmp/opencode.db': {
               events: [createEvent({ source: 'opencode', sessionId: 'opencode-session' })],
               skippedRows: 2,
+              skippedRowReasons: [
+                { reason: 'invalid_data_json', count: 1 },
+                { reason: 'missing_timestamp', count: 1 },
+              ],
             },
           }),
         ],
@@ -456,7 +468,16 @@ describe('buildUsageData', () => {
     expect(result.diagnostics.sessionStats).toEqual([
       { source: 'opencode', filesFound: 1, eventsParsed: 1 },
     ]);
-    expect(result.diagnostics.skippedRows).toEqual([{ source: 'opencode', skippedRows: 2 }]);
+    expect(result.diagnostics.skippedRows).toEqual([
+      {
+        source: 'opencode',
+        skippedRows: 2,
+        reasons: [
+          { reason: 'invalid_data_json', count: 1 },
+          { reason: 'missing_timestamp', count: 1 },
+        ],
+      },
+    ]);
   });
 
   it('normalizes invalid skipped-row diagnostics emitted by adapters', async () => {
@@ -965,7 +986,7 @@ describe('buildUsageData', () => {
       ),
     ).rejects.toThrow('Could not load LiteLLM pricing');
 
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(fetchSpy).toHaveBeenCalledTimes(3);
   });
 
   it('fails pricing-offline mode when cache is unavailable', async () => {

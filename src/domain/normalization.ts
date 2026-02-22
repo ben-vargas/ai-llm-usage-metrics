@@ -1,3 +1,5 @@
+import { compareByCodePoint } from '../utils/compare-by-code-point.js';
+
 export type NumberLike = number | string | null | undefined;
 
 export function normalizeNonNegativeInteger(value: NumberLike): number {
@@ -59,5 +61,5 @@ export function normalizeModelList(models: Iterable<string | null | undefined>):
     deduplicated.add(normalized);
   }
 
-  return [...deduplicated].sort((left, right) => left.localeCompare(right));
+  return [...deduplicated].sort(compareByCodePoint);
 }

@@ -61,6 +61,12 @@ export default tseslint.config(
           allowNumber: true,
         },
       ],
+      'no-duplicate-imports': [
+        'error',
+        {
+          allowSeparateTypeImports: true,
+        },
+      ],
       'no-restricted-syntax': [
         'error',
         {

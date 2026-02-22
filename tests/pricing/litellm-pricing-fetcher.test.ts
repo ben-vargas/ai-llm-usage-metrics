@@ -260,6 +260,85 @@ describe('LiteLLMPricingFetcher', () => {
     expect(fetcher.getPricing('gpt-5.2-codex')).toBeDefined();
   });
 
+  it('retries transient LiteLLM fetch failures before succeeding', async () => {
+    const rootDir = await mkdtemp(path.join(os.tmpdir(), 'litellm-pricing-retry-success-'));
+    tempDirs.push(rootDir);
+    const sleepSpy = vi.fn(async () => undefined);
+    const fetchSpy = vi
+      .fn<() => Promise<Response>>()
+      .mockRejectedValueOnce(new Error('timeout'))
+      .mockRejectedValueOnce(new Error('network down'))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            'gpt-5.2-codex': {
+              input_cost_per_token: 0.0000015,
+              output_cost_per_token: 0.00001,
+            },
+          }),
+          { status: 200 },
+        ),
+      );
+
+    const fetcher = createFetcher({
+      cacheFilePath: path.join(rootDir, 'cache.json'),
+      fetchImpl: fetchSpy,
+      fetchRetryCount: 2,
+      fetchRetryDelayMs: 10,
+      sleep: sleepSpy,
+    });
+
+    const loadedFromCache = await fetcher.load();
+
+    expect(loadedFromCache).toBe(false);
+    expect(fetchSpy).toHaveBeenCalledTimes(3);
+    expect(sleepSpy).toHaveBeenNthCalledWith(1, 10);
+    expect(sleepSpy).toHaveBeenNthCalledWith(2, 20);
+    expect(fetcher.getPricing('gpt-5.2-codex')).toBeDefined();
+  });
+
+  it('falls back to stale cache after retry exhaustion on transient failures', async () => {
+    const rootDir = await mkdtemp(path.join(os.tmpdir(), 'litellm-pricing-retry-stale-'));
+    tempDirs.push(rootDir);
+
+    const cacheFilePath = path.join(rootDir, 'cache.json');
+    const nowValue = 1_000_000;
+
+    await writeFile(
+      cacheFilePath,
+      JSON.stringify({
+        fetchedAt: nowValue - 10_000,
+        sourceUrl: 'https://example.test/litellm-pricing.json',
+        pricingByModel: {
+          'gpt-5.2-codex': {
+            inputPer1MUsd: 1.5,
+            outputPer1MUsd: 10,
+          },
+        },
+      }),
+      'utf8',
+    );
+
+    const fetchSpy = vi.fn(async () => {
+      throw new Error('network timeout');
+    });
+
+    const fetcher = createFetcher({
+      cacheFilePath,
+      cacheTtlMs: 100,
+      now: () => nowValue,
+      fetchImpl: fetchSpy,
+      fetchRetryCount: 2,
+      sleep: async () => undefined,
+    });
+
+    const loadedFromCache = await fetcher.load();
+
+    expect(loadedFromCache).toBe(true);
+    expect(fetchSpy).toHaveBeenCalledTimes(3);
+    expect(fetcher.getPricing('gpt-5.2-codex')?.inputPer1MUsd).toBeCloseTo(1.5, 10);
+  });
+
   it('resolves configured canonical aliases to preferred LiteLLM pricing keys', async () => {
     const rootDir = await mkdtemp(path.join(os.tmpdir(), 'litellm-pricing-canonical-map-'));
     tempDirs.push(rootDir);
