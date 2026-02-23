@@ -1,0 +1,68 @@
+---
+title: Documentation
+description: Complete documentation for llm-usage-metrics CLI.
+tableOfContents: false
+---
+
+import { LinkCard, CardGrid } from '@astrojs/starlight/components';
+
+Welcome to the llm-usage-metrics documentation. This CLI tool aggregates token usage and costs from your local coding agent sessions across pi, codex, and OpenCode.
+
+## Quick Navigation
+
+<CardGrid>
+  <LinkCard
+    title="Getting Started"
+    description="Install the CLI and run your first usage report."
+    href="/llm-usage-metrics/getting-started/"
+  />
+  <LinkCard
+    title="CLI Reference"
+    description="Complete command and option reference."
+    href="/llm-usage-metrics/cli-reference/"
+  />
+  <LinkCard
+    title="Data Sources"
+    description="Configure pi, codex, and OpenCode sources."
+    href="/llm-usage-metrics/sources/"
+  />
+  <LinkCard
+    title="Configuration"
+    description="Customize behavior with environment variables."
+    href="/llm-usage-metrics/configuration/"
+  />
+</CardGrid>
+
+## What it does
+
+`llm-usage-metrics` parses local session data from your coding agents:
+
+- **pi** sessions from `~/.pi/agent/sessions/`
+- **codex** sessions from `~/.codex/sessions/`
+- **OpenCode** SQLite database
+
+It normalizes events, applies LiteLLM pricing models, and generates reports in your preferred format.
+
+## Installation
+
+```bash
+npm install -g llm-usage-metrics
+```
+
+Or run without installing:
+
+```bash
+npx llm-usage-metrics daily
+```
+
+## First command
+
+```bash
+llm-usage daily
+```
+
+## Output formats
+
+- **Terminal**: ANSI-formatted tables (default)
+- **JSON**: Machine-readable for pipelines
+- **Markdown**: For documentation and sharing
