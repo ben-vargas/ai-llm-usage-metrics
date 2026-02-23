@@ -8,7 +8,8 @@ export default defineConfig({
   integrations: [
     starlight({
       title: 'llm-usage-metrics',
-      description: 'CLI for aggregating local LLM usage metrics from pi, codex, and opencode sessions',
+      description:
+        'CLI for aggregating local LLM usage metrics from pi, codex, and opencode sessions',
       favicon: '/favicon.svg',
       logo: {
         src: './src/assets/logo.svg',
@@ -64,10 +65,7 @@ export default defineConfig({
           link: '/architecture',
         },
       ],
-      customCss: [
-        './src/styles/tokens.css',
-        './src/styles/custom.css',
-      ],
+      customCss: ['./src/styles/tokens.css', './src/styles/custom.css'],
       editLink: {
         baseUrl: 'https://github.com/ayagmar/llm-usage-metrics/edit/master/site/',
       },
