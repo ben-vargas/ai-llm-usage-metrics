@@ -3,6 +3,11 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [master, main]
+    paths:
+      - 'site/**'
+      - 'docs/**'
+      - 'scripts/generate-cli-reference.mjs'
+      - '.github/workflows/pages.yml'
   workflow_dispatch:
 
 permissions:
