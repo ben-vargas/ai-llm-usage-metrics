@@ -1,341 +1,183 @@
+<div align="center">
+
+<img src="https://ayagmar.github.io/llm-usage-metrics/favicon.svg" width="64" height="64" alt="llm-usage-metrics logo">
+
 # llm-usage-metrics
 
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/ayagmar/llm-usage-metrics)
-[![CI](https://github.com/ayagmar/llm-usage-metrics/actions/workflows/ci.yml/badge.svg)](https://github.com/ayagmar/llm-usage-metrics/actions/workflows/ci.yml)
-[![Coverage](https://img.shields.io/codecov/c/github/ayagmar/llm-usage-metrics)](https://codecov.io/gh/ayagmar/llm-usage-metrics)
-[![npm version](https://img.shields.io/npm/v/llm-usage-metrics.svg)](https://www.npmjs.com/package/llm-usage-metrics)
-[![npm total downloads](https://img.shields.io/npm/dt/llm-usage-metrics.svg)](https://www.npmjs.com/package/llm-usage-metrics)
-[![install size](https://packagephobia.com/badge?p=llm-usage-metrics)](https://packagephobia.com/result?p=llm-usage-metrics)
+**Track and analyze your local LLM usage across coding agents**
 
-CLI to aggregate local LLM usage from:
+[![npm version](https://img.shields.io/npm/v/llm-usage-metrics.svg?style=flat-square&color=0ea5e9)](https://www.npmjs.com/package/llm-usage-metrics)
+[![npm downloads](https://img.shields.io/npm/dt/llm-usage-metrics.svg?style=flat-square&color=10b981)](https://www.npmjs.com/package/llm-usage-metrics)
+[![CI](https://img.shields.io/github/actions/workflow/status/ayagmar/llm-usage-metrics/ci.yml?style=flat-square&label=CI)](https://github.com/ayagmar/llm-usage-metrics/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/codecov/c/github/ayagmar/llm-usage-metrics?style=flat-square)](https://codecov.io/gh/ayagmar/llm-usage-metrics)
 
-- `~/.pi/agent/sessions/**/*.jsonl`
-- `~/.codex/sessions/**/*.jsonl`
-- OpenCode SQLite DB (auto-discovered or provided via `--opencode-db`)
+[📖 Documentation](https://ayagmar.github.io/llm-usage-metrics/) ·
+[⚡ Quick Start](#quick-start) ·
+[📊 Examples](#usage) ·
+[🤝 Contributing](./CONTRIBUTING.md)
 
-Reports are available for daily, weekly (Monday-start), and monthly periods.
+</div>
 
-**Documentation: [ayagmar.github.io/llm-usage-metrics](https://ayagmar.github.io/llm-usage-metrics/)**
+---
 
-Built-in adapters currently support 3 sources: `.pi`, `.codex`, and OpenCode SQLite. The codebase is structured to add more sources (for example Claude/Gemini exports) through the `SourceAdapter` pattern. See [`CONTRIBUTING.md`](./CONTRIBUTING.md).
+Aggregate token usage and costs from your local coding agent sessions. Supports **pi**, **codex**, and **OpenCode** with zero configuration required.
 
-## Install
+## ✨ Features
+
+- **Zero-Config Discovery** — Automatically finds `.pi`, `.codex`, and OpenCode session data
+- **LiteLLM Pricing** — Real-time pricing sync with offline caching support
+- **Flexible Reports** — Daily, weekly, and monthly aggregations
+- **Multiple Outputs** — Terminal tables, JSON, or Markdown
+- **Smart Filtering** — By source, provider, model, and date ranges
+
+## 🚀 Quick Start
 
 ```bash
+# Install globally
 npm install -g llm-usage-metrics
+
+# Or run without installing
+npx llm-usage-metrics daily
+
+# Generate your first report
+llm-usage daily
 ```
 
-Or run without global install:
+<div align="center">
+
+![Terminal output showing token usage and cost breakdown](https://ayagmar.github.io/llm-usage-metrics/screenshot.png)
+
+</div>
+
+## 📋 Supported Sources
+
+| Source       | Pattern                           | Discovery                        |
+| ------------ | --------------------------------- | -------------------------------- |
+| **pi**       | `~/.pi/agent/sessions/**/*.jsonl` | Automatic                        |
+| **codex**    | `~/.codex/sessions/**/*.jsonl`    | Automatic                        |
+| **OpenCode** | `~/.opencode/opencode.db`         | Auto or explicit `--opencode-db` |
+
+## 🎯 Usage
+
+### Basic Reports
 
 ```bash
-npx --yes llm-usage-metrics daily
+# Daily report (default terminal table)
+llm-usage daily
+
+# Weekly with timezone
+llm-usage weekly --timezone Europe/Paris
+
+# Monthly date range
+llm-usage monthly --since 2026-01-01 --until 2026-01-31
 ```
 
-(`npx llm-usage daily` works when the project is already installed locally.)
+### Output Formats
 
-Runtime notes:
+```bash
+# JSON for pipelines
+llm-usage daily --json
 
-- OpenCode parsing requires Node.js 24+ (`node:sqlite`).
-- pnpm is the supported dependency/script workflow for this repository.
-- Example local execution against built dist: `node dist/index.js daily --source opencode --opencode-db /path/to/opencode.db`
+# Markdown for documentation
+llm-usage daily --markdown
 
-## Update checks
+# Detailed per-model breakdown
+llm-usage monthly --per-model-columns
+```
 
-When installed globally, the CLI performs a lightweight npm update check on startup.
+### Filtering
 
-Behavior:
+```bash
+# By source
+llm-usage monthly --source pi,codex
 
-- uses a local cache (`<platform-cache-root>/llm-usage-metrics/update-check.json`; defaults to `~/.cache/llm-usage-metrics/update-check.json` on Linux when `XDG_CACHE_HOME` is unset) with a 1-hour default TTL
-- optional session-scoped cache mode via `LLM_USAGE_UPDATE_CACHE_SCOPE=session`
-- skips checks for `--help` / `--version` invocations
-- skips checks when run through `npx`
-- prompts for install + restart only in interactive TTY sessions
-- prints a one-line notice in non-interactive sessions
+# By provider
+llm-usage monthly --provider openai
 
-To force-skip startup update checks:
+# By model
+llm-usage monthly --model claude
+
+# Combined filters
+llm-usage monthly --source opencode --provider openai --model gpt-4.1
+```
+
+### Custom Paths
+
+```bash
+# Custom directories
+llm-usage daily --source-dir pi=/path/to/pi --source-dir codex=/path/to/codex
+
+# Explicit OpenCode database
+llm-usage daily --opencode-db /path/to/opencode.db
+```
+
+### Offline Mode
+
+```bash
+# Use cached pricing only
+llm-usage monthly --pricing-offline
+```
+
+## ⚙️ Configuration
+
+### Environment Variables
+
+| Variable                         | Description                       |
+| -------------------------------- | --------------------------------- |
+| `LLM_USAGE_SKIP_UPDATE_CHECK`    | Skip update check (`1`)           |
+| `LLM_USAGE_PRICING_CACHE_TTL_MS` | Pricing cache duration            |
+| `LLM_USAGE_PARSE_MAX_PARALLEL`   | Max parallel file parses (`1-64`) |
+| `LLM_USAGE_PARSE_CACHE_ENABLED`  | Enable parse cache (`1/0`)        |
+
+See full environment variable reference in the [documentation](https://ayagmar.github.io/llm-usage-metrics/configuration/).
+
+### Update Checks
+
+The CLI performs lightweight update checks with smart defaults:
+
+- 1-hour cache TTL
+- Skipped for `--help`, `--version`, and `npx` runs
+- Prompts only in interactive TTY sessions
+
+Disable with:
 
 ```bash
 LLM_USAGE_SKIP_UPDATE_CHECK=1 llm-usage daily
 ```
 
-### Runtime environment overrides
-
-You can tune runtime behavior with environment variables:
-
-- `LLM_USAGE_SKIP_UPDATE_CHECK`: skip startup update check when set to `1`
-- `LLM_USAGE_UPDATE_CACHE_SCOPE`: cache scope for update checks (`global` default, `session` to scope by terminal shell session)
-- `LLM_USAGE_UPDATE_CACHE_SESSION_KEY`: optional custom session key when `LLM_USAGE_UPDATE_CACHE_SCOPE=session` (defaults to parent shell PID)
-- `LLM_USAGE_UPDATE_CACHE_TTL_MS`: update-check cache TTL in milliseconds (clamped: `0..2592000000`; use `0` to check on every CLI run)
-- `LLM_USAGE_UPDATE_FETCH_TIMEOUT_MS`: update-check network timeout in milliseconds (clamped: `200..30000`)
-- `LLM_USAGE_PRICING_CACHE_TTL_MS`: pricing cache TTL in milliseconds (clamped: `60000..2592000000`)
-- `LLM_USAGE_PRICING_FETCH_TIMEOUT_MS`: pricing fetch timeout in milliseconds (clamped: `200..30000`)
-- `LLM_USAGE_PARSE_MAX_PARALLEL`: max concurrent file parses per source adapter (clamped: `1..64`)
-- `LLM_USAGE_PARSE_CACHE_ENABLED`: enable file parse cache (`1` by default; accepts `1/0`, `true/false`, `yes/no`)
-- `LLM_USAGE_PARSE_CACHE_TTL_MS`: file parse cache TTL in milliseconds (clamped: `3600000..2592000000`)
-- `LLM_USAGE_PARSE_CACHE_MAX_ENTRIES`: max cached file parse entries (clamped: `100..20000`)
-- `LLM_USAGE_PARSE_CACHE_MAX_BYTES`: max parse-cache file size in bytes (clamped: `1048576..536870912`)
-
-Parse cache location:
-
-- `<platform-cache-root>/llm-usage-metrics/parse-file-cache.json` (defaults to `~/.cache/llm-usage-metrics/parse-file-cache.json` on Linux when `XDG_CACHE_HOME` is unset)
-
-Example:
+## 🛠️ Development
 
 ```bash
-LLM_USAGE_PARSE_MAX_PARALLEL=16 LLM_USAGE_PRICING_FETCH_TIMEOUT_MS=8000 llm-usage monthly
-```
-
-## Usage
-
-### Daily report (default terminal table)
-
-```bash
-llm-usage daily
-```
-
-### Weekly report with custom timezone
-
-```bash
-llm-usage weekly --timezone Europe/Paris
-```
-
-### Monthly report with date range
-
-```bash
-llm-usage monthly --since 2026-01-01 --until 2026-01-31
-```
-
-### Markdown output
-
-```bash
-llm-usage daily --markdown
-```
-
-### JSON output
-
-```bash
-llm-usage daily --json
-```
-
-### Offline pricing (use cached LiteLLM pricing only)
-
-```bash
-llm-usage monthly --pricing-offline
-```
-
-### Override pricing URL
-
-```bash
-llm-usage monthly --pricing-url https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json
-```
-
-Pricing behavior notes:
-
-- LiteLLM is the active pricing source.
-- explicit `costUsd: 0` events are re-priced from LiteLLM when model pricing is available.
-- if all contributing events in a row have unresolved cost, the row `Cost` is rendered as `-`.
-- if only part of a row cost is known, the row `Cost` is rendered as `~$...` to mark incomplete pricing.
-- when pricing cannot be loaded from LiteLLM (or cache in offline mode), report generation fails fast.
-
-### Custom session directories
-
-```bash
-llm-usage daily --pi-dir /path/to/pi/sessions --codex-dir /path/to/codex/sessions
-```
-
-Or use generic source-id mapping (repeatable):
-
-```bash
-llm-usage daily --source-dir pi=/path/to/pi/sessions --source-dir codex=/path/to/codex/sessions
-```
-
-Directory override rules:
-
-- `--source-dir` is directory-only (currently `pi` and `codex`).
-- `--source-dir opencode=...` is invalid and points to `--opencode-db`.
-- `--opencode-db <path>` sets an explicit OpenCode SQLite DB path.
-
-OpenCode DB override:
-
-```bash
-llm-usage daily --opencode-db /path/to/opencode.db
-```
-
-OpenCode path precedence:
-
-1. explicit `--opencode-db`
-2. deterministic OS-specific default path candidates
-
-Backfill example from a historical DB snapshot:
-
-```bash
-llm-usage monthly --source opencode --opencode-db /archives/opencode-2026-01.db --since 2026-01-01 --until 2026-01-31
-```
-
-OpenCode safety notes:
-
-- OpenCode DB is opened in read-only mode
-- unreadable/missing explicit paths fail fast with actionable errors
-- OpenCode CLI is optional for troubleshooting and not required for runtime parsing
-
-### Filter by source (`--source`)
-
-Use `--source` to limit reports to one or more source ids.
-
-Supported source ids:
-
-- `pi`
-- `codex`
-- `opencode`
-
-Behavior:
-
-- repeatable or comma-separated (`--source pi --source codex` or `--source pi,codex`)
-- case-insensitive source id matching
-- unknown ids fail fast with a validation error
-
-Examples:
-
-```bash
-# only codex data
-llm-usage monthly --source codex
-
-# only pi data
-llm-usage monthly --source pi
-
-# only OpenCode data
-llm-usage monthly --source opencode
-
-# multiple sources
-llm-usage monthly --source pi --source codex
-llm-usage monthly --source pi,codex
-
-# OpenCode source with explicit DB path
-llm-usage monthly --source opencode --opencode-db /path/to/opencode.db
-```
-
-### Filter by provider (`--provider`)
-
-Use `--provider` to keep only events whose provider contains the filter text.
-
-Behavior:
-
-- case-insensitive substring match
-- optional flag (when omitted, all providers are included)
-- works together with `--source` and `--model`
-
-Examples:
-
-```bash
-# all OpenAI-family providers
-llm-usage monthly --provider openai
-
-# GitHub Models providers
-llm-usage monthly --provider github
-
-# source + provider together
-llm-usage monthly --source codex --provider openai
-```
-
-### Filter by model (`--model`)
-
-`--model` supports repeatable and comma-separated filters. Matching is case-insensitive.
-
-Per filter value:
-
-- if an exact model id exists in the currently selected event set (after source/provider/date filtering), exact matching is used
-- otherwise, substring matching is used
-
-Examples:
-
-```bash
-# substring match (all Claude-family models)
-llm-usage monthly --model claude
-
-# exact match when present
-llm-usage monthly --model claude-sonnet-4.5
-
-# multiple model filters
-llm-usage monthly --model claude --model gpt-5
-llm-usage monthly --model claude,gpt-5
-
-# source + provider + model together
-llm-usage monthly --source opencode --provider openai --model gpt-4.1
-```
-
-### Per-model columns (opt-in detailed table layout)
-
-Default output is compact (model names only in the Models column).
-
-Use `--per-model-columns` to render per-model multiline metrics in each numeric column:
-
-```bash
-llm-usage monthly --per-model-columns
-llm-usage monthly --markdown --per-model-columns
-```
-
-## Output features
-
-### Terminal UI
-
-The CLI provides an enhanced terminal output with:
-
-- **Boxed report header** showing the report type and timezone
-- **Session summary** displayed at startup (session files and event counts per source)
-- **Malformed-row summary** when rows are skipped, including per-source reason counts
-- **Source failure summary** when one or more sources fail to parse
-- **Pricing source info** indicating whether data was loaded from cache or fetched remotely
-- **Environment variable overrides** displayed when active
-- **Models displayed as bullet points** for better readability
-- **Rounded table borders** and improved color scheme
-
-Example output:
-
-```text
-ℹ Found 12 session file(s) with 45 event(s)
-•   pi: 8 file(s), 32 events
-•   codex: 4 file(s), 13 events
-ℹ Loaded pricing from cache
-
-┌────────────────────────────┐
-│ Monthly Token Usage Report │
-└────────────────────────────┘
-
-╭────────────┬──────────┬──────────────────────╮
-│ Period     │ Source   │ Models               │
-├────────────┼──────────┼──────────────────────┤
-│ Feb 2026   │ pi       │ • gpt-5.2            │
-│            │          │ • gpt-5.2-codex      │
-╰────────────┴──────────┴──────────────────────╯
-```
-
-### Report structure
-
-Each report includes:
-
-- source rows (`pi`, `codex`, `opencode`) for each period
-- a per-period combined subtotal row (only when multiple sources exist in that period)
-- a final grand total row across all periods
-
-Columns:
-
-- Period
-- Source
-- Models
-- Input
-- Output
-- Reasoning
-- Cache Read
-- Cache Write
-- Total
-- Cost
-
-## Development
-
-```bash
+# Install dependencies
 pnpm install
+
+# Run quality checks
 pnpm run lint
 pnpm run typecheck
 pnpm run test
 pnpm run format:check
+
+# Build
+pnpm run build
+
+# Run locally
+pnpm cli daily
 ```
+
+## 📚 Documentation
+
+- **[Getting Started](https://ayagmar.github.io/llm-usage-metrics/getting-started/)** — Installation and first steps
+- **[CLI Reference](https://ayagmar.github.io/llm-usage-metrics/cli-reference/)** — Complete command reference
+- **[Data Sources](https://ayagmar.github.io/llm-usage-metrics/sources/)** — Source configuration
+- **[Configuration](https://ayagmar.github.io/llm-usage-metrics/configuration/)** — Environment variables
+- **[Architecture](https://ayagmar.github.io/llm-usage-metrics/architecture/)** — Technical overview
+
+## 🤝 Contributing
+
+Contributions are welcome! See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
+
+The codebase is structured to add more sources through the `SourceAdapter` pattern.
+
+## 📄 License
+
+MIT © [Abdeslam Yagmar](https://github.com/ayagmar)
