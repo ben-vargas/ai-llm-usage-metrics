@@ -75,12 +75,12 @@ jobs:
 
       - name: Dry run release
         if: ${{ inputs.dry_run }}
-        run: pnpm run release:ci -- --dry-run --increment ${{ inputs.increment }}
+        run: pnpm run release:ci --dry-run --increment ${{ inputs.increment }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish release
         if: ${{ !inputs.dry_run }}
-        run: pnpm run release:ci -- --increment ${{ inputs.increment }}
+        run: pnpm run release:ci --increment ${{ inputs.increment }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

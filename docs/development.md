@@ -109,7 +109,7 @@ Coverage summary/artifacts are generated from the single Node 24 CI run.
 
 - `pnpm run release:dry` to preview the next release
 - `pnpm run release` to run an interactive release locally
-- `pnpm run release:ci -- --increment patch|minor|major` for non-interactive mode
+- `pnpm run release:ci --increment patch|minor|major` for non-interactive mode
 
 Release configuration lives in `.release-it.json`.
 
