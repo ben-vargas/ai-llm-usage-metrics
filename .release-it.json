@@ -27,6 +27,7 @@
       "pnpm run test",
       "pnpm run build",
       "pnpm run pack:check"
-    ]
+    ],
+    "after:bump": ["pnpm run site:docs:generate -- --rebuild"]
   }
 }
