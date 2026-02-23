@@ -106,6 +106,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: [main-build]
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -224,12 +229,19 @@ jobs:
   ci-status:
     name: CI Status
     runs-on: ubuntu-latest
-    needs: [main-test, site-build]
+    needs: [main-lint, main-format, main-typecheck, main-mermaid, main-test, site-format, site-check, site-build]
     if: always()
     steps:
       - name: Check all jobs passed
         run: |
-          if [ "${{ needs.main-test.result }}" != "success" ] || [ "${{ needs.site-build.result }}" != "success" ]; then
+          if [ "${{ needs.main-lint.result }}" != "success" ] || \
+             [ "${{ needs.main-format.result }}" != "success" ] || \
+             [ "${{ needs.main-typecheck.result }}" != "success" ] || \
+             [ "${{ needs.main-mermaid.result }}" != "success" ] || \
+             [ "${{ needs.main-test.result }}" != "success" ] || \
+             [ "${{ needs.site-format.result }}" != "success" ] || \
+             [ "${{ needs.site-check.result }}" != "success" ] || \
+             [ "${{ needs.site-build.result }}" != "success" ]; then
             echo "❌ CI failed"
             exit 1
           fi
