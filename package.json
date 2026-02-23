@@ -33,7 +33,8 @@
     "site:build": "pnpm --filter llm-usage-metrics-site build",
     "site:preview": "pnpm --filter llm-usage-metrics-site preview",
     "site:check": "pnpm --filter llm-usage-metrics-site check",
-    "site:docs:generate": "node scripts/generate-cli-reference.mjs"
+    "site:docs:generate": "node scripts/generate-cli-reference.mjs",
+    "docs:mermaid:validate": "node scripts/validate-mermaid.mjs"
   },
   "keywords": [
     "llm",
@@ -51,7 +52,7 @@
   "bugs": {
     "url": "https://github.com/ayagmar/llm-usage-metrics/issues"
   },
-  "homepage": "https://github.com/ayagmar/llm-usage-metrics",
+  "homepage": "https://ayagmar.github.io/llm-usage-metrics/",
   "dependencies": {
     "commander": "^14.0.3",
     "markdown-table": "^3.0.4",

@@ -5,29 +5,26 @@ const basePath = import.meta.env.BASE_URL.endsWith('/')
   ? import.meta.env.BASE_URL
   : `${import.meta.env.BASE_URL}/`;
 const screenshotPath = `${basePath}screenshot.png`;
-const docsPath = `${basePath}docs/`;
+const docsPath = `${basePath}getting-started/`;
 
-// Fetch npm version at build time for fallback
-let npmVersion = '';
-try {
-  const response = await fetch('https://registry.npmjs.org/llm-usage-metrics/latest');
-  const data = await response.json();
-  npmVersion = data.version || '';
-} catch {
-  // Build-time fetch failed, runtime module handles fallback copy.
-}
+const docLinks = [
+  { label: 'Getting Started', href: `${basePath}getting-started/`, desc: 'Install and run your first report' },
+  { label: 'CLI Reference', href: `${basePath}cli-reference/`, desc: 'All commands and options' },
+  { label: 'Data Sources', href: `${basePath}sources/`, desc: 'pi, codex, opencode' },
+  { label: 'Configuration', href: `${basePath}configuration/`, desc: 'Customize behavior' },
+];
 ---
 
-<StarlightPage frontmatter={{ title: 'llm-usage-metrics', template: 'splash' }}>
+<StarlightPage frontmatter={{ title: 'Overview', template: 'splash' }}>
   <div class="grain-overlay" aria-hidden="true"></div>
-  
+
   <!-- Hero Section -->
   <section class="hero-split" aria-labelledby="hero-title">
     <div class="hero-content">
-      <div class="badge" id="version-badge" data-build-version={npmVersion}>
+      <a href="https://www.npmjs.com/package/llm-usage-metrics" target="_blank" rel="noopener noreferrer" class="badge" id="version-badge">
         <span class="status-dot" aria-hidden="true"></span>
-        <span class="badge-text">{npmVersion ? `v${npmVersion} on npm` : 'available on npm'}</span>
-      </div>
+        <span class="badge-text">checking version...</span>
+      </a>
 
       <h1 id="hero-title">
         Quantify your local<br />
@@ -35,15 +32,15 @@ try {
       </h1>
 
       <p class="lead">
-        Deterministic parsing for your coding agent sessions. Aggregate token usage, apply
-        LiteLLM pricing models, and generate actionable reports natively from <code>.pi</code>,
+        Parse local LLM usage from your coding agent sessions. Aggregate token metrics,
+        apply LiteLLM pricing, and generate reports from <code>.pi</code>,
         <code>.codex</code>, and OpenCode workflows.
       </p>
 
-      <div 
-        class="install-command" 
-        role="button" 
-        tabindex="0" 
+      <div
+        class="install-command"
+        role="button"
+        tabindex="0"
         aria-label="Copy install command"
       >
         <div class="install-inner">
@@ -56,7 +53,7 @@ try {
             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
           </svg>
         </div>
-        <span class="install-toast" role="status" aria-live="polite" aria-atomic="true">Copied to clipboard</span>
+        <span class="install-toast" role="status" aria-live="polite" aria-atomic="true">Copied</span>
       </div>
 
       <div class="hero-actions">
@@ -65,7 +62,7 @@ try {
             <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
             <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
           </svg>
-          Documentation
+          Read Documentation
         </a>
         <a href="https://github.com/ayagmar/llm-usage-metrics" class="btn btn-secondary">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -78,12 +75,12 @@ try {
 
     <!-- Screenshot -->
     <div class="screenshot-container">
-      <img 
+      <img
         src={screenshotPath}
-        alt="Terminal output from llm-usage-metrics showing token usage and cost breakdown across pi, codex, and opencode sources" 
-        class="screenshot" 
-        loading="lazy" 
-        width="1222" 
+        alt="Terminal output from llm-usage-metrics showing token usage and cost breakdown"
+        class="screenshot"
+        loading="lazy"
+        width="1222"
         height="946"
         tabindex="0"
         role="button"
@@ -92,11 +89,43 @@ try {
     </div>
   </section>
 
+  <!-- Documentation Section -->
+  <section class="docs-section" aria-labelledby="docs-title">
+    <div class="docs-header">
+      <h2 id="docs-title">Documentation</h2>
+      <p class="docs-subtitle">Everything you need to get started and master the CLI</p>
+    </div>
+
+    <div class="docs-grid">
+      {docLinks.map((doc, index) => (
+        <a href={doc.href} class="doc-card liquid-glass" style={`--index: ${index}`}>
+          <div class="doc-icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+          </div>
+          <h3>{doc.label}</h3>
+          <p>{doc.desc}</p>
+          <div class="doc-arrow" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </div>
+        </a>
+      ))}
+    </div>
+  </section>
+
   <!-- Bento Grid Features -->
   <section class="features" aria-labelledby="features-title">
     <h2 id="features-title" class="sr-only">Features</h2>
     <div class="bento-grid">
-      <div class="bento-item wide liquid-glass interactive-card">
+      <div class="bento-item wide liquid-glass">
         <div class="bento-content">
           <div class="fcard-icon" aria-hidden="true">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -106,45 +135,43 @@ try {
             </svg>
           </div>
           <h3>Zero-Config Discovery Engine</h3>
-          <p>Intelligently scans your local file system. Autonomously locates <code>.pi</code> workspaces, <code>.codex</code> log directories, and OpenCode relational databases without requiring manual configuration.</p>
+          <p>Scans your file system and autonomously locates <code>.pi</code> workspaces, <code>.codex</code> logs, and OpenCode databases without manual configuration.</p>
         </div>
         <div class="bento-visual">
           <div class="infinite-scroll-y" aria-hidden="true">
             <div class="scroll-content">
-              <div class="log-line"><span class="ti">fs.scan</span> ~/.pi/agent/sessions/</div>
-              <div class="log-line"><span class="ti">fs.scan</span> ~/.codex/sessions/</div>
-              <div class="log-line"><span class="ti">sqlite.connect</span> ~/.opencode/opencode.db</div>
-              <div class="log-line dim">... mapping 1,248 inference events</div>
-              <div class="log-line dim">... schema normalization complete</div>
-              <div class="log-line"><span class="ti">fs.scan</span> ~/.pi/agent/sessions/</div>
-              <div class="log-line"><span class="ti">fs.scan</span> ~/.codex/sessions/</div>
-              <div class="log-line"><span class="ti">sqlite.connect</span> ~/.opencode/opencode.db</div>
-              <div class="log-line dim">... mapping 1,248 inference events</div>
-              <div class="log-line dim">... schema normalization complete</div>
+              <div class="log-line"><span class="ti">scan</span> ~/.pi/agent/sessions/</div>
+              <div class="log-line"><span class="ti">scan</span> ~/.codex/sessions/</div>
+              <div class="log-line"><span class="ti">connect</span> ~/.opencode/opencode.db</div>
+              <div class="log-line dim">mapped 1,248 events</div>
+              <div class="log-line"><span class="ti">scan</span> ~/.pi/agent/sessions/</div>
+              <div class="log-line"><span class="ti">scan</span> ~/.codex/sessions/</div>
+              <div class="log-line"><span class="ti">connect</span> ~/.opencode/opencode.db</div>
+              <div class="log-line dim">mapped 1,248 events</div>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="bento-item liquid-glass interactive-card">
+      <div class="bento-item liquid-glass">
         <div class="bento-content">
           <div class="fcard-icon" aria-hidden="true">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
             </svg>
           </div>
-          <h3>Dynamic Pricing Matrix</h3>
-          <p>Synchronizes strictly with LiteLLM's pricing repository. Supports robust offline-mode utilizing deterministic local caching for isolated environments.</p>
+          <h3>Dynamic Pricing</h3>
+          <p>Synchronizes with LiteLLM's pricing repository with offline caching for isolated environments.</p>
         </div>
         <div class="bento-visual">
-           <div class="pulse-indicator" aria-hidden="true">
-             <span class="dot"></span>
-             <span class="text">Syncing: LiteLLM v1.x</span>
-           </div>
+          <div class="pulse-indicator" aria-hidden="true">
+            <span class="dot"></span>
+            <span class="text">Syncing LiteLLM</span>
+          </div>
         </div>
       </div>
 
-      <div class="bento-item liquid-glass interactive-card">
+      <div class="bento-item liquid-glass">
         <div class="bento-content">
           <div class="fcard-icon" aria-hidden="true">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -152,8 +179,8 @@ try {
               <line x1="9" y1="3" x2="9" y2="21"/>
             </svg>
           </div>
-          <h3>Structured Mutators</h3>
-          <p>Emit formatted <code class="mono-badge">JSON</code> for programmatic pipeline ingestion, raw <code class="mono-badge">Markdown</code> for documentation, or deterministic ANSI columns.</p>
+          <h3>Multiple Output Formats</h3>
+          <p>Emit <code>JSON</code> for pipelines, <code>Markdown</code> for docs, or ANSI columns for terminal review.</p>
         </div>
       </div>
     </div>
@@ -162,61 +189,77 @@ try {
   <!-- Examples Section -->
   <section class="examples" aria-labelledby="examples-title">
     <div class="section-header">
-      <h2 id="examples-title">API Diagnostics</h2>
-      <p class="sub">Deterministic arguments for precise reporting outputs.</p>
+      <h2 id="examples-title">Quick Start Examples</h2>
+      <p class="sub">Common commands to get you started quickly.</p>
     </div>
 
     <div class="ex-container liquid-glass">
       <div class="ex-sidebar" role="tablist" aria-label="Example categories">
-        <button class="ex-tab active" data-panel="ex-basics" role="tab" aria-selected="true" tabindex="0">Temporal Bounds</button>
-        <button class="ex-tab" data-panel="ex-filter" role="tab" aria-selected="false" tabindex="-1">Source Isolation</button>
-        <button class="ex-tab" data-panel="ex-output" role="tab" aria-selected="false" tabindex="-1">Output Targets</button>
+        <button class="ex-tab active" data-panel="ex-basics" role="tab" aria-selected="true" tabindex="0">Daily Reports</button>
+        <button class="ex-tab" data-panel="ex-filter" role="tab" aria-selected="false" tabindex="-1">Filtering</button>
+        <button class="ex-tab" data-panel="ex-output" role="tab" aria-selected="false" tabindex="-1">Output Formats</button>
         <button class="ex-tab" data-panel="ex-config" role="tab" aria-selected="false" tabindex="-1">Configuration</button>
       </div>
       <div class="ex-content">
         <div id="ex-basics" class="ex-panel active" role="tabpanel">
-          <pre class="ex-block"><span class="cmt"># Evaluate standard rolling daily window</span>
+          <pre class="ex-block"><span class="cmt"># Daily report</span>
 $ llm-usage <span class="flag">daily</span>
 
-<span class="cmt"># Evaluate trailing week, enforcing localization bounds</span>
-$ llm-usage <span class="flag">weekly</span> --timezone <span class="val">Europe/Paris</span>
+<span class="cmt"># Weekly with timezone</span>
+$ llm-usage <span class="flag">weekly</span> --timezone Europe/Paris
 
-<span class="cmt"># Strict arbitrary bounded period</span>
-$ llm-usage <span class="flag">monthly</span> --since <span class="val">2026-01-01</span> --until <span class="val">2026-01-31</span></pre>
+<span class="cmt"># Monthly date range</span>
+$ llm-usage <span class="flag">monthly</span> --since 2026-01-01 --until 2026-01-31</pre>
         </div>
         <div id="ex-filter" class="ex-panel" role="tabpanel" hidden>
-          <pre class="ex-block"><span class="cmt"># Isolate telemetry strictly to selected engines</span>
-$ llm-usage <span class="flag">monthly</span> --source <span class="val">pi,codex</span>
+          <pre class="ex-block"><span class="cmt"># Filter by source</span>
+$ llm-usage <span class="flag">monthly</span> --source pi,codex
 
-<span class="cmt"># Filter downstream pipelines by model family string</span>
-$ llm-usage <span class="flag">monthly</span> --model <span class="val">claude</span>
+<span class="cmt"># Filter by model</span>
+$ llm-usage <span class="flag">monthly</span> --model claude
 
-<span class="cmt"># Filter by upstream provider origin</span>
-$ llm-usage <span class="flag">monthly</span> --provider <span class="val">openai</span></pre>
+<span class="cmt"># Filter by provider</span>
+$ llm-usage <span class="flag">monthly</span> --provider openai</pre>
         </div>
         <div id="ex-output" class="ex-panel" role="tabpanel" hidden>
-          <pre class="ex-block"><span class="cmt"># Target stdout with unformatted JSON payload</span>
+          <pre class="ex-block"><span class="cmt"># JSON output</span>
 $ llm-usage <span class="flag">daily</span> --json
 
-<span class="cmt"># Target stdout with Markdown tables</span>
+<span class="cmt"># Markdown table</span>
 $ llm-usage <span class="flag">daily</span> --markdown
 
-<span class="cmt"># Default terminal columns with ANSI formatting</span>
+<span class="cmt"># Default terminal output</span>
 $ llm-usage <span class="flag">daily</span></pre>
         </div>
         <div id="ex-config" class="ex-panel" role="tabpanel" hidden>
-          <pre class="ex-block"><span class="cmt"># Override source directories for pi and codex</span>
-$ llm-usage <span class="flag">daily</span> --source-dir <span class="val">pi=/var/lib/pi</span> --source-dir <span class="val">codex=/var/log/codex</span>
+          <pre class="ex-block"><span class="cmt"># Custom source directories</span>
+$ llm-usage <span class="flag">daily</span> --source-dir pi=/var/lib/pi --source-dir codex=/var/log/codex
 
-<span class="cmt"># Use explicit OpenCode SQLite database path</span>
-$ llm-usage <span class="flag">daily</span> --source <span class="val">opencode</span> --opencode-db <span class="val">/mnt/data/opencode.db</span>
+<span class="cmt"># Explicit OpenCode DB path</span>
+$ llm-usage <span class="flag">daily</span> --source opencode --opencode-db /path/to/opencode.db
 
-<span class="cmt"># Use cached pricing only (offline mode)</span>
+<span class="cmt"># Offline pricing mode</span>
 $ llm-usage <span class="flag">monthly</span> --pricing-offline</pre>
         </div>
       </div>
     </div>
   </section>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="footer-content">
+      <div class="footer-brand">
+        <img src={`${basePath}favicon.svg`} alt="" width="24" height="24" />
+        <span>llm-usage-metrics</span>
+      </div>
+      <div class="footer-links">
+        <a href={docsPath}>Documentation</a>
+        <a href="https://github.com/ayagmar/llm-usage-metrics">GitHub</a>
+        <a href="https://www.npmjs.com/package/llm-usage-metrics">npm</a>
+      </div>
+      <p class="footer-copy">MIT License · Built with <a href="https://astro.build">Astro</a> & <a href="https://starlight.astro.build">Starlight</a></p>
+    </div>
+  </footer>
 
   <!-- Lightbox -->
   <div id="lightbox" class="lightbox" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Screenshot preview">
@@ -227,9 +270,9 @@ $ llm-usage <span class="flag">monthly</span> --pricing-offline</pre>
       </svg>
     </button>
     <div class="lightbox-scroll">
-      <img 
+      <img
         src={screenshotPath}
-        alt="Terminal output from llm-usage-metrics showing token usage and cost breakdown" 
+        alt="Terminal output from llm-usage-metrics showing token usage and cost breakdown"
         class="lightbox-image"
       />
     </div>
@@ -237,25 +280,21 @@ $ llm-usage <span class="flag">monthly</span> --pricing-offline</pre>
 
   <script is:inline>
     (() => {
+      // Install command copy
       const installBar = document.querySelector('.install-command');
       const toast = document.querySelector('.install-toast');
       const installCommand = 'npm install -g llm-usage-metrics';
       let toastTimer;
 
       function showToast(message, isError = false) {
-        if (!toast) {
-          return;
-        }
-
+        if (!toast) return;
         toast.textContent = message;
         toast.classList.toggle('error', isError);
         toast.classList.add('show');
-
         clearTimeout(toastTimer);
         toastTimer = setTimeout(() => {
-          toast.classList.remove('show');
-          toast.classList.remove('error');
-          toast.textContent = 'Copied to clipboard';
+          toast.classList.remove('show', 'error');
+          toast.textContent = 'Copied';
         }, 1500);
       }
 
@@ -264,60 +303,36 @@ $ llm-usage <span class="flag">monthly</span> --pricing-offline</pre>
           showToast('Copy unavailable', true);
           return;
         }
-
         navigator.clipboard
           .writeText(installCommand)
-          .then(() => showToast('Copied to clipboard'))
-          .catch(() => {
-            showToast('Copy failed', true);
-          });
+          .then(() => showToast('Copied'))
+          .catch(() => showToast('Copy failed', true));
       }
 
       installBar?.addEventListener('click', copyInstallCommand);
-      installBar?.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
+      installBar?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
           copyInstallCommand();
         }
       });
 
+      // Tab system
       const tabs = Array.from(document.querySelectorAll('.ex-tab'));
       const panels = Array.from(document.querySelectorAll('.ex-panel'));
 
-      tabs.forEach((tab, index) => {
-        const panelId = tab.dataset.panel;
-        if (!panelId) {
-          return;
-        }
-
-        const tabId = tab.id || `ex-tab-${index}`;
-        tab.id = tabId;
-        tab.setAttribute('aria-controls', panelId);
-        tab.setAttribute('aria-selected', tab.classList.contains('active') ? 'true' : 'false');
-        tab.setAttribute('tabindex', tab.classList.contains('active') ? '0' : '-1');
-
-        const panel = document.getElementById(panelId);
-        if (panel) {
-          panel.setAttribute('aria-labelledby', tabId);
-          panel.hidden = !tab.classList.contains('active');
-        }
-      });
-
       function activateTab(tab) {
         const panelId = tab.dataset.panel;
-        if (!panelId) {
-          return;
-        }
+        if (!panelId) return;
 
-        tabs.forEach((item) => {
-          item.classList.remove('active');
-          item.setAttribute('aria-selected', 'false');
-          item.setAttribute('tabindex', '-1');
+        tabs.forEach((t) => {
+          t.classList.remove('active');
+          t.setAttribute('aria-selected', 'false');
+          t.setAttribute('tabindex', '-1');
         });
-
-        panels.forEach((panel) => {
-          panel.classList.remove('active');
-          panel.hidden = true;
+        panels.forEach((p) => {
+          p.classList.remove('active');
+          p.hidden = true;
         });
 
         tab.classList.add('active');
@@ -334,10 +349,9 @@ $ llm-usage <span class="flag">monthly</span> --pricing-offline</pre>
 
       tabs.forEach((tab, index) => {
         tab.addEventListener('click', () => activateTab(tab));
-        tab.addEventListener('keydown', (event) => {
+        tab.addEventListener('keydown', (e) => {
           let nextIndex = null;
-
-          switch (event.key) {
+          switch (e.key) {
             case 'ArrowRight':
               nextIndex = (index + 1) % tabs.length;
               break;
@@ -351,26 +365,21 @@ $ llm-usage <span class="flag">monthly</span> --pricing-offline</pre>
               nextIndex = tabs.length - 1;
               break;
           }
-
-          if (nextIndex === null) {
-            return;
+          if (nextIndex !== null) {
+            e.preventDefault();
+            activateTab(tabs[nextIndex]);
           }
-
-          event.preventDefault();
-          activateTab(tabs[nextIndex]);
         });
       });
 
+      // Lightbox
       const trigger = document.querySelector('.screenshot');
       const lightbox = document.getElementById('lightbox');
       const closeButton = lightbox?.querySelector('.lightbox-close');
       let lastFocused = null;
 
       function openLightbox() {
-        if (!lightbox) {
-          return;
-        }
-
+        if (!lightbox) return;
         lastFocused = document.activeElement;
         lightbox.classList.add('open');
         lightbox.setAttribute('aria-hidden', 'false');
@@ -379,65 +388,45 @@ $ llm-usage <span class="flag">monthly</span> --pricing-offline</pre>
       }
 
       function closeLightbox() {
-        if (!lightbox) {
-          return;
-        }
-
+        if (!lightbox) return;
         lightbox.classList.remove('open');
         lightbox.setAttribute('aria-hidden', 'true');
         document.body.style.overflow = '';
-
-        if (lastFocused instanceof HTMLElement) {
-          lastFocused.focus();
-        }
+        lastFocused?.focus?.();
       }
 
       trigger?.addEventListener('click', openLightbox);
-      trigger?.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
+      trigger?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
           openLightbox();
         }
       });
-
-      closeButton?.addEventListener('click', (event) => {
-        event.stopPropagation();
-        closeLightbox();
+      closeButton?.addEventListener('click', closeLightbox);
+      lightbox?.addEventListener('click', (e) => {
+        if (e.target === lightbox) closeLightbox();
       });
-
-      lightbox?.addEventListener('click', (event) => {
-        if (event.target === lightbox) {
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && lightbox?.classList.contains('open')) {
           closeLightbox();
         }
       });
 
-      document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape' && lightbox?.classList.contains('open')) {
-          closeLightbox();
-        }
-      });
-
+      // Version badge - client-side only
       const badge = document.getElementById('version-badge');
       const badgeText = badge?.querySelector('.badge-text');
-      const buildVersion = badge?.getAttribute('data-build-version')?.trim();
-
       if (badge && badgeText) {
-        if (buildVersion) {
-          badgeText.textContent = `v${buildVersion} on npm`;
-          badge.classList.remove('loading');
-        } else {
-          badge.classList.add('loading');
-          fetch('https://registry.npmjs.org/llm-usage-metrics/latest')
-            .then((response) => response.json())
-            .then((data) => {
-              badgeText.textContent = data?.version ? `v${data.version} on npm` : 'available on npm';
-              badge.classList.remove('loading');
-            })
-            .catch(() => {
-              badgeText.textContent = 'available on npm';
-              badge.classList.remove('loading');
-            });
-        }
+        badge.classList.add('loading');
+        fetch('https://registry.npmjs.org/llm-usage-metrics/latest')
+          .then((r) => r.json())
+          .then((data) => {
+            badgeText.textContent = data?.version ? `v${data.version}` : 'v0.1.11';
+            badge.classList.remove('loading');
+          })
+          .catch(() => {
+            badgeText.textContent = 'v0.1.11';
+            badge.classList.remove('loading');
+          });
       }
     })();
   </script>
@@ -451,7 +440,7 @@ $ llm-usage <span class="flag">monthly</span> --pricing-offline</pre>
     z-index: 50;
     pointer-events: none;
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-    opacity: 0.025;
+    opacity: 0.02;
     mix-blend-mode: overlay;
   }
 
@@ -490,11 +479,11 @@ $ llm-usage <span class="flag">monthly</span> --pricing-offline</pre>
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 1rem;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--border-default);
     border-radius: 9999px;
     font-size: 0.875rem;
-    color: #a1a1aa;
+    color: var(--color-text-muted);
     margin-bottom: 1.5rem;
   }
 
@@ -505,13 +494,13 @@ $ llm-usage <span class="flag">monthly</span> --pricing-offline</pre>
   .status-dot {
     width: 6px;
     height: 6px;
-    background: #10b981;
+    background: var(--color-accent);
     border-radius: 50%;
   }
 
   @keyframes pulse {
     0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+    50% { opacity: 0.4; }
   }
 
   /* Typography */
@@ -521,6 +510,7 @@ $ llm-usage <span class="flag">monthly</span> --pricing-offline</pre>
     line-height: 1.1;
     letter-spacing: -0.025em;
     margin-bottom: 1rem;
+    color: var(--color-text);
   }
 
   @media (min-width: 768px) {
@@ -530,13 +520,13 @@ $ llm-usage <span class="flag">monthly</span> --pricing-offline</pre>
   }
 
   h1 em {
-    color: #10b981;
+    color: var(--color-accent);
     font-style: normal;
   }
 
   .lead {
     font-size: 1.125rem;
-    color: #a1a1aa;
+    color: var(--color-text-secondary);
     line-height: 1.6;
     max-width: 540px;
     margin-bottom: 2rem;
@@ -549,8 +539,8 @@ $ llm-usage <span class="flag">monthly</span> --pricing-offline</pre>
     justify-content: space-between;
     gap: 1rem;
     padding: 0.75rem 1rem;
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--border-default);
     border-radius: 0.75rem;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -560,8 +550,8 @@ $ llm-usage <span class="flag">monthly</span> --pricing-offline</pre>
   }
 
   .install-command:hover {
-    border-color: rgba(255, 255, 255, 0.2);
-    background: rgba(0, 0, 0, 0.4);
+    border-color: var(--border-strong);
+    background: var(--color-bg-code);
   }
 
   .install-command:active {
@@ -572,20 +562,20 @@ $ llm-usage <span class="flag">monthly</span> --pricing-offline</pre>
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-family: 'Geist Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 0.875rem;
   }
 
   .dollar {
-    color: #52525b;
+    color: var(--color-text-dim);
   }
 
   .cmd {
-    color: #fafafa;
+    color: var(--color-text);
   }
 
   .install-action {
-    color: #a1a1aa;
+    color: var(--color-text-muted);
   }
 
   .install-toast {
@@ -594,8 +584,8 @@ $ llm-usage <span class="flag">monthly</span> --pricing-offline</pre>
     left: 50%;
     transform: translateX(-50%);
     padding: 0.5rem 1rem;
-    background: #10b981;
-    color: #000;
+    background: var(--color-accent);
+    color: var(--color-bg);
     font-size: 0.875rem;
     font-weight: 500;
     border-radius: 0.5rem;
@@ -610,7 +600,7 @@ $ llm-usage <span class="flag">monthly</span> --pricing-offline</pre>
   }
 
   .install-toast.error {
-    background: #f87171;
+    background: var(--color-red);
   }
 
   /* Hero actions */
@@ -618,21 +608,6 @@ $ llm-usage <span class="flag">monthly</span> --pricing-offline</pre>
     display: flex;
     gap: 1rem;
     flex-wrap: wrap;
-  }
-
-  .docs-hint {
-    margin-top: 0.75rem;
-    font-size: 0.875rem;
-    color: #71717a;
-  }
-
-  .docs-hint a {
-    color: #34d399;
-    text-decoration: none;
-  }
-
-  .docs-hint a:hover {
-    text-decoration: underline;
   }
 
   .btn {
@@ -648,24 +623,24 @@ $ llm-usage <span class="flag">monthly</span> --pricing-offline</pre>
   }
 
   .btn-primary {
-    background: #10b981;
-    color: #000;
+    background: var(--color-accent);
+    color: var(--color-bg);
   }
 
   .btn-primary:hover {
-    background: #34d399;
-    box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+    background: var(--color-accent-hover);
+    box-shadow: 0 0 20px var(--color-accent-glow);
   }
 
   .btn-secondary {
-    background: rgba(255, 255, 255, 0.05);
-    color: #fafafa;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: transparent;
+    color: var(--color-text);
+    border: 1px solid var(--border-default);
   }
 
   .btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.2);
+    background: var(--color-bg-elevated);
+    border-color: var(--border-strong);
   }
 
   .btn:active {
@@ -687,19 +662,135 @@ $ llm-usage <span class="flag">monthly</span> --pricing-offline</pre>
     width: 100%;
     height: auto;
     border-radius: 0.75rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-default);
     cursor: zoom-in;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
   }
 
   .screenshot:hover {
     transform: translateY(-2px);
-    box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 20px 40px -15px var(--shadow-elevated);
   }
 
   .screenshot:focus {
-    outline: 2px solid rgba(16, 185, 129, 0.5);
+    outline: 2px solid var(--border-focus);
     outline-offset: 4px;
+  }
+
+  /* Documentation Section */
+  .docs-section {
+    padding: 4rem 1rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  @media (min-width: 768px) {
+    .docs-section {
+      padding: 5rem 2rem;
+    }
+  }
+
+  .docs-header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+  }
+
+  .docs-header h2 {
+    font-size: 1.875rem;
+    font-weight: 600;
+    color: var(--color-text);
+    margin-bottom: 0.5rem;
+  }
+
+  .docs-subtitle {
+    color: var(--color-text-muted);
+    font-size: 1rem;
+  }
+
+  .docs-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .docs-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .docs-grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+
+  .doc-card {
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    animation: fadeInUp 0.4s ease backwards;
+    animation-delay: calc(var(--index) * 100ms);
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .doc-card:hover {
+    transform: translateY(-4px);
+    box-shadow:
+      inset 0 1px 0 var(--border-subtle),
+      inset 0 0 20px var(--border-subtle),
+      0 30px 60px -20px var(--shadow-elevated);
+  }
+
+  .doc-card:hover .doc-arrow {
+    transform: translateX(4px);
+    color: var(--color-accent);
+  }
+
+  .doc-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: var(--color-accent-subtle);
+    border: 1px solid var(--color-accent-glow);
+    border-radius: 0.75rem;
+    color: var(--color-accent);
+    margin-bottom: 1rem;
+  }
+
+  .doc-card h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text);
+    margin-bottom: 0.25rem;
+  }
+
+  .doc-card p {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+    line-height: 1.5;
+    flex: 1;
+  }
+
+  .doc-arrow {
+    margin-top: 1rem;
+    color: var(--color-text-dim);
+    transition: transform 0.2s ease, color 0.2s ease;
   }
 
   /* Features section */
@@ -711,7 +802,7 @@ $ llm-usage <span class="flag">monthly</span> --pricing-offline</pre>
 
   @media (min-width: 768px) {
     .features {
-      padding: 6rem 2rem;
+      padding: 5rem 2rem;
     }
   }
 
@@ -734,28 +825,20 @@ $ llm-usage <span class="flag">monthly</span> --pricing-offline</pre>
     flex-direction: column;
     position: relative;
     overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
   }
 
-  .bento-item::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    border-radius: inherit;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
-  }
-
-  .bento-item.interactive-card:hover {
+  .bento-item:hover {
     transform: translateY(-2px);
-    box-shadow: 
-      inset 0 1px 0 rgba(255, 255, 255, 0.1),
-      inset 0 0 20px rgba(255, 255, 255, 0.05),
-      0 30px 60px -20px rgba(0, 0, 0, 0.6);
+    box-shadow:
+      inset 0 1px 0 var(--border-subtle),
+      inset 0 0 20px var(--border-subtle),
+      0 30px 60px -20px var(--shadow-elevated);
   }
 
   @media (min-width: 768px) {
     .bento-item {
-      padding: 2.5rem;
+      padding: 2rem;
     }
   }
 
@@ -768,7 +851,6 @@ $ llm-usage <span class="flag">monthly</span> --pricing-offline</pre>
 
   @media (min-width: 768px) {
     .bento-item.wide {
-      grid-column: 1 / -1;
       grid-template-columns: 1fr 1fr;
       align-items: center;
     }
@@ -780,36 +862,34 @@ $ llm-usage <span class="flag">monthly</span> --pricing-offline</pre>
     justify-content: center;
     width: 40px;
     height: 40px;
-    background: rgba(16, 185, 129, 0.1);
-    border: 1px solid rgba(16, 185, 129, 0.2);
+    background: var(--color-accent-subtle);
+    border: 1px solid var(--color-accent-glow);
     border-radius: 0.75rem;
-    color: #10b981;
+    color: var(--color-accent);
     margin-bottom: 1rem;
   }
 
   .bento-content h3 {
     font-size: 1.25rem;
     font-weight: 600;
+    color: var(--color-text);
     margin-bottom: 0.5rem;
   }
 
   .bento-content p {
-    color: #a1a1aa;
+    color: var(--color-text-muted);
     font-size: 0.9375rem;
     line-height: 1.6;
   }
 
   .bento-content code {
-    color: #fafafa;
-    font-family: 'Geist Mono', monospace;
+    color: var(--color-text);
+    font-family: var(--font-mono);
     font-size: 0.875em;
-  }
-
-  code.mono-badge {
-    padding: 0.2rem 0.4rem;
+    padding: 0.15em 0.35em;
+    background: var(--color-bg-elevated);
     border-radius: 0.25rem;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-subtle);
   }
 
   .pulse-indicator {
@@ -817,32 +897,25 @@ $ llm-usage <span class="flag">monthly</span> --pricing-offline</pre>
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 0.75rem;
-    background: rgba(16, 185, 129, 0.05);
-    border: 1px solid rgba(16, 185, 129, 0.1);
+    background: var(--color-accent-subtle);
+    border: 1px solid var(--color-accent-glow);
     border-radius: 9999px;
-    font-family: 'Geist Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 0.75rem;
-    color: #10b981;
+    color: var(--color-accent);
   }
 
   .pulse-indicator .dot {
     width: 6px;
     height: 6px;
-    background: #10b981;
+    background: var(--color-accent);
     border-radius: 50%;
     animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
-
-  .interactive-card {
-    cursor: default;
   }
 
   .bento-visual {
     margin-top: auto;
     padding-top: 1.5rem;
-    position: relative;
-    z-index: 1;
-    width: 100%;
   }
 
   .bento-item.wide .bento-visual {
@@ -851,18 +924,18 @@ $ llm-usage <span class="flag">monthly</span> --pricing-offline</pre>
   }
 
   .infinite-scroll-y {
-    font-family: 'Geist Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 0.8rem;
-    color: #52525b;
+    color: var(--color-text-dim);
     position: relative;
-    height: 180px;
+    height: 160px;
     overflow: hidden;
     mask-image: linear-gradient(to bottom, transparent, black 20%, black 80%, transparent);
     -webkit-mask-image: linear-gradient(to bottom, transparent, black 20%, black 80%, transparent);
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: var(--color-bg-code);
+    border: 1px solid var(--border-subtle);
     border-radius: 0.75rem;
-    padding: 1.5rem;
+    padding: 1.25rem;
   }
 
   .scroll-content {
@@ -889,19 +962,19 @@ $ llm-usage <span class="flag">monthly</span> --pricing-offline</pre>
   }
 
   .ti {
-    color: #10b981;
+    color: var(--color-accent);
   }
 
   /* Examples section */
   .examples {
-    padding: 4rem 1rem;
+    padding: 4rem 1rem 6rem;
     max-width: 1200px;
     margin: 0 auto;
   }
 
   @media (min-width: 768px) {
     .examples {
-      padding: 6rem 2rem;
+      padding: 5rem 2rem 8rem;
     }
   }
 
@@ -913,11 +986,12 @@ $ llm-usage <span class="flag">monthly</span> --pricing-offline</pre>
   .section-header h2 {
     font-size: 1.875rem;
     font-weight: 600;
+    color: var(--color-text);
     margin-bottom: 0.5rem;
   }
 
   .section-header .sub {
-    color: #a1a1aa;
+    color: var(--color-text-muted);
   }
 
   .ex-container {
@@ -938,13 +1012,14 @@ $ llm-usage <span class="flag">monthly</span> --pricing-offline</pre>
     flex-direction: column;
     padding: 1rem;
     gap: 0.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--color-bg-elevated);
   }
 
   @media (min-width: 768px) {
     .ex-sidebar {
       border-bottom: none;
-      border-right: 1px solid rgba(255, 255, 255, 0.05);
+      border-right: 1px solid var(--border-subtle);
     }
   }
 
@@ -954,30 +1029,31 @@ $ llm-usage <span class="flag">monthly</span> --pricing-offline</pre>
     background: transparent;
     border: none;
     border-radius: 0.5rem;
-    color: #a1a1aa;
+    color: var(--color-text-muted);
     font-size: 0.875rem;
     cursor: pointer;
     transition: all 0.2s ease;
   }
 
   .ex-tab:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: #fafafa;
+    background: var(--color-bg-card);
+    color: var(--color-text);
   }
 
   .ex-tab.active {
-    background: rgba(16, 185, 129, 0.1);
-    color: #10b981;
+    background: var(--color-accent-subtle);
+    color: var(--color-accent);
   }
 
   .ex-tab:focus-visible {
-    outline: 2px solid rgba(16, 185, 129, 0.5);
+    outline: 2px solid var(--border-focus);
     outline-offset: 2px;
   }
 
   .ex-content {
     padding: 1.5rem;
     overflow-x: auto;
+    background: var(--color-bg-code);
   }
 
   .ex-panel {
@@ -986,28 +1062,34 @@ $ llm-usage <span class="flag">monthly</span> --pricing-offline</pre>
 
   .ex-panel.active {
     display: block;
+    animation: fadeIn 0.2s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
   .ex-block {
     margin: 0;
-    font-family: 'Geist Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 0.875rem;
     line-height: 1.7;
-    color: #fafafa;
+    color: var(--color-text);
     white-space: pre-wrap;
     word-break: break-all;
   }
 
   .ex-block .cmt {
-    color: #52525b;
+    color: var(--color-text-dim);
   }
 
   .ex-block .flag {
-    color: #38bdf8;
+    color: var(--color-cyan);
   }
 
   .ex-block .val {
-    color: #fbbf24;
+    color: var(--color-yellow);
   }
 
   /* Lightbox */
@@ -1083,6 +1165,81 @@ $ llm-usage <span class="flag">monthly</span> --pricing-offline</pre>
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
     border: 0;
+  }
+
+  /* Footer */
+  .site-footer {
+    padding: 3rem 1rem;
+    border-top: 1px solid var(--border-default);
+    background: var(--color-bg-elevated);
+  }
+
+  @media (min-width: 768px) {
+    .site-footer {
+      padding: 4rem 2rem;
+    }
+  }
+
+  .footer-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .footer-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: var(--color-text);
+    margin-bottom: 1rem;
+  }
+
+  .footer-links {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .footer-links a {
+    color: var(--color-text-muted);
+    text-decoration: none;
+    font-size: 0.875rem;
+    transition: color 0.2s ease;
+  }
+
+  .footer-links a:hover {
+    color: var(--color-accent);
+  }
+
+  .footer-copy {
+    font-size: 0.75rem;
+    color: var(--color-text-dim);
+  }
+
+  .footer-copy a {
+    color: var(--color-text-muted);
+    text-decoration: none;
+  }
+
+  .footer-copy a:hover {
+    color: var(--color-accent);
+  }
+
+  /* Badge as link */
+  a.badge {
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  a.badge:hover {
+    border-color: var(--color-accent);
+    background: var(--color-accent-subtle);
+  }
+
+  a.badge:hover .badge-text {
+    color: var(--color-accent);
   }
 
   /* Reduced motion */
