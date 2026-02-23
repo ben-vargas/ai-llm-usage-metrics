@@ -42,6 +42,15 @@ function extractMermaidBlocks(content) {
     }
   }
 
+  // Check for unclosed mermaid block at EOF
+  if (inMermaid) {
+    blocks.push({
+      code: currentBlock.join('\n'),
+      line: startLine,
+      unclosed: true,
+    });
+  }
+
   return blocks;
 }
 
@@ -79,13 +88,13 @@ function validateMermaidSyntax(code) {
   } else if (diagramType.startsWith('sequencediagram')) {
     // Sequence diagram validations
     const hasParticipants = /participant\s+\w+/i.test(code);
-    const hasArrows = /->>?>/.test(code);
+    const hasArrows = /(->|-->|->>|-->>)/.test(code);
 
     if (!hasParticipants) {
       errors.push('Sequence diagram: No participants declared');
     }
     if (!hasArrows) {
-      errors.push('Sequence diagram: No arrows detected (use ->> or -->>)');
+      errors.push('Sequence diagram: No arrows detected (use ->, -->, ->>, or -->>)');
     }
   } else if (diagramType.startsWith('classdiagram')) {
     // Class diagram validations
@@ -120,18 +129,13 @@ function validateMermaidSyntax(code) {
     errors.push('Unclosed quote detected');
   }
 
-  // Check for common syntax errors
-  if (/\[\s*\]/.test(code) && !/\[\s*\]/.test(code.replace(/\[.*?\]/g, ''))) {
-    // Empty brackets might be intentional, so just warn
-  }
-
   return errors;
 }
 
 /**
  * Main validation function
  */
-async function main() {
+function main() {
   console.log('🔍 Validating Mermaid diagrams in docs/...\n');
 
   let totalDiagrams = 0;
@@ -160,6 +164,17 @@ async function main() {
       const fileErrors = [];
       for (const block of blocks) {
         totalDiagrams++;
+
+        // Check for unclosed blocks first
+        if (block.unclosed) {
+          totalErrors++;
+          fileErrors.push({
+            line: block.line,
+            errors: ['Unclosed mermaid block (missing closing ```)'],
+          });
+          continue;
+        }
+
         const errors = validateMermaidSyntax(block.code);
 
         if (errors.length > 0) {
