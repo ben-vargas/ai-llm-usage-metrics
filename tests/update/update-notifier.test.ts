@@ -64,6 +64,12 @@ describe('update-notifier', () => {
         'version',
       ]),
     ).toBe(false);
+    expect(
+      shouldSkipUpdateCheckForArgv(['node', '/app/dist/index.js', 'efficiency', 'daily']),
+    ).toBe(false);
+    expect(shouldSkipUpdateCheckForArgv(['node', '/app/dist/index.js', 'efficiency', 'help'])).toBe(
+      false,
+    );
   });
 
   it('uses a fresh cache entry and skips network calls', async () => {

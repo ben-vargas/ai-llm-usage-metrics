@@ -14,17 +14,23 @@ afterEach(async () => {
 });
 
 describe('createCli', () => {
-  it('registers daily, weekly, and monthly commands', () => {
+  it('registers daily, weekly, monthly, and efficiency commands', () => {
     const cli = createCli();
 
     expect(cli.name()).toBe('llm-usage');
-    expect(cli.commands.map((command) => command.name())).toEqual(['daily', 'weekly', 'monthly']);
+    expect(cli.commands.map((command) => command.name())).toEqual([
+      'daily',
+      'weekly',
+      'monthly',
+      'efficiency',
+    ]);
   });
 
-  it('includes output, pricing, and source filter flags on each command', () => {
+  it('includes output, pricing, and source filter flags on report commands', () => {
     const cli = createCli();
+    const reportCommands = cli.commands.filter((command) => command.name() !== 'efficiency');
 
-    for (const command of cli.commands) {
+    for (const command of reportCommands) {
       expect(command.options.some((option) => option.long === '--markdown')).toBe(true);
       expect(command.options.some((option) => option.long === '--per-model-columns')).toBe(true);
       expect(command.options.some((option) => option.long === '--pricing-url')).toBe(true);
@@ -34,6 +40,20 @@ describe('createCli', () => {
       expect(command.options.some((option) => option.long === '--source-dir')).toBe(true);
       expect(command.options.some((option) => option.long === '--model')).toBe(true);
     }
+  });
+
+  it('configures efficiency command with repository outcome flags', () => {
+    const cli = createCli();
+    const efficiencyCommand = cli.commands.find((command) => command.name() === 'efficiency');
+
+    expect(efficiencyCommand).toBeDefined();
+    expect(efficiencyCommand?.options.some((option) => option.long === '--repo-dir')).toBe(true);
+    expect(
+      efficiencyCommand?.options.some((option) => option.long === '--include-merge-commits'),
+    ).toBe(true);
+    expect(efficiencyCommand?.options.some((option) => option.long === '--per-model-columns')).toBe(
+      false,
+    );
   });
 
   it('runs daily command and prints terminal table output', async () => {
@@ -75,6 +95,7 @@ describe('createCli', () => {
     expect(help).toContain('Show daily usage report');
     expect(help).toContain('llm-usage <command> --help');
     expect(help).toContain('--source opencode --opencode-db /path/to/opencode.db');
+    expect(help).toContain('llm-usage efficiency weekly --repo-dir /path/to/repo --json');
     expect(help).toContain('npx --yes llm-usage-metrics daily');
     expect(compactDailyCommandHelp).toContain('after source/provider/date filters');
   });

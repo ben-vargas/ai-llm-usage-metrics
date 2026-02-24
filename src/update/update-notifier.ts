@@ -71,7 +71,7 @@ export type UpdateNotifierResult = {
 
 export function shouldSkipUpdateCheckForArgv(argv: string[]): boolean {
   const executableArgs = argv.slice(2);
-  const commandNames = new Set(['daily', 'weekly', 'monthly', 'help', 'version']);
+  const commandNames = new Set(['daily', 'weekly', 'monthly', 'efficiency', 'help', 'version']);
 
   if (executableArgs.length === 0) {
     return false;

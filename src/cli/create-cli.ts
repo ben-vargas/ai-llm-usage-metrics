@@ -1,8 +1,9 @@
 import { Command } from 'commander';
 
 import { getDefaultSourceIds } from '../sources/create-default-adapters.js';
+import { runEfficiencyReport } from './run-efficiency-report.js';
 import { runUsageReport } from './run-usage-report.js';
-import type { ReportCommandOptions } from './usage-data-contracts.js';
+import type { EfficiencyCommandOptions, ReportCommandOptions } from './usage-data-contracts.js';
 import type { ReportGranularity } from '../utils/time-buckets.js';
 
 export type CreateCliOptions = {
@@ -23,12 +24,16 @@ function getAllowedSourcesLabel(supportedSourceIds: readonly string[]): string {
   return supportedSourceIds.join(', ');
 }
 
-function addSharedOptions(command: Command): Command {
+function addSharedOptions(
+  command: Command,
+  options: { includePerModelColumns?: boolean } = {},
+): Command {
   const supportedSourceIds = getSupportedSourceIds();
   const allowedSourcesLabel = getAllowedSourcesLabel(supportedSourceIds);
   const supportedSourcesSummary = `(${supportedSourceIds.length}): ${allowedSourcesLabel}`;
+  const includePerModelColumns = options.includePerModelColumns ?? true;
 
-  return command
+  const configuredCommand = command
     .option('--pi-dir <path>', 'Path to .pi sessions directory')
     .option('--codex-dir <path>', 'Path to .codex sessions directory')
     .option('--opencode-db <path>', 'Path to OpenCode SQLite DB')
@@ -57,11 +62,16 @@ function addSharedOptions(command: Command): Command {
     .option('--pricing-url <url>', 'Override LiteLLM pricing source URL')
     .option('--pricing-offline', 'Use cached LiteLLM pricing only (no network fetch)')
     .option('--markdown', 'Render output as markdown table')
-    .option('--json', 'Render output as JSON')
-    .option(
-      '--per-model-columns',
-      'Render per-model metrics as multiline aligned table columns (terminal/markdown)',
-    );
+    .option('--json', 'Render output as JSON');
+
+  if (!includePerModelColumns) {
+    return configuredCommand;
+  }
+
+  return configuredCommand.option(
+    '--per-model-columns',
+    'Render per-model metrics as multiline aligned table columns (terminal/markdown)',
+  );
 }
 
 function commandDescription(granularity: ReportGranularity): string {
@@ -87,6 +97,31 @@ function createCommand(granularity: ReportGranularity): Command {
   return command;
 }
 
+function parseGranularityArgument(value: string): ReportGranularity {
+  const normalized = value.trim().toLowerCase();
+
+  if (normalized === 'daily' || normalized === 'weekly' || normalized === 'monthly') {
+    return normalized;
+  }
+
+  throw new Error(`Invalid granularity: ${value}. Expected one of: daily, weekly, monthly`);
+}
+
+function createEfficiencyCommand(): Command {
+  const command = new Command('efficiency');
+
+  addSharedOptions(command, { includePerModelColumns: false })
+    .argument('<granularity>', 'Granularity: daily | weekly | monthly', parseGranularityArgument)
+    .option('--repo-dir <path>', 'Path to repository for Git outcome metrics')
+    .option('--include-merge-commits', 'Include merge commits in Git outcome metrics')
+    .description('Show efficiency report by correlating usage metrics with local Git outcomes')
+    .action(async (granularity: ReportGranularity, options: EfficiencyCommandOptions) => {
+      await runEfficiencyReport(granularity, options);
+    });
+
+  return command;
+}
+
 function rootDescription(): string {
   const supportedSourceIds = getSupportedSourceIds();
   const allowedSourcesLabel = getAllowedSourcesLabel(supportedSourceIds);
@@ -105,6 +140,7 @@ function rootDescription(): string {
     '  $ llm-usage monthly --source opencode --opencode-db /path/to/opencode.db --json',
     '  $ llm-usage monthly --model claude --per-model-columns',
     '  $ llm-usage daily --source-dir pi=/tmp/pi-sessions',
+    '  $ llm-usage efficiency weekly --repo-dir /path/to/repo --json',
     '  $ npx --yes llm-usage-metrics daily',
   ].join('\n');
 }
@@ -119,7 +155,8 @@ export function createCli(options: CreateCliOptions = {}): Command {
     .showHelpAfterError()
     .addCommand(createCommand('daily'))
     .addCommand(createCommand('weekly'))
-    .addCommand(createCommand('monthly'));
+    .addCommand(createCommand('monthly'))
+    .addCommand(createEfficiencyCommand());
 
   return program;
 }
