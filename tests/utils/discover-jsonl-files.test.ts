@@ -40,7 +40,7 @@ describe('discoverJsonlFiles', () => {
     expect(discoveredFiles).toEqual([alphaFile, alphaNestedFile, betaFile]);
   });
 
-  it('sorts file names by code point for locale-independent ordering', async () => {
+  itWhenUnix('sorts file names by code point for locale-independent ordering', async () => {
     const rootDir = await mkdtemp(path.join(os.tmpdir(), 'discover-jsonl-code-point-'));
     tempDirs.push(rootDir);
 

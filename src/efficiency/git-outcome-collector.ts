@@ -398,14 +398,17 @@ function filterEventsByDateRange(
   since: string | undefined,
   until: string | undefined,
 ): GitOutcomeEvent[] {
+  const normalizedSince = since ? shiftDate(since, 0) : undefined;
+  const normalizedUntil = until ? shiftDate(until, 0) : undefined;
+
   return events.filter((event) => {
     const eventDate = getPeriodKey(event.timestamp, 'daily', timezone);
 
-    if (since && eventDate < since) {
+    if (normalizedSince && eventDate < normalizedSince) {
       return false;
     }
 
-    if (until && eventDate > until) {
+    if (normalizedUntil && eventDate > normalizedUntil) {
       return false;
     }
 

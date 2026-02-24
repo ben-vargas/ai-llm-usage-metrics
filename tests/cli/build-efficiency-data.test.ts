@@ -439,4 +439,21 @@ describe('buildEfficiencyData', () => {
 
     expect(options?.activeUsageDays).toEqual(new Set(['2026-02-11']));
   });
+
+  it('rejects blank --repo-dir values before running attribution and git outcomes', async () => {
+    const collectGitOutcomesMock = vi.fn();
+
+    await expect(
+      buildEfficiencyData(
+        'daily',
+        { repoDir: '   ' },
+        {
+          buildUsageData: async () => createUsageDataResult(),
+          collectGitOutcomes: collectGitOutcomesMock,
+        },
+      ),
+    ).rejects.toThrow('--repo-dir must be a non-empty path');
+
+    expect(collectGitOutcomesMock).not.toHaveBeenCalled();
+  });
 });

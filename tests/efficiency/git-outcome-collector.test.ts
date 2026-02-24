@@ -171,6 +171,7 @@ describe('collectGitOutcomes', () => {
     expect(args).toContain(`--pretty=format:${marker}%ct${marker}%H${marker}%ae`);
     expect(args).toContain('--since=2026-02-10T00:00:00Z');
     expect(args).toContain('--until=2026-02-12T23:59:59Z');
+    expect(args).toContain('--shortstat');
 
     expect([...result.periodOutcomes.entries()]).toEqual([
       [

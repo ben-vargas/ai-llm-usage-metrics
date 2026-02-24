@@ -90,11 +90,16 @@ export async function buildEfficiencyData(
   const buildUsage = deps.buildUsageData ?? buildUsageData;
   const collectOutcomes = deps.collectGitOutcomes ?? collectGitOutcomes;
   const resolveRepoRoot = deps.resolveRepoRoot ?? resolveRepoRootFromPathHint;
+  const repoDir = options.repoDir?.trim();
+
+  if (options.repoDir !== undefined && !repoDir) {
+    throw new Error('--repo-dir must be a non-empty path');
+  }
 
   const usageData = await buildUsage(granularity, options);
   const attribution = await attributeUsageEventsToRepo(
     usageData.events,
-    options.repoDir ?? process.cwd(),
+    repoDir ?? process.cwd(),
     resolveRepoRoot,
   );
   const matchedEventsWithSignal = attribution.matchedEvents.filter((event) =>
@@ -106,7 +111,7 @@ export async function buildEfficiencyData(
     ),
   );
   const gitOutcomes = await collectOutcomes({
-    repoDir: options.repoDir,
+    repoDir,
     granularity,
     timezone: usageData.diagnostics.timezone,
     since: options.since,
