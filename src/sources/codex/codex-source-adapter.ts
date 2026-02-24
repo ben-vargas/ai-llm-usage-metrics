@@ -1,5 +1,6 @@
 import os from 'node:os';
 import path from 'node:path';
+import { access, constants } from 'node:fs/promises';
 
 import { createUsageEvent } from '../../domain/usage-event.js';
 import type { UsageEvent } from '../../domain/usage-event.js';
@@ -32,12 +33,26 @@ type CodexSessionState = {
 
 export type CodexSourceAdapterOptions = {
   sessionsDir?: string;
+  requireSessionsDir?: boolean;
 };
 
 const SESSION_META_LINE_PATTERN = /"type"\s*:\s*"session_meta"/u;
 const TURN_CONTEXT_LINE_PATTERN = /"type"\s*:\s*"turn_context"/u;
 const EVENT_MSG_LINE_PATTERN = /"type"\s*:\s*"event_msg"/u;
 const TOKEN_COUNT_LINE_PATTERN = /"type"\s*:\s*"token_count"/u;
+
+function isBlankText(value: string): boolean {
+  return value.trim().length === 0;
+}
+
+async function pathReadable(directoryPath: string): Promise<boolean> {
+  try {
+    await access(directoryPath, constants.R_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 function shouldParseCodexJsonlLine(lineText: string): boolean {
   if (SESSION_META_LINE_PATTERN.test(lineText) || TURN_CONTEXT_LINE_PATTERN.test(lineText)) {
@@ -148,13 +163,27 @@ export class CodexSourceAdapter implements SourceAdapter {
   public readonly id = 'codex' as const;
 
   private readonly sessionsDir: string;
+  private readonly requireSessionsDir: boolean;
 
   public constructor(options: CodexSourceAdapterOptions = {}) {
     this.sessionsDir = options.sessionsDir ?? defaultSessionsDir;
+    this.requireSessionsDir = options.requireSessionsDir ?? false;
   }
 
   public async discoverFiles(): Promise<string[]> {
-    return discoverJsonlFiles(this.sessionsDir);
+    if (isBlankText(this.sessionsDir)) {
+      throw new Error('Codex sessions directory must be a non-empty path');
+    }
+
+    const normalizedSessionsDir = this.sessionsDir.trim();
+
+    if (this.requireSessionsDir && !(await pathReadable(normalizedSessionsDir))) {
+      throw new Error(
+        `Codex sessions directory is missing or unreadable: ${normalizedSessionsDir}`,
+      );
+    }
+
+    return discoverJsonlFiles(normalizedSessionsDir);
   }
 
   public async parseFile(filePath: string): Promise<UsageEvent[]> {

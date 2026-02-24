@@ -54,18 +54,30 @@ const sourceRegistrations: readonly SourceRegistration[] = [
   {
     id: 'pi',
     sourceDirOverride: { kind: 'directory' },
-    create: (options, sourceDirectoryOverrides) =>
-      new PiSourceAdapter({
-        sessionsDir: resolveDirectoryOverride('pi', options.piDir, sourceDirectoryOverrides),
-      }),
+    create: (options, sourceDirectoryOverrides) => {
+      const directoryConfig = resolveDirectoryConfig('pi', options.piDir, sourceDirectoryOverrides);
+
+      return new PiSourceAdapter({
+        sessionsDir: directoryConfig.path,
+        requireSessionsDir: directoryConfig.requireExistingPath,
+      });
+    },
   },
   {
     id: 'codex',
     sourceDirOverride: { kind: 'directory' },
-    create: (options, sourceDirectoryOverrides) =>
-      new CodexSourceAdapter({
-        sessionsDir: resolveDirectoryOverride('codex', options.codexDir, sourceDirectoryOverrides),
-      }),
+    create: (options, sourceDirectoryOverrides) => {
+      const directoryConfig = resolveDirectoryConfig(
+        'codex',
+        options.codexDir,
+        sourceDirectoryOverrides,
+      );
+
+      return new CodexSourceAdapter({
+        sessionsDir: directoryConfig.path,
+        requireSessionsDir: directoryConfig.requireExistingPath,
+      });
+    },
   },
   {
     id: 'opencode',
@@ -139,12 +151,47 @@ function validateOpencodeOverride(opencodeDb: string | undefined): void {
   }
 }
 
-function resolveDirectoryOverride(
+function validateDirectoryOverride(
+  optionName: '--pi-dir' | '--codex-dir',
+  value: string | undefined,
+): void {
+  if (value === undefined) {
+    return;
+  }
+
+  if (value.trim().length === 0) {
+    throw new Error(`${optionName} must be a non-empty path`);
+  }
+}
+
+function resolveDirectoryConfig(
   sourceId: string,
   explicitDirectory: string | undefined,
   sourceDirectoryOverrides: ReadonlyMap<string, string>,
-): string | undefined {
-  return explicitDirectory ?? sourceDirectoryOverrides.get(sourceId);
+): {
+  path: string | undefined;
+  requireExistingPath: boolean;
+} {
+  if (explicitDirectory !== undefined) {
+    return {
+      path: explicitDirectory,
+      requireExistingPath: true,
+    };
+  }
+
+  const sourceDirOverride = sourceDirectoryOverrides.get(sourceId);
+
+  if (sourceDirOverride !== undefined) {
+    return {
+      path: sourceDirOverride,
+      requireExistingPath: true,
+    };
+  }
+
+  return {
+    path: undefined,
+    requireExistingPath: false,
+  };
 }
 
 export function getDefaultSourceIds(): string[] {
@@ -153,6 +200,8 @@ export function getDefaultSourceIds(): string[] {
 
 export function createDefaultAdapters(options: CreateDefaultAdaptersOptions): SourceAdapter[] {
   validateOpencodeOverride(options.opencodeDb);
+  validateDirectoryOverride('--pi-dir', options.piDir);
+  validateDirectoryOverride('--codex-dir', options.codexDir);
 
   const sourceDirectoryOverrides = parseSourceDirectoryOverrides(options.sourceDir);
   validateSourceDirectoryOverrideIds(sourceDirectoryOverrides);

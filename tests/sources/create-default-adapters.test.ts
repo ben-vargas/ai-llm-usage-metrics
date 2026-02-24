@@ -74,4 +74,38 @@ describe('createDefaultAdapters', () => {
       '--opencode-db must be a non-empty path',
     );
   });
+
+  it('throws when --pi-dir is blank', () => {
+    expect(() => createDefaultAdapters({ piDir: '   ' })).toThrow(
+      '--pi-dir must be a non-empty path',
+    );
+  });
+
+  it('throws when --codex-dir is blank', () => {
+    expect(() => createDefaultAdapters({ codexDir: '   ' })).toThrow(
+      '--codex-dir must be a non-empty path',
+    );
+  });
+
+  it('fails pi discovery when an explicitly configured directory is missing', async () => {
+    const adapters = createDefaultAdapters({
+      piDir: path.join(os.tmpdir(), `missing-pi-${Date.now()}`),
+    });
+    const piAdapter = adapters.find((adapter) => adapter.id === 'pi');
+
+    await expect(piAdapter?.discoverFiles()).rejects.toThrow(
+      'PI sessions directory is missing or unreadable',
+    );
+  });
+
+  it('fails codex discovery when an explicitly configured directory is missing', async () => {
+    const adapters = createDefaultAdapters({
+      codexDir: path.join(os.tmpdir(), `missing-codex-${Date.now()}`),
+    });
+    const codexAdapter = adapters.find((adapter) => adapter.id === 'codex');
+
+    await expect(codexAdapter?.discoverFiles()).rejects.toThrow(
+      'Codex sessions directory is missing or unreadable',
+    );
+  });
 });

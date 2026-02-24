@@ -1,5 +1,6 @@
 import os from 'node:os';
 import path from 'node:path';
+import { access, constants } from 'node:fs/promises';
 
 import { createUsageEvent } from '../../domain/usage-event.js';
 import type { UsageEvent } from '../../domain/usage-event.js';
@@ -35,6 +36,7 @@ type PiUsageExtract = {
 export type PiSourceAdapterOptions = {
   sessionsDir?: string;
   providerFilter?: ProviderFilter;
+  requireSessionsDir?: boolean;
 };
 
 const PI_MESSAGE_LINE_PATTERN = /"type"\s*:\s*"message"/u;
@@ -52,6 +54,19 @@ function shouldParsePiJsonlLine(lineText: string): boolean {
 const allowAllProviders: ProviderFilter = () => true;
 
 const UNIX_SECONDS_ABS_CUTOFF = 10_000_000_000;
+
+function isBlankText(value: string): boolean {
+  return value.trim().length === 0;
+}
+
+async function pathReadable(directoryPath: string): Promise<boolean> {
+  try {
+    await access(directoryPath, constants.R_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 function normalizeTimestampCandidate(candidate: unknown): string | undefined {
   let date: Date | undefined;
@@ -110,16 +125,40 @@ function extractUsageFromRecord(usage: Record<string, unknown>): PiUsageExtract 
     costUsd: toNumberLike(cost?.total),
   };
 
-  const hasKnownUsageField =
-    extracted.inputTokens !== undefined ||
-    extracted.outputTokens !== undefined ||
-    extracted.reasoningTokens !== undefined ||
-    extracted.cacheReadTokens !== undefined ||
-    extracted.cacheWriteTokens !== undefined ||
-    extracted.totalTokens !== undefined ||
-    extracted.costUsd !== undefined;
+  const toFiniteNumber = (value: NumberLike | undefined): number | undefined => {
+    if (value === null || value === undefined) {
+      return undefined;
+    }
 
-  return hasKnownUsageField ? extracted : undefined;
+    if (typeof value === 'string' && value.trim().length === 0) {
+      return undefined;
+    }
+
+    const parsed = typeof value === 'number' ? value : Number(value);
+
+    if (!Number.isFinite(parsed)) {
+      return undefined;
+    }
+
+    return parsed;
+  };
+
+  const usageCandidates = [
+    extracted.inputTokens,
+    extracted.outputTokens,
+    extracted.reasoningTokens,
+    extracted.cacheReadTokens,
+    extracted.cacheWriteTokens,
+    extracted.totalTokens,
+  ];
+  const hasPositiveUsageSignal = usageCandidates.some((value) => {
+    const parsed = toFiniteNumber(value);
+    return parsed !== undefined && parsed > 0;
+  });
+  const explicitCost = toFiniteNumber(extracted.costUsd);
+  const hasPositiveCostSignal = explicitCost !== undefined && explicitCost > 0;
+
+  return hasPositiveUsageSignal || hasPositiveCostSignal ? extracted : undefined;
 }
 
 function extractUsage(line: Record<string, unknown>, message: Record<string, unknown> | undefined) {
@@ -170,14 +209,26 @@ export class PiSourceAdapter implements SourceAdapter {
 
   private readonly sessionsDir: string;
   private readonly providerFilter: ProviderFilter;
+  private readonly requireSessionsDir: boolean;
 
   public constructor(options: PiSourceAdapterOptions = {}) {
     this.sessionsDir = options.sessionsDir ?? defaultSessionsDir;
     this.providerFilter = options.providerFilter ?? allowAllProviders;
+    this.requireSessionsDir = options.requireSessionsDir ?? false;
   }
 
   public async discoverFiles(): Promise<string[]> {
-    return discoverJsonlFiles(this.sessionsDir);
+    if (isBlankText(this.sessionsDir)) {
+      throw new Error('PI sessions directory must be a non-empty path');
+    }
+
+    const normalizedSessionsDir = this.sessionsDir.trim();
+
+    if (this.requireSessionsDir && !(await pathReadable(normalizedSessionsDir))) {
+      throw new Error(`PI sessions directory is missing or unreadable: ${normalizedSessionsDir}`);
+    }
+
+    return discoverJsonlFiles(normalizedSessionsDir);
   }
 
   public async parseFile(filePath: string): Promise<UsageEvent[]> {
