@@ -136,7 +136,11 @@ describe('ParseFileCache', () => {
     const tempDir = await mkdtemp(path.join(os.tmpdir(), 'parse-file-cache-load-'));
     tempDirs.push(tempDir);
     const cacheFilePath = path.join(tempDir, 'parse-file-cache.json');
-    const validEvent = createEvent({ sessionId: 'from-cache' });
+    const validEvent = createEvent({
+      source: 'CODEX',
+      sessionId: 'from-cache',
+      model: 'GPT-4.1',
+    });
 
     await writeFile(
       cacheFilePath,
@@ -144,7 +148,7 @@ describe('ParseFileCache', () => {
         version: 2,
         entries: [
           {
-            source: 'codex',
+            source: 'CODEX',
             filePath: '/tmp/ok.jsonl',
             fingerprint: { size: 12, mtimeMs: 34 },
             cachedAt: 42,
@@ -180,6 +184,17 @@ describe('ParseFileCache', () => {
               skippedRowReasons: [{ reason: 'x', count: 1 }],
             },
           },
+          {
+            source: 'codex',
+            filePath: '/tmp/bad-timestamp.jsonl',
+            fingerprint: { size: 12, mtimeMs: 34 },
+            cachedAt: 42,
+            diagnostics: {
+              events: [{ ...validEvent, timestamp: '2026-02-01T00:00:00Z' }],
+              skippedRows: 0,
+              skippedRowReasons: [{ reason: 'x', count: 1 }],
+            },
+          },
         ],
       }),
       'utf8',
@@ -193,8 +208,11 @@ describe('ParseFileCache', () => {
 
     expect(cache.get('codex', '/tmp/bad.jsonl', { size: 12, mtimeMs: 34 })).toBeUndefined();
     expect(cache.get('codex', '/tmp/bad-source.jsonl', { size: 12, mtimeMs: 34 })).toBeUndefined();
+    expect(
+      cache.get('codex', '/tmp/bad-timestamp.jsonl', { size: 12, mtimeMs: 34 }),
+    ).toBeUndefined();
     expect(cache.get('codex', '/tmp/ok.jsonl', { size: 12, mtimeMs: 34 })).toEqual({
-      events: [validEvent],
+      events: [{ ...createEvent({ sessionId: 'from-cache', model: 'gpt-4.1' }) }],
       skippedRows: 9,
       skippedRowReasons: [{ reason: 'truncated', count: 3 }],
     });

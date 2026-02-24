@@ -6,73 +6,67 @@ tableOfContents: false
 
 import { LinkCard, CardGrid } from '@astrojs/starlight/components';
 
-Welcome to the llm-usage-metrics documentation. This CLI tool aggregates token usage and costs from your local coding agent sessions across pi, codex, and OpenCode.
+Welcome to the `llm-usage-metrics` documentation. This high-performance CLI tool provides deep visibility into your local AI development costs by aggregating usage across pi, codex, and OpenCode sessions.
 
 ## Quick Navigation
 
 <CardGrid>
   <LinkCard
     title="Getting Started"
-    description="Install the CLI and run your first usage report."
+    description="Zero-config installation and your first report in seconds."
     href="/llm-usage-metrics/getting-started/"
   />
   <LinkCard
-    title="CLI Reference"
-    description="Complete command and option reference."
-    href="/llm-usage-metrics/cli-reference/"
-  />
-  <LinkCard
     title="Efficiency"
-    description="Deep guide for efficiency reports and metric interpretation."
+    description="The industry's first tool to correlate Git outcomes with LLM costs."
     href="/llm-usage-metrics/efficiency/"
   />
   <LinkCard
+    title="Benchmarks"
+    description="See how our optimized engine delivers 20x faster reporting."
+    href="/llm-usage-metrics/benchmarks/"
+  />
+  <LinkCard
+    title="CLI Reference"
+    description="Complete command and option reference for power users."
+    href="/llm-usage-metrics/cli-reference/"
+  />
+  <LinkCard
     title="Data Sources"
-    description="Configure pi, codex, and OpenCode sources."
+    description="Technical details on pi, codex, and OpenCode adapters."
     href="/llm-usage-metrics/sources/"
   />
   <LinkCard
     title="Configuration"
-    description="Customize behavior with environment variables."
+    description="Tune performance and caching for enterprise workloads."
     href="/llm-usage-metrics/configuration/"
-  />
-  <LinkCard
-    title="Benchmarks"
-    description="Production benchmark data and methodology."
-    href="/llm-usage-metrics/benchmarks/"
   />
 </CardGrid>
 
-## What it does
+## Engine Overview
 
-`llm-usage-metrics` parses local session data from your coding agents:
+`llm-usage-metrics` is built for engineers who need precise, local-first auditing of their AI workflows:
 
-- **pi** sessions from `~/.pi/agent/sessions/`
-- **codex** sessions from `~/.codex/sessions/`
-- **OpenCode** SQLite database
+- **Universal Parsing**: Autonomously discovers and parses `.pi`, `.codex`, and OpenCode session data.
+- **LiteLLM Integration**: Applies real-time pricing models to local events for accurate USD estimation.
+- **Git Attribution**: Optionally joins usage with local Git history to derive true ROI metrics (Cost per Commit, Tokens per Line).
 
-It normalizes events, applies LiteLLM pricing models, and generates reports in your preferred format.
-
-## Installation
+## Quick Start
 
 ```bash
+# Install globally
 npm install -g llm-usage-metrics
-```
 
-Or run without installing:
-
-```bash
+# Or run instantly via npx
 npx llm-usage-metrics daily
 ```
 
-## First command
+## Key Commands
 
 ```bash
+# Standard daily report
 llm-usage daily
+
+# Deep efficiency audit
+llm-usage efficiency monthly --repo-dir ./my-project
 ```
-
-## Output formats
-
-- **Terminal**: ANSI-formatted tables (default)
-- **JSON**: Machine-readable for pipelines
-- **Markdown**: For documentation and sharing

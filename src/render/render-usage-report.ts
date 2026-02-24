@@ -1,4 +1,3 @@
-import { formatEnvVarOverrides } from '../config/env-var-display.js';
 import type { UsageDataResult } from '../cli/usage-data-contracts.js';
 import type { ReportGranularity } from '../utils/time-buckets.js';
 import { renderMarkdownTable } from './markdown-table.js';
@@ -30,14 +29,8 @@ function renderTerminalUsageReport(
   options: RenderUsageReportOptions,
 ): string {
   const outputLines: string[] = [];
-  const envVarOverrideLines = formatEnvVarOverrides(usageData.diagnostics.activeEnvOverrides);
   const useColor = options.useColor ?? shouldUseColorByDefault();
   const tableLayout = options.tableLayout ?? 'compact';
-
-  if (envVarOverrideLines.length > 0) {
-    outputLines.push(...envVarOverrideLines);
-    outputLines.push('');
-  }
 
   outputLines.push(
     renderReportHeader({

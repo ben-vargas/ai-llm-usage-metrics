@@ -57,6 +57,26 @@ function toNonNegativeNumber(value: unknown): number | undefined {
   return value;
 }
 
+function normalizeCachedTimestamp(value: unknown): string | undefined {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const normalized = value.trim();
+
+  if (!normalized) {
+    return undefined;
+  }
+
+  const timestamp = new Date(normalized);
+
+  if (Number.isNaN(timestamp.getTime())) {
+    return undefined;
+  }
+
+  return timestamp.toISOString() === normalized ? normalized : undefined;
+}
+
 function normalizeCachedUsageEvent(value: unknown): UsageEvent | undefined {
   const record = asRecord(value);
 
@@ -64,16 +84,12 @@ function normalizeCachedUsageEvent(value: unknown): UsageEvent | undefined {
     return undefined;
   }
 
-  const source = normalizeSourceId(record.source);
+  const source = normalizeSourceId(record.source)?.toLowerCase();
   const sessionId = typeof record.sessionId === 'string' ? record.sessionId.trim() : '';
-  const timestamp = typeof record.timestamp === 'string' ? record.timestamp.trim() : '';
+  const timestamp = normalizeCachedTimestamp(record.timestamp);
   const repoRoot = typeof record.repoRoot === 'string' ? record.repoRoot.trim() : '';
 
   if (!source || !sessionId || !timestamp) {
-    return undefined;
-  }
-
-  if (Number.isNaN(new Date(timestamp).getTime())) {
     return undefined;
   }
 
@@ -103,7 +119,7 @@ function normalizeCachedUsageEvent(value: unknown): UsageEvent | undefined {
   }
 
   const provider = typeof record.provider === 'string' ? record.provider.trim() : '';
-  const model = typeof record.model === 'string' ? record.model.trim() : '';
+  const model = typeof record.model === 'string' ? record.model.trim().toLowerCase() : '';
   const costUsd = toNonNegativeNumber(record.costUsd);
 
   if (costMode === 'explicit' && costUsd === undefined) {
@@ -169,7 +185,7 @@ function normalizeCacheEntry(value: unknown): ParseFileCacheEntry | undefined {
     return undefined;
   }
 
-  const source = typeof record.source === 'string' ? record.source.trim() : '';
+  const source = normalizeSourceId(record.source)?.toLowerCase() ?? '';
   const filePath = typeof record.filePath === 'string' ? record.filePath.trim() : '';
   const cachedAt = toNonNegativeInteger(record.cachedAt);
   const fingerprint = asRecord(record.fingerprint);

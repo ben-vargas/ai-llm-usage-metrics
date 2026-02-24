@@ -2,6 +2,7 @@ import { buildUsageData } from './build-usage-data.js';
 import { emitDiagnostics } from './emit-diagnostics.js';
 import type { ReportCommandOptions, UsageDiagnostics } from './usage-data-contracts.js';
 import { renderUsageReport, type UsageReportFormat } from '../render/render-usage-report.js';
+import { formatEnvVarOverrides } from '../config/env-var-display.js';
 import type { UsageTableLayout } from '../render/row-cells.js';
 import { resolveTtyColumns, visibleWidth } from '../render/table-text-layout.js';
 import { logger } from '../utils/logger.js';
@@ -96,6 +97,17 @@ export async function runUsageReport(
 ): Promise<void> {
   const preparedReport = await prepareUsageReport(granularity, options);
   emitDiagnostics(preparedReport.diagnostics, logger);
+  const envVarOverrideLines = formatEnvVarOverrides(preparedReport.diagnostics.activeEnvOverrides);
+
+  if (envVarOverrideLines.length > 0) {
+    const [headerLine, ...envVarLines] = envVarOverrideLines;
+    if (headerLine) {
+      logger.info(headerLine);
+    }
+    for (const envVarLine of envVarLines) {
+      logger.dim(envVarLine);
+    }
+  }
 
   if (preparedReport.format === 'terminal') {
     const overflowColumns = detectTerminalOverflowColumns(preparedReport.output);

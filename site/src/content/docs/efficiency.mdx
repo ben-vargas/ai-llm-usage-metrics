@@ -3,9 +3,18 @@ title: Efficiency
 description: How efficiency reports are computed, scoped, and interpreted.
 ---
 
-`llm-usage efficiency` correlates repo-attributed usage with local Git outcomes.
+Efficiency reporting is the core value proposition of `llm-usage-metrics`. By correlating local Git outcomes with LLM costs, you can derive the true ROI of your AI-assisted development workflow.
 
-## Command shape
+## The ROI Equation
+
+`llm-usage efficiency` joins two high-signal datasets:
+
+1. **Repo-Attributed Usage**: Token counts and costs mapped to your project root.
+2. **Git Outcomes**: Local commit volume and line-delta metrics for your author.
+
+This join allows you to answer questions like: *How much does a commit actually cost in tokens?* and *What is my USD spend per 1k lines of code?*
+
+## Command structure
 
 ```bash
 llm-usage efficiency <daily|weekly|monthly> [options]
