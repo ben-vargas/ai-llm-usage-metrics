@@ -43,23 +43,45 @@ llm-usage monthly --source opencode --opencode-db /path/to/opencode.db
 
 ## Runtime environment variables
 
-Update notifier and parsing/pricing runtime knobs (see [Caching](/caching/) for behavior details):
+See [Caching](/caching/) for cache-layer behavior details. This section explains what each key does and why you would tune it.
 
-- `LLM_USAGE_SKIP_UPDATE_CHECK`
-- `LLM_USAGE_UPDATE_CACHE_SCOPE`
-- `LLM_USAGE_UPDATE_CACHE_SESSION_KEY`
-- `LLM_USAGE_UPDATE_CACHE_TTL_MS`
-- `LLM_USAGE_UPDATE_FETCH_TIMEOUT_MS`
-- `LLM_USAGE_PRICING_CACHE_TTL_MS`
-- `LLM_USAGE_PRICING_FETCH_TIMEOUT_MS`
-- `LLM_USAGE_PARSE_MAX_PARALLEL`
-- `LLM_USAGE_PARSE_CACHE_ENABLED`
-- `LLM_USAGE_PARSE_CACHE_TTL_MS`
-- `LLM_USAGE_PARSE_CACHE_MAX_ENTRIES`
-- `LLM_USAGE_PARSE_CACHE_MAX_BYTES`
+### Update-check behavior
+
+| Variable | Default | What it controls | Why/when to change it |
+| --- | --- | --- | --- |
+| `LLM_USAGE_SKIP_UPDATE_CHECK` | unset (`false`) | Skips startup npm update check when truthy (`1`, `true`, `yes`, `on`) | Set in CI/non-interactive pipelines to avoid extra startup work |
+| `LLM_USAGE_UPDATE_CACHE_SCOPE` | `global` | Update-check cache scope (`global` or `session`) | Use `session` to isolate cache by terminal/session |
+| `LLM_USAGE_UPDATE_CACHE_SESSION_KEY` | unset | Session cache key used when scope is `session` | Set explicit stable key for terminal tabs/workspaces |
+| `LLM_USAGE_UPDATE_CACHE_TTL_MS` | `3600000` (1h) | How long update-check cache is considered fresh | Lower for more frequent checks, higher for less network traffic |
+| `LLM_USAGE_UPDATE_FETCH_TIMEOUT_MS` | `1000` | HTTP timeout for update-check request | Increase on slow networks to reduce timeout-based misses |
+
+### Pricing behavior
+
+| Variable | Default | What it controls | Why/when to change it |
+| --- | --- | --- | --- |
+| `LLM_USAGE_PRICING_CACHE_TTL_MS` | `86400000` (24h) | Freshness window for LiteLLM pricing cache | Lower for fresher pricing, higher for stable/offline-heavy setups |
+| `LLM_USAGE_PRICING_FETCH_TIMEOUT_MS` | `4000` | HTTP timeout for pricing fetches | Increase if pricing fetches time out in your environment |
+
+### Parsing and parse-cache behavior
+
+| Variable | Default | What it controls | Why/when to change it |
+| --- | --- | --- | --- |
+| `LLM_USAGE_PARSE_MAX_PARALLEL` | `8` | Max parallel file parses (`1-64`) | Increase on fast CPUs/disks, lower on constrained systems |
+| `LLM_USAGE_PARSE_CACHE_ENABLED` | `1` (`true`) | Enables/disables parse-file cache | Disable for strict cold-run benchmarking/debugging |
+| `LLM_USAGE_PARSE_CACHE_TTL_MS` | `604800000` (7d) | Parse-cache TTL for unchanged files | Lower if you want more frequent full reparsing |
+| `LLM_USAGE_PARSE_CACHE_MAX_ENTRIES` | `2000` | Upper bound for parse-cache entry count | Raise for very large history sets; lower to cap disk usage |
+| `LLM_USAGE_PARSE_CACHE_MAX_BYTES` | `33554432` (32 MiB) | Upper bound for parse-cache file size | Raise when cache churn is high; lower for tighter disk budgets |
 
 Example:
 
 ```bash
 LLM_USAGE_PARSE_MAX_PARALLEL=16 LLM_USAGE_PRICING_FETCH_TIMEOUT_MS=8000 llm-usage monthly
+```
+
+Benchmarking-focused example (force near-cold parse behavior):
+
+```bash
+LLM_USAGE_SKIP_UPDATE_CHECK=1 \
+LLM_USAGE_PARSE_CACHE_ENABLED=0 \
+llm-usage monthly --provider openai --json
 ```

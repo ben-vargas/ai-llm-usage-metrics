@@ -32,6 +32,10 @@ export default defineConfig({
           link: '/cli-reference',
         },
         {
+          label: 'Efficiency',
+          link: '/efficiency',
+        },
+        {
           label: 'Data Sources',
           items: [
             { label: 'Overview', link: '/sources/' },
@@ -51,6 +55,10 @@ export default defineConfig({
         {
           label: 'Output Formats',
           link: '/output-formats',
+        },
+        {
+          label: 'Benchmarks',
+          link: '/benchmarks',
         },
         {
           label: 'Pricing',
