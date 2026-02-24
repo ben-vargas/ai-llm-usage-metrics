@@ -69,6 +69,20 @@ export type UpdateNotifierResult = {
   exitCode?: number;
 };
 
+function isTruthyEnvFlag(value: string | undefined): boolean {
+  if (value === undefined) {
+    return false;
+  }
+
+  const normalizedValue = value.trim().toLowerCase();
+
+  if (normalizedValue.length === 0) {
+    return false;
+  }
+
+  return ['1', 'true', 'yes', 'on'].includes(normalizedValue);
+}
+
 export function shouldSkipUpdateCheckForArgv(argv: string[]): boolean {
   const executableArgs = argv.slice(2);
   const commandNames = new Set(['daily', 'weekly', 'monthly', 'efficiency', 'help', 'version']);
@@ -101,7 +115,7 @@ export function isLikelyNpxExecution(argv: string[], env: NodeJS.ProcessEnv): bo
 
   const npmCommand = env.npm_command ?? '';
 
-  return npmCommand === 'exec';
+  return npmCommand === 'exec' || npmCommand === 'npx';
 }
 
 export function isLikelySourceExecution(argv: string[]): boolean {
@@ -132,7 +146,7 @@ export async function checkForUpdatesAndMaybeRestart(
   const env = options.env ?? process.env;
   const argv = options.argv ?? process.argv;
 
-  if (env[UPDATE_CHECK_SKIP_ENV_VAR] === '1') {
+  if (isTruthyEnvFlag(env[UPDATE_CHECK_SKIP_ENV_VAR])) {
     return { continueExecution: true };
   }
 

@@ -324,6 +324,11 @@ describe('update-notifier', () => {
         npm_execpath: '/usr/lib/node_modules/pnpm/bin/pnpm.js',
       }),
     ).toBe(false);
+    expect(
+      isLikelyNpxExecution(['/usr/bin/node', '/app/dist/index.js', 'daily'], {
+        npm_command: 'npx',
+      }),
+    ).toBe(true);
   });
 
   it('detects local source execution entrypoints', () => {
@@ -381,6 +386,25 @@ describe('update-notifier', () => {
       currentVersion: '0.1.0',
       env: {
         LLM_USAGE_SKIP_UPDATE_CHECK: '1',
+      },
+      fetchImpl: fetchSpy,
+      notify: vi.fn(),
+    });
+
+    expect(result).toEqual({ continueExecution: true });
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('skips update checks when skip env var uses truthy string values', async () => {
+    const fetchSpy = vi.fn(async () => {
+      throw new Error('fetch should not be called when env skip flag is set');
+    });
+
+    const result = await checkForUpdatesAndMaybeRestart({
+      packageName: 'llm-usage-metrics',
+      currentVersion: '0.1.0',
+      env: {
+        LLM_USAGE_SKIP_UPDATE_CHECK: 'true',
       },
       fetchImpl: fetchSpy,
       notify: vi.fn(),

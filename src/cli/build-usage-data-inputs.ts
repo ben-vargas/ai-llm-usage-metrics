@@ -206,8 +206,22 @@ export function normalizeBuildUsageInputs(
 ): NormalizedBuildUsageInputs {
   const { normalizedPricingUrl } = validateBuildOptions(options);
 
-  const timezoneInput = options.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const timezone = timezoneInput.trim();
+  const timezone =
+    options.timezone !== undefined
+      ? options.timezone.trim()
+      : (() => {
+          const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+          if (typeof detectedTimezone === 'string') {
+            const trimmedDetectedTimezone = detectedTimezone.trim();
+
+            if (trimmedDetectedTimezone.length > 0) {
+              return trimmedDetectedTimezone;
+            }
+          }
+
+          return 'UTC';
+        })();
   validateTimezone(timezone);
 
   const providerFilter = normalizeProviderFilter(options.provider);

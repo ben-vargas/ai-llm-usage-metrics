@@ -37,7 +37,14 @@ export function isInteractiveSession(options: {
   stdinIsTTY: boolean;
   stdoutIsTTY: boolean;
 }): boolean {
-  return options.stdinIsTTY && options.stdoutIsTTY && !options.env.CI;
+  const ciValue = options.env.CI;
+  const normalizedCiValue = ciValue?.trim().toLowerCase();
+  const ciEnabled =
+    normalizedCiValue !== undefined &&
+    normalizedCiValue.length > 0 &&
+    !['0', 'false', 'no', 'off'].includes(normalizedCiValue);
+
+  return options.stdinIsTTY && options.stdoutIsTTY && !ciEnabled;
 }
 
 export async function defaultConfirmInstall(prompt: string): Promise<boolean> {

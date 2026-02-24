@@ -57,6 +57,9 @@ describe('update-install-runner', () => {
     expect(isInteractiveSession({ env: { CI: '1' }, stdinIsTTY: true, stdoutIsTTY: true })).toBe(
       false,
     );
+    expect(
+      isInteractiveSession({ env: { CI: 'false' }, stdinIsTTY: true, stdoutIsTTY: true }),
+    ).toBe(true);
     expect(isInteractiveSession({ env: {}, stdinIsTTY: false, stdoutIsTTY: true })).toBe(false);
     expect(isInteractiveSession({ env: {}, stdinIsTTY: true, stdoutIsTTY: false })).toBe(false);
   });
