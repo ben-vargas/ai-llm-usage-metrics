@@ -101,11 +101,29 @@ jobs:
       - run: pnpm run build
       - run: pnpm run pack:check
 
+  main-perf:
+    name: Main - Performance Baseline
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [main-build]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.13.1'
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run perf:report-baseline
+
   main-test:
     name: Main - Test
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: [main-build]
+    needs: [main-build, main-perf]
     permissions:
       contents: read
       issues: write
@@ -235,6 +253,7 @@ jobs:
         main-format,
         main-typecheck,
         main-mermaid,
+        main-perf,
         main-test,
         site-format,
         site-check,
@@ -248,6 +267,7 @@ jobs:
              [ "${{ needs.main-format.result }}" != "success" ] || \
              [ "${{ needs.main-typecheck.result }}" != "success" ] || \
              [ "${{ needs.main-mermaid.result }}" != "success" ] || \
+             [ "${{ needs.main-perf.result }}" != "success" ] || \
              [ "${{ needs.main-test.result }}" != "success" ] || \
              [ "${{ needs.site-format.result }}" != "success" ] || \
              [ "${{ needs.site-check.result }}" != "success" ] || \
