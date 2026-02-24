@@ -111,6 +111,27 @@ describe('ParseFileCache', () => {
     expect(payload.entries).toHaveLength(0);
   });
 
+  it('evicts stale fingerprint entries so they do not persist forever', async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), 'parse-file-cache-fingerprint-'));
+    tempDirs.push(tempDir);
+    const cacheFilePath = path.join(tempDir, 'parse-file-cache.json');
+    const limits = { ttlMs: 60_000, maxEntries: 100, maxBytes: 1024 * 1024 };
+
+    const cache = await ParseFileCache.load({ cacheFilePath, limits, now: () => 1_000 });
+    cache.set(
+      'codex',
+      '/tmp/cached.jsonl',
+      { size: 10, mtimeMs: 20 },
+      { events: [createEvent()], skippedRows: 0 },
+    );
+
+    expect(cache.get('codex', '/tmp/cached.jsonl', { size: 11, mtimeMs: 20 })).toBeUndefined();
+
+    await cache.persist();
+    const payload = JSON.parse(await readFile(cacheFilePath, 'utf8')) as { entries: unknown[] };
+    expect(payload.entries).toHaveLength(0);
+  });
+
   it('normalizes disk payload entries and ignores malformed rows', async () => {
     const tempDir = await mkdtemp(path.join(os.tmpdir(), 'parse-file-cache-load-'));
     tempDirs.push(tempDir);

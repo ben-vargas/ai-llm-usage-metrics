@@ -87,6 +87,16 @@ describe('createUsageEvent', () => {
     ).toThrow('sessionId');
   });
 
+  it('throws when source is not a string', () => {
+    expect(() =>
+      createUsageEvent({
+        source: 123 as unknown as string,
+        sessionId: 'session-non-string-source',
+        timestamp: '2026-02-12T10:00:00Z',
+      }),
+    ).toThrow('source');
+  });
+
   it('normalizes model identifiers to lowercase', () => {
     const event = createUsageEvent({
       source: 'pi',

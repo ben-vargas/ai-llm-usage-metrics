@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest';
 import { renderEfficiencyReport } from '../../src/render/render-efficiency-report.js';
 import type { EfficiencyDataResult } from '../../src/cli/usage-data-contracts.js';
 
-function createEfficiencyDataResult(): EfficiencyDataResult {
+function createEfficiencyDataResult(
+  overrides: Partial<EfficiencyDataResult['diagnostics']['usage']> = {},
+): EfficiencyDataResult {
   return {
     rows: [
       {
@@ -56,6 +58,7 @@ function createEfficiencyDataResult(): EfficiencyDataResult {
         pricingOrigin: 'none',
         activeEnvOverrides: [],
         timezone: 'UTC',
+        ...overrides,
       },
       repoDir: '/tmp/repo',
       includeMergeCommits: false,
@@ -93,6 +96,29 @@ describe('renderEfficiencyReport', () => {
     expect(output).toContain('Weekly Efficiency Report');
     expect(output).toContain('│ Period');
     expect(output).toContain('│ ALL');
+  });
+
+  it('renders monthly terminal title without embedding diagnostics', () => {
+    const output = renderEfficiencyReport(
+      createEfficiencyDataResult({
+        activeEnvOverrides: [
+          {
+            name: 'LLM_USAGE_PARSE_MAX_PARALLEL',
+            value: '8',
+            description: 'max parallel file parsing',
+          },
+        ],
+      }),
+      'terminal',
+      {
+        granularity: 'monthly',
+        useColor: false,
+      },
+    );
+
+    expect(output).not.toContain('Active environment overrides:');
+    expect(output).not.toContain('LLM_USAGE_PARSE_MAX_PARALLEL=8');
+    expect(output).toContain('Monthly Efficiency Report');
   });
 
   it('renders json without undefined derived metrics', () => {

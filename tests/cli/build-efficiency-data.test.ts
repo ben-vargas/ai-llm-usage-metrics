@@ -5,6 +5,8 @@ import type { UsageDataResult } from '../../src/cli/usage-data-contracts.js';
 
 function createUsageDataResult(): UsageDataResult {
   return {
+    // Intentionally includes multiple repo-scoped events so buildEfficiencyData
+    // is forced to re-aggregate from attributed events (not trust incoming rows).
     events: [
       {
         source: 'pi',
@@ -54,6 +56,8 @@ function createUsageDataResult(): UsageDataResult {
         costMode: 'explicit',
       },
     ],
+    // Intentionally only mirrors the pi slice so tests verify rows are rebuilt
+    // from attribution, not reused from this precomputed usage summary.
     rows: [
       {
         rowType: 'period_source',
@@ -247,5 +251,36 @@ describe('buildEfficiencyData', () => {
 
     expect(result.diagnostics.scopeNote).toContain('--pi-dir');
     expect(result.diagnostics.scopeNote).toContain('--source-dir');
+  });
+
+  it('includes --opencode-db in scope note when configured', async () => {
+    const result = await buildEfficiencyData(
+      'monthly',
+      {
+        opencodeDb: '/tmp/opencode.db',
+      },
+      {
+        buildUsageData: async () => createUsageDataResult(),
+        collectGitOutcomes: async () => ({
+          periodOutcomes: new Map(),
+          totalOutcomes: {
+            commitCount: 0,
+            linesAdded: 0,
+            linesDeleted: 0,
+            linesChanged: 0,
+          },
+          diagnostics: {
+            repoDir: '/tmp/repo',
+            includeMergeCommits: false,
+            commitsCollected: 0,
+            linesAdded: 0,
+            linesDeleted: 0,
+          },
+        }),
+        resolveRepoRoot: async () => '/tmp/repo',
+      },
+    );
+
+    expect(result.diagnostics.scopeNote).toContain('--opencode-db');
   });
 });

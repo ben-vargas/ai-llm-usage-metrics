@@ -172,6 +172,93 @@ describe('CodexSourceAdapter', () => {
     expect(events[0]?.cacheReadTokens).toBe(3);
     expect(events[0]?.totalTokens).toBe(19);
   });
+
+  it('skips non-token events and advances totals when a token event is missing timestamp', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'codex-source-skip-cases-'));
+    tempDirs.push(root);
+    const filePath = path.join(root, 'session.jsonl');
+
+    await writeFile(
+      filePath,
+      [
+        JSON.stringify({
+          type: 'session_meta',
+          payload: null,
+        }),
+        JSON.stringify({
+          type: 'turn_context',
+          payload: null,
+        }),
+        JSON.stringify({
+          timestamp: '2026-02-14T10:00:01.000Z',
+          type: 'other_event',
+          payload: {
+            type: 'event_msg',
+            nested: { type: 'token_count' },
+          },
+        }),
+        JSON.stringify({
+          timestamp: '2026-02-14T10:00:02.000Z',
+          type: 'event_msg',
+          payload: {
+            type: 'not_token_count',
+            nested: { type: 'token_count' },
+          },
+        }),
+        JSON.stringify({
+          timestamp: '2026-02-14T10:00:02.500Z',
+          type: 'event_msg',
+          payload: {
+            type: 'token_count',
+            info: {},
+          },
+        }),
+        JSON.stringify({
+          type: 'event_msg',
+          payload: {
+            type: 'token_count',
+            info: {
+              total_token_usage: {
+                input_tokens: 20,
+                cached_input_tokens: 5,
+                output_tokens: 5,
+                reasoning_output_tokens: 0,
+              },
+            },
+          },
+        }),
+        JSON.stringify({
+          timestamp: '2026-02-14T10:00:04.000Z',
+          type: 'event_msg',
+          payload: {
+            type: 'token_count',
+            info: {
+              total_token_usage: {
+                input_tokens: 30,
+                cached_input_tokens: 5,
+                output_tokens: 15,
+                reasoning_output_tokens: 0,
+              },
+            },
+          },
+        }),
+      ].join('\n'),
+      'utf8',
+    );
+
+    const adapter = new CodexSourceAdapter({ sessionsDir: root });
+    const events = await adapter.parseFile(filePath);
+
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      source: 'codex',
+      totalTokens: 20,
+      inputTokens: 10,
+      outputTokens: 10,
+      cacheReadTokens: 0,
+      model: LEGACY_CODEX_MODEL_FALLBACK,
+    });
+  });
 });
 
 describe('codex source helpers', () => {

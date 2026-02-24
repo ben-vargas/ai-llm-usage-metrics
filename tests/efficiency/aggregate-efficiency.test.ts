@@ -272,4 +272,114 @@ describe('aggregateEfficiency', () => {
       nonCacheTokensPerCommit: 50,
     });
   });
+
+  it('keeps explicit cost-only periods in output when commits exist', () => {
+    const rows = aggregateEfficiency({
+      usageRows: [
+        createUsageRow({
+          rowType: 'period_source',
+          periodKey: '2026-02-01',
+          source: 'opencode',
+          inputTokens: 0,
+          outputTokens: 0,
+          reasoningTokens: 0,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          totalTokens: 0,
+          costUsd: 4.25,
+        }),
+        createUsageRow({
+          rowType: 'grand_total',
+          periodKey: 'ALL',
+          source: 'combined',
+          inputTokens: 0,
+          outputTokens: 0,
+          reasoningTokens: 0,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          totalTokens: 0,
+          costUsd: 4.25,
+        }),
+      ],
+      periodOutcomes: new Map([
+        [
+          '2026-02-01',
+          {
+            commitCount: 2,
+            linesAdded: 10,
+            linesDeleted: 2,
+            linesChanged: 12,
+          },
+        ],
+      ]),
+    });
+
+    expect(rows[0]).toMatchObject({
+      rowType: 'period',
+      periodKey: '2026-02-01',
+      totalTokens: 0,
+      costUsd: 4.25,
+      commitCount: 2,
+      usdPerCommit: 2.125,
+      tokensPerCommit: 0,
+      nonCacheTokensPerCommit: 0,
+    });
+    expect(rows[1]).toMatchObject({
+      rowType: 'grand_total',
+      periodKey: 'ALL',
+      costUsd: 4.25,
+      commitCount: 2,
+      usdPerCommit: 2.125,
+    });
+  });
+
+  it('computes non-cache tokens from token components, not provider total semantics', () => {
+    const rows = aggregateEfficiency({
+      usageRows: [
+        createUsageRow({
+          rowType: 'period_source',
+          periodKey: '2026-02-01',
+          source: 'codex',
+          inputTokens: 100,
+          outputTokens: 50,
+          reasoningTokens: 20,
+          cacheReadTokens: 30,
+          cacheWriteTokens: 0,
+          // Some providers report total excluding reasoning.
+          totalTokens: 180,
+          costUsd: 1.8,
+        }),
+        createUsageRow({
+          rowType: 'grand_total',
+          periodKey: 'ALL',
+          source: 'combined',
+          inputTokens: 100,
+          outputTokens: 50,
+          reasoningTokens: 20,
+          cacheReadTokens: 30,
+          cacheWriteTokens: 0,
+          totalTokens: 180,
+          costUsd: 1.8,
+        }),
+      ],
+      periodOutcomes: new Map([
+        [
+          '2026-02-01',
+          {
+            commitCount: 2,
+            linesAdded: 10,
+            linesDeleted: 2,
+            linesChanged: 12,
+          },
+        ],
+      ]),
+    });
+
+    expect(rows[0]).toMatchObject({
+      rowType: 'period',
+      periodKey: '2026-02-01',
+      tokensPerCommit: 90,
+      nonCacheTokensPerCommit: 85,
+    });
+  });
 });

@@ -64,6 +64,38 @@ describe('parseGitLogShortstatLines', () => {
       },
     ]);
   });
+
+  it('ignores non-commit lines before the first boundary', () => {
+    const events = parseGitLogShortstatLines([
+      'noise before first commit',
+      `${marker}1760090400${marker}abcdef1${marker}dev@example.com`,
+      ' 1 file changed, 2 insertions(+)',
+    ]);
+
+    expect(events).toEqual([
+      {
+        sha: 'abcdef1',
+        timestamp: '2025-10-10T10:00:00.000Z',
+        linesAdded: 2,
+        linesDeleted: 0,
+        linesChanged: 2,
+      },
+    ]);
+  });
+
+  it('throws when a commit boundary line is malformed', () => {
+    expect(() =>
+      parseGitLogShortstatLines([`${marker}1760090400${marker}abcdef1${marker}`]),
+    ).toThrow('Malformed git commit boundary line');
+  });
+
+  it('throws when commit timestamp cannot be converted to ISO date', () => {
+    expect(() =>
+      parseGitLogShortstatLines([
+        `${marker}9999999999999999${marker}abcdef1${marker}dev@example.com`,
+      ]),
+    ).toThrow('Invalid git commit timestamp');
+  });
 });
 
 describe('collectGitOutcomes', () => {
@@ -76,7 +108,7 @@ describe('collectGitOutcomes', () => {
     >(async (_repoDir, args) => {
       if (args[0] === 'config') {
         return {
-          lines: ['dev.test+tools@example.com'],
+          lines: ['Dev.Test+Tools@Example.com'],
           stderr: '',
           exitCode: 0,
         };
@@ -114,7 +146,8 @@ describe('collectGitOutcomes', () => {
     expect(configArgs).toEqual(['config', '--get', 'user.email']);
 
     expect(args).toContain('--no-merges');
-    expect(args).toContain('--author=<dev.test+tools@example.com>');
+    expect(args).toContain('--regexp-ignore-case');
+    expect(args).toContain('--author=<Dev\\.Test\\+Tools@Example\\.com>');
     expect(args).toContain(`--pretty=format:${marker}%ct${marker}%H${marker}%ae`);
     expect(args).toContain('--since=2026-02-10T00:00:00Z');
     expect(args).toContain('--until=2026-02-12T23:59:59Z');
@@ -175,7 +208,7 @@ describe('collectGitOutcomes', () => {
 
     const args = (runGitCommand.mock.calls[1]?.[1] as string[] | undefined) ?? [];
     expect(args).not.toContain('--no-merges');
-    expect(args).toContain('--author=<dev@example.com>');
+    expect(args).toContain('--author=<dev@example\\.com>');
   });
 
   it('fails when user.email is missing', async () => {
@@ -200,5 +233,136 @@ describe('collectGitOutcomes', () => {
         { runGitCommand },
       ),
     ).rejects.toThrow('Git user.email is not configured for');
+  });
+
+  it('fails with git stderr when resolving user.email errors for unexpected exit codes', async () => {
+    const runGitCommand = vi.fn<
+      (
+        repoDir: string,
+        args: string[],
+      ) => Promise<{ lines: string[]; stderr: string; exitCode: number }>
+    >(async () => ({
+      lines: [],
+      stderr: 'fatal: unable to read config file',
+      exitCode: 2,
+    }));
+
+    await expect(
+      collectGitOutcomes(
+        {
+          repoDir: '/tmp/repo',
+          granularity: 'daily',
+          timezone: 'UTC',
+        },
+        { runGitCommand },
+      ),
+    ).rejects.toThrow(
+      'Failed to resolve git user.email from /tmp/repo: fatal: unable to read config file',
+    );
+  });
+
+  it('fails when user.email resolves to blank output', async () => {
+    const runGitCommand = vi.fn<
+      (
+        repoDir: string,
+        args: string[],
+      ) => Promise<{ lines: string[]; stderr: string; exitCode: number }>
+    >(async (_repoDir, args) => {
+      if (args[0] === 'config') {
+        return {
+          lines: ['   '],
+          stderr: '',
+          exitCode: 0,
+        };
+      }
+
+      return {
+        lines: [],
+        stderr: '',
+        exitCode: 0,
+      };
+    });
+
+    await expect(
+      collectGitOutcomes(
+        {
+          repoDir: '/tmp/repo',
+          granularity: 'daily',
+          timezone: 'UTC',
+        },
+        { runGitCommand },
+      ),
+    ).rejects.toThrow('Git user.email is not configured for /tmp/repo');
+  });
+
+  it('includes fallback exit-code reason when git log fails without stderr', async () => {
+    const runGitCommand = vi.fn<
+      (
+        repoDir: string,
+        args: string[],
+      ) => Promise<{ lines: string[]; stderr: string; exitCode: number }>
+    >(async (_repoDir, args) => {
+      if (args[0] === 'config') {
+        return {
+          lines: ['dev@example.com'],
+          stderr: '',
+          exitCode: 0,
+        };
+      }
+
+      return {
+        lines: [],
+        stderr: '',
+        exitCode: 3,
+      };
+    });
+
+    await expect(
+      collectGitOutcomes(
+        {
+          repoDir: '/tmp/repo',
+          granularity: 'daily',
+          timezone: 'UTC',
+        },
+        { runGitCommand },
+      ),
+    ).rejects.toThrow('Failed to collect git outcomes from /tmp/repo: git exited with code 3');
+  });
+
+  it('fails fast on invalid date literals when building git log args', async () => {
+    const runGitCommand = vi.fn<
+      (
+        repoDir: string,
+        args: string[],
+      ) => Promise<{ lines: string[]; stderr: string; exitCode: number }>
+    >(async (_repoDir, args) => {
+      if (args[0] === 'config') {
+        return {
+          lines: ['dev@example.com'],
+          stderr: '',
+          exitCode: 0,
+        };
+      }
+
+      return {
+        lines: [`${marker}1770771600${marker}abcdef2${marker}dev@example.com`],
+        stderr: '',
+        exitCode: 0,
+      };
+    });
+
+    await expect(
+      collectGitOutcomes(
+        {
+          repoDir: '/tmp/repo',
+          granularity: 'daily',
+          timezone: 'UTC',
+          since: 'not-a-date',
+          until: 'still-not-a-date',
+        },
+        { runGitCommand },
+      ),
+    ).rejects.toThrow('Invalid date value: not-a-date');
+    expect(runGitCommand).toHaveBeenCalledTimes(1);
   });
 });
