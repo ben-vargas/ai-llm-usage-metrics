@@ -10,74 +10,74 @@
 
 /* ── Dark Theme (Default) ───────────────────────────────── */
 :root {
-  /* Color Primitives */
-  --color-bg: #09090b;
-  --color-bg-elevated: #18181b;
-  --color-bg-card: rgba(24, 24, 27, 0.6);
-  --color-bg-code: #0c0c0e;
+  /* Surfaces */
+  --color-bg: #0a0a0c;
+  --color-bg-elevated: #161618;
+  --color-bg-card: rgba(22, 22, 24, 0.7);
+  --color-bg-code: #0e0e10;
 
-  /* Text Colors - Enhanced Contrast */
-  --color-text: #fafafa;
-  --color-text-secondary: #e4e4e7;
-  --color-text-muted: #d4d4d8;
-  --color-text-dim: #a1a1aa;
+  /* Text - high contrast for dark backgrounds */
+  --color-text: #f5f5f7;
+  --color-text-secondary: #d1d1d6;
+  --color-text-muted: #a1a1aa;
+  --color-text-dim: #71717a;
 
   /* Accent - Emerald */
   --color-accent: #34d399;
   --color-accent-hover: #6ee7b7;
   --color-accent-glow: rgba(52, 211, 153, 0.2);
-  --color-accent-subtle: rgba(52, 211, 153, 0.15);
+  --color-accent-subtle: rgba(52, 211, 153, 0.12);
 
-  /* Utility Colors - Enhanced */
+  /* Utility */
   --color-cyan: #38bdf8;
   --color-yellow: #fbbf24;
   --color-red: #f87171;
 
-  /* Borders - More visible */
-  --border-subtle: rgba(255, 255, 255, 0.1);
-  --border-default: rgba(255, 255, 255, 0.15);
-  --border-strong: rgba(255, 255, 255, 0.25);
+  /* Borders */
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-default: rgba(255, 255, 255, 0.13);
+  --border-strong: rgba(255, 255, 255, 0.22);
   --border-focus: rgba(52, 211, 153, 0.6);
 
-  /* Shadow Colors */
+  /* Shadows */
   --shadow-color: rgba(0, 0, 0, 0.5);
-  --shadow-elevated: rgba(0, 0, 0, 0.6);
+  --shadow-elevated: rgba(0, 0, 0, 0.55);
 }
 
 /* ── Light Theme ────────────────────────────────────────── */
 :root[data-theme='light'] {
-  /* Color Primitives */
-  --color-bg: #fafafa;
-  --color-bg-elevated: #f4f4f5;
-  --color-bg-card: rgba(255, 255, 255, 0.8);
-  --color-bg-code: #f0f0f1;
+  /* Surfaces */
+  --color-bg: #ffffff;
+  --color-bg-elevated: #f5f5f7;
+  --color-bg-card: rgba(255, 255, 255, 0.85);
+  --color-bg-code: #f0f0f2;
 
-  /* Text Colors - Enhanced Contrast for Light Mode */
-  --color-text: #18181b;
-  --color-text-secondary: #27272a;
-  --color-text-muted: #3f3f46;
-  --color-text-dim: #52525b;
+  /* Text - WCAG AA compliant on white */
+  --color-text: #1a1a1e;
+  --color-text-secondary: #2e2e33;
+  --color-text-muted: #4a4a52;
+  --color-text-dim: #6b6b76;
 
-  /* Accent - Darker Emerald for Light Mode */
+  /* Accent - darker emerald for light bg */
   --color-accent: #059669;
   --color-accent-hover: #047857;
-  --color-accent-glow: rgba(5, 150, 105, 0.2);
-  --color-accent-subtle: rgba(5, 150, 105, 0.12);
+  --color-accent-glow: rgba(5, 150, 105, 0.18);
+  --color-accent-subtle: rgba(5, 150, 105, 0.1);
 
-  /* Utility Colors - Darker for Light Mode */
+  /* Utility - darkened for readability */
   --color-cyan: #0369a1;
-  --color-yellow: #b45309;
+  --color-yellow: #92400e;
   --color-red: #dc2626;
 
-  /* Borders - More visible in light mode */
-  --border-subtle: rgba(0, 0, 0, 0.08);
-  --border-default: rgba(0, 0, 0, 0.15);
-  --border-strong: rgba(0, 0, 0, 0.25);
+  /* Borders - visible on white */
+  --border-subtle: rgba(0, 0, 0, 0.06);
+  --border-default: rgba(0, 0, 0, 0.12);
+  --border-strong: rgba(0, 0, 0, 0.2);
   --border-focus: rgba(5, 150, 105, 0.6);
 
-  /* Shadow Colors */
-  --shadow-color: rgba(0, 0, 0, 0.08);
-  --shadow-elevated: rgba(0, 0, 0, 0.12);
+  /* Shadows */
+  --shadow-color: rgba(0, 0, 0, 0.06);
+  --shadow-elevated: rgba(0, 0, 0, 0.1);
 }
 
 /* ── Shared Tokens ──────────────────────────────────────── */
@@ -90,7 +90,7 @@
   --radius-2xl: 1.5rem;
   --radius-full: 9999px;
 
-  /* Spacing Scale */
+  /* Spacing */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -143,7 +143,7 @@
   --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-spring: 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
 
-  /* Z-Index Scale */
+  /* Z-Index */
   --z-base: 0;
   --z-dropdown: 10;
   --z-sticky: 20;
