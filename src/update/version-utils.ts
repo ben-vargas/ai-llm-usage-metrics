@@ -1,3 +1,5 @@
+import { compareByCodePoint } from '../utils/compare-by-code-point.js';
+
 export type ParsedVersion = {
   major: number;
   minor: number;
@@ -52,7 +54,7 @@ function comparePrereleaseIdentifiers(left: string, right: string): number {
     return 1;
   }
 
-  return left.localeCompare(right);
+  return compareByCodePoint(left, right);
 }
 
 function isPrerelease(version: string): boolean {
