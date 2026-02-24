@@ -456,4 +456,101 @@ describe('collectGitOutcomes', () => {
       linesChanged: 0,
     });
   });
+
+  it('returns zero outcomes when git reports no commit history', async () => {
+    const runGitCommand = vi.fn<
+      (
+        repoDir: string,
+        args: string[],
+      ) => Promise<{ lines: string[]; stderr: string; exitCode: number }>
+    >(async (_repoDir, args) => {
+      if (args[0] === 'config') {
+        return {
+          lines: ['dev@example.com'],
+          stderr: '',
+          exitCode: 0,
+        };
+      }
+
+      return {
+        lines: [],
+        stderr: "fatal: your current branch 'master' does not have any commits yet",
+        exitCode: 128,
+      };
+    });
+
+    const result = await collectGitOutcomes(
+      {
+        repoDir: '/tmp/repo',
+        granularity: 'daily',
+        timezone: 'UTC',
+      },
+      { runGitCommand },
+    );
+
+    expect(result.periodOutcomes.size).toBe(0);
+    expect(result.totalOutcomes).toEqual({
+      commitCount: 0,
+      linesAdded: 0,
+      linesDeleted: 0,
+      linesChanged: 0,
+    });
+  });
+
+  it('returns zero outcomes when user.email is missing but repo has no commits', async () => {
+    const runGitCommand = vi.fn<
+      (
+        repoDir: string,
+        args: string[],
+      ) => Promise<{ lines: string[]; stderr: string; exitCode: number }>
+    >(async (_repoDir, args) => {
+      if (args[0] === 'config') {
+        return {
+          lines: [],
+          stderr: '',
+          exitCode: 1,
+        };
+      }
+
+      return {
+        lines: [],
+        stderr: 'fatal: Needed a single revision',
+        exitCode: 128,
+      };
+    });
+
+    const result = await collectGitOutcomes(
+      {
+        repoDir: '/tmp/repo',
+        granularity: 'daily',
+        timezone: 'UTC',
+      },
+      { runGitCommand },
+    );
+
+    expect(result.totalOutcomes.commitCount).toBe(0);
+    expect(runGitCommand).toHaveBeenCalledWith('/tmp/repo', ['rev-parse', '--verify', 'HEAD']);
+  });
+
+  it('rejects blank --repo-dir values', async () => {
+    await expect(
+      collectGitOutcomes({
+        repoDir: '   ',
+        granularity: 'daily',
+        timezone: 'UTC',
+      }),
+    ).rejects.toThrow('--repo-dir must be a non-empty path');
+  });
+
+  it('fails fast when the configured repo path does not exist', async () => {
+    const missingRepoPath = `/tmp/llm-usage-metrics-missing-repo-${Date.now()}`;
+
+    await expect(
+      collectGitOutcomes({
+        repoDir: missingRepoPath,
+        granularity: 'daily',
+        timezone: 'UTC',
+      }),
+    ).rejects.toThrow(`Repository path does not exist: ${missingRepoPath}`);
+  });
 });

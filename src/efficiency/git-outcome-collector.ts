@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import path from 'node:path';
+import { stat } from 'node:fs/promises';
 
 import { getPeriodKey, type ReportGranularity } from '../utils/time-buckets.js';
 import {
@@ -79,6 +80,89 @@ function escapeGitRegexLiteral(value: string): string {
 
 function resolveGitCommandFailureReason(result: GitCommandResult): string {
   return result.stderr.trim() || `git exited with code ${result.exitCode}`;
+}
+
+function resolveRepoDir(repoDir: string | undefined): string {
+  if (repoDir === undefined) {
+    return path.resolve(process.cwd());
+  }
+
+  const normalizedRepoDir = repoDir.trim();
+
+  if (!normalizedRepoDir) {
+    throw new Error('--repo-dir must be a non-empty path');
+  }
+
+  return path.resolve(normalizedRepoDir);
+}
+
+function getNodeErrorCode(error: unknown): string | undefined {
+  if (typeof error !== 'object' || error === null || !('code' in error)) {
+    return undefined;
+  }
+
+  const record = error as { code?: unknown };
+  return typeof record.code === 'string' ? record.code : undefined;
+}
+
+async function assertRepoDirReadable(repoDir: string): Promise<void> {
+  let directoryStats: Awaited<ReturnType<typeof stat>>;
+
+  try {
+    directoryStats = await stat(repoDir);
+  } catch (error) {
+    const code = getNodeErrorCode(error);
+
+    if (code === 'ENOENT') {
+      throw new Error(`Repository path does not exist: ${repoDir}`, { cause: error });
+    }
+
+    if (code === 'EACCES' || code === 'EPERM') {
+      throw new Error(`Repository path is unreadable: ${repoDir}`, { cause: error });
+    }
+
+    throw error;
+  }
+
+  if (!directoryStats.isDirectory()) {
+    throw new Error(`Repository path is not a directory: ${repoDir}`);
+  }
+}
+
+function isNoCommitHistoryFailure(result: GitCommandResult): boolean {
+  if (result.exitCode !== 128) {
+    return false;
+  }
+
+  const reason = result.stderr.toLowerCase();
+
+  return (
+    reason.includes('does not have any commits yet') ||
+    reason.includes('needed a single revision') ||
+    reason.includes('unknown revision or path not in the working tree') ||
+    reason.includes("bad revision 'head'")
+  );
+}
+
+function createEmptyOutcomeCollection(
+  repoDir: string,
+  includeMergeCommits: boolean,
+): GitOutcomeCollectionResult {
+  return {
+    periodOutcomes: new Map(),
+    totalOutcomes: createEmptyEfficiencyOutcomeTotals(),
+    diagnostics: {
+      repoDir,
+      includeMergeCommits,
+      commitsCollected: 0,
+      linesAdded: 0,
+      linesDeleted: 0,
+    },
+  };
+}
+
+function isMissingGitUserEmailError(error: unknown): boolean {
+  return error instanceof Error && error.message.startsWith('Git user.email is not configured for');
 }
 
 async function resolveConfiguredAuthorEmail(
@@ -368,10 +452,31 @@ export async function collectGitOutcomes(
   options: GitOutcomeCollectorOptions,
   deps: GitOutcomeCollectorDeps = {},
 ): Promise<GitOutcomeCollectionResult> {
-  const repoDir = path.resolve(options.repoDir ?? process.cwd());
+  const repoDir = resolveRepoDir(options.repoDir);
   const includeMergeCommits = options.includeMergeCommits ?? false;
   const runCommand = deps.runGitCommand ?? runGitCommand;
-  const authorEmail = await resolveConfiguredAuthorEmail(repoDir, runCommand);
+
+  if (!deps.runGitCommand) {
+    await assertRepoDirReadable(repoDir);
+  }
+
+  let authorEmail: string;
+
+  try {
+    authorEmail = await resolveConfiguredAuthorEmail(repoDir, runCommand);
+  } catch (error) {
+    if (!isMissingGitUserEmailError(error)) {
+      throw error;
+    }
+
+    const headResult = await runCommand(repoDir, ['rev-parse', '--verify', 'HEAD']);
+
+    if (isNoCommitHistoryFailure(headResult)) {
+      return createEmptyOutcomeCollection(repoDir, includeMergeCommits);
+    }
+
+    throw error;
+  }
 
   const gitResult = await runCommand(
     repoDir,
@@ -384,6 +489,10 @@ export async function collectGitOutcomes(
   );
 
   if (gitResult.exitCode !== 0) {
+    if (isNoCommitHistoryFailure(gitResult)) {
+      return createEmptyOutcomeCollection(repoDir, includeMergeCommits);
+    }
+
     const reason = resolveGitCommandFailureReason(gitResult);
     throw new Error(`Failed to collect git outcomes from ${repoDir}: ${reason}`);
   }
