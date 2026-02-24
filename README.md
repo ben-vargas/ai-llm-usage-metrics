@@ -59,6 +59,8 @@ llm-usage daily
 | **codex**    | `~/.codex/sessions/**/*.jsonl`    | Automatic                        |
 | **OpenCode** | `~/.opencode/opencode.db`         | Auto or explicit `--opencode-db` |
 
+OpenCode source support requires Node.js 24+ runtime with built-in `node:sqlite`.
+
 ## 🎯 Usage
 
 ### Basic Reports
