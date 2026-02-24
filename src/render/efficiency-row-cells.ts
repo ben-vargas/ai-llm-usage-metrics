@@ -15,7 +15,7 @@ export const efficiencyTableHeaders = [
   'Cost',
   '$/Commit',
   '$/1k Lines',
-  'Tokens/Commit',
+  'All Tokens/Commit',
   'Non-Cache/Commit',
   'Commits/$',
 ] as const;

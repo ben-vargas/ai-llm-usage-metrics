@@ -81,6 +81,7 @@ describe('renderEfficiencyReport', () => {
     expect(output).toContain('| Period');
     expect(output).toContain('| Commits');
     expect(output).toContain('| $/Commit');
+    expect(output).toContain('| All Tokens/Commit');
     expect(output).toContain('| Non-Cache/Commit');
     expect(output).toContain('| 2026-02-10');
     expect(output).toContain('| ALL');

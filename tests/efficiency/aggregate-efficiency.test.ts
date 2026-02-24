@@ -333,6 +333,146 @@ describe('aggregateEfficiency', () => {
     });
   });
 
+  it('keeps commits-per-usd undefined when cost resolves to zero', () => {
+    const rows = aggregateEfficiency({
+      usageRows: [
+        createUsageRow({
+          rowType: 'period_source',
+          periodKey: '2026-02-01',
+          source: 'pi',
+          inputTokens: 120,
+          outputTokens: 0,
+          reasoningTokens: 0,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          totalTokens: 120,
+          costUsd: 0,
+        }),
+        createUsageRow({
+          rowType: 'grand_total',
+          periodKey: 'ALL',
+          source: 'combined',
+          inputTokens: 120,
+          outputTokens: 0,
+          reasoningTokens: 0,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          totalTokens: 120,
+          costUsd: 0,
+        }),
+      ],
+      periodOutcomes: new Map([
+        [
+          '2026-02-01',
+          {
+            commitCount: 3,
+            linesAdded: 12,
+            linesDeleted: 3,
+            linesChanged: 15,
+          },
+        ],
+      ]),
+    });
+
+    expect(rows[0]).toMatchObject({
+      rowType: 'period',
+      periodKey: '2026-02-01',
+      costUsd: 0,
+      usdPerCommit: 0,
+      tokensPerCommit: 40,
+      nonCacheTokensPerCommit: 40,
+      commitsPerUsd: undefined,
+    });
+  });
+
+  it('preserves known grand-total costs while flagging incomplete pricing', () => {
+    const rows = aggregateEfficiency({
+      usageRows: [
+        createUsageRow({
+          rowType: 'period_source',
+          periodKey: '2026-02-01',
+          source: 'pi',
+          inputTokens: 90,
+          outputTokens: 10,
+          totalTokens: 100,
+          costUsd: 2,
+        }),
+        createUsageRow({
+          rowType: 'period_source',
+          periodKey: '2026-02-02',
+          source: 'codex',
+          inputTokens: 40,
+          outputTokens: 10,
+          totalTokens: 50,
+          costUsd: undefined,
+          costIncomplete: true,
+        }),
+        createUsageRow({
+          rowType: 'grand_total',
+          periodKey: 'ALL',
+          source: 'combined',
+          inputTokens: 130,
+          outputTokens: 20,
+          totalTokens: 150,
+          costUsd: undefined,
+          costIncomplete: true,
+        }),
+      ],
+      periodOutcomes: new Map([
+        [
+          '2026-02-01',
+          {
+            commitCount: 2,
+            linesAdded: 20,
+            linesDeleted: 10,
+            linesChanged: 30,
+          },
+        ],
+        [
+          '2026-02-02',
+          {
+            commitCount: 1,
+            linesAdded: 6,
+            linesDeleted: 4,
+            linesChanged: 10,
+          },
+        ],
+      ]),
+    });
+
+    expect(rows[0]).toMatchObject({
+      rowType: 'period',
+      periodKey: '2026-02-01',
+      costUsd: 2,
+      usdPerCommit: 1,
+      commitsPerUsd: 1,
+    });
+    expect(rows[1]).toMatchObject({
+      rowType: 'period',
+      periodKey: '2026-02-02',
+      costUsd: undefined,
+      costIncomplete: true,
+      usdPerCommit: undefined,
+      commitsPerUsd: undefined,
+    });
+    expect(rows[2]).toMatchObject({
+      rowType: 'grand_total',
+      periodKey: 'ALL',
+      inputTokens: 130,
+      outputTokens: 20,
+      totalTokens: 150,
+      costUsd: 2,
+      costIncomplete: true,
+      commitCount: 3,
+      linesChanged: 40,
+      tokensPerCommit: 50,
+      nonCacheTokensPerCommit: 50,
+      usdPerCommit: 2 / 3,
+      usdPer1kLinesChanged: 50,
+      commitsPerUsd: 1.5,
+    });
+  });
+
   it('computes non-cache tokens from token components, not provider total semantics', () => {
     const rows = aggregateEfficiency({
       usageRows: [
