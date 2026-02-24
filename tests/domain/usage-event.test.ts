@@ -99,4 +99,17 @@ describe('createUsageEvent', () => {
 
     expect(event.model).toBe('gpt-4.1');
   });
+
+  it('keeps repo root metadata when provided', () => {
+    const event = createUsageEvent({
+      source: 'pi',
+      sessionId: 'session-repo-root',
+      timestamp: '2026-02-12T10:00:00Z',
+      repoRoot: ' /workspace/repo ',
+      inputTokens: 1,
+      outputTokens: 1,
+    });
+
+    expect(event.repoRoot).toBe('/workspace/repo');
+  });
 });

@@ -17,6 +17,7 @@ type ProviderFilter = (provider: string | undefined) => boolean;
 type PiSessionState = {
   sessionId?: string;
   sessionTimestamp?: string;
+  repoRoot?: string;
   provider?: string;
   model?: string;
 };
@@ -144,6 +145,26 @@ function getFallbackSessionId(filePath: string): string {
   return path.basename(filePath, '.jsonl');
 }
 
+function resolveRepoRootFromRecord(
+  record: Record<string, unknown> | undefined,
+): string | undefined {
+  if (!record) {
+    return undefined;
+  }
+
+  const pathRecord = asRecord(record.path);
+
+  return (
+    asTrimmedText(pathRecord?.root) ??
+    asTrimmedText(pathRecord?.cwd) ??
+    asTrimmedText(record.cwd) ??
+    asTrimmedText(record.repo_root) ??
+    asTrimmedText(record.repoRoot) ??
+    asTrimmedText(record.project_root) ??
+    asTrimmedText(record.projectRoot)
+  );
+}
+
 export class PiSourceAdapter implements SourceAdapter {
   public readonly id = 'pi' as const;
 
@@ -169,12 +190,14 @@ export class PiSourceAdapter implements SourceAdapter {
       if (line.type === 'session') {
         state.sessionId = asTrimmedText(line.id) ?? state.sessionId;
         state.sessionTimestamp = asTrimmedText(line.timestamp) ?? state.sessionTimestamp;
+        state.repoRoot = resolveRepoRootFromRecord(line) ?? state.repoRoot;
         continue;
       }
 
       if (line.type === 'model_change') {
         state.provider = asTrimmedText(line.provider) ?? state.provider;
         state.model = asTrimmedText(line.modelId) ?? asTrimmedText(line.model) ?? state.model;
+        state.repoRoot = resolveRepoRootFromRecord(line) ?? state.repoRoot;
         continue;
       }
 
@@ -207,6 +230,8 @@ export class PiSourceAdapter implements SourceAdapter {
         asTrimmedText(line.modelId) ??
         asTrimmedText(message?.model) ??
         state.model;
+      const repoRoot =
+        resolveRepoRootFromRecord(line) ?? resolveRepoRootFromRecord(message) ?? state.repoRoot;
 
       try {
         events.push(
@@ -214,6 +239,7 @@ export class PiSourceAdapter implements SourceAdapter {
             source: this.id,
             sessionId: state.sessionId,
             timestamp,
+            repoRoot,
             provider,
             model,
             ...usage,

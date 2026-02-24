@@ -87,7 +87,11 @@ describe('CodexSourceAdapter', () => {
         JSON.stringify({
           timestamp: '2026-02-14T10:00:00.000Z',
           type: 'session_meta',
-          payload: { id: 'codex-last-usage', model_provider: 'openai' },
+          payload: {
+            id: 'codex-last-usage',
+            model_provider: 'openai',
+            cwd: '/tmp/codex-repo',
+          },
         }),
         JSON.stringify({
           timestamp: '2026-02-14T10:00:01.000Z',
@@ -153,6 +157,7 @@ describe('CodexSourceAdapter', () => {
     expect(events[0]?.totalTokens).toBe(15);
     expect(events[1]?.totalTokens).toBe(25);
     expect(events[2]?.totalTokens).toBe(20);
+    expect(events.every((event) => event.repoRoot === '/tmp/codex-repo')).toBe(true);
   });
 
   it('uses legacy model fallback when no model metadata exists', async () => {

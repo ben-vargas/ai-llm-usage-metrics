@@ -10,7 +10,7 @@ import { normalizeSkippedRowReasons } from './normalize-skipped-row-reasons.js';
 import { asRecord } from '../utils/as-record.js';
 import { getUserCacheRootDir } from '../utils/cache-root-dir.js';
 
-const PARSE_FILE_CACHE_VERSION = 1;
+const PARSE_FILE_CACHE_VERSION = 2;
 const CACHE_KEY_SEPARATOR = '\u0000';
 
 export type ParseFileFingerprint = {
@@ -67,6 +67,7 @@ function normalizeCachedUsageEvent(value: unknown): UsageEvent | undefined {
   const source = normalizeSourceId(record.source);
   const sessionId = typeof record.sessionId === 'string' ? record.sessionId.trim() : '';
   const timestamp = typeof record.timestamp === 'string' ? record.timestamp.trim() : '';
+  const repoRoot = typeof record.repoRoot === 'string' ? record.repoRoot.trim() : '';
 
   if (!source || !sessionId || !timestamp) {
     return undefined;
@@ -113,6 +114,7 @@ function normalizeCachedUsageEvent(value: unknown): UsageEvent | undefined {
     source,
     sessionId,
     timestamp,
+    repoRoot: repoRoot || undefined,
     provider: provider || undefined,
     model: model || undefined,
     inputTokens,

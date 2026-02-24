@@ -24,6 +24,7 @@ type CodexUsage = {
 
 type CodexSessionState = {
   sessionId: string;
+  repoRoot?: string;
   provider?: string;
   model?: string;
   previousTotalUsage?: CodexUsage;
@@ -127,6 +128,22 @@ function getFallbackSessionId(filePath: string): string {
   return path.basename(filePath, '.jsonl');
 }
 
+function resolveRepoRootFromPayload(
+  payload: Record<string, unknown> | undefined,
+): string | undefined {
+  if (!payload) {
+    return undefined;
+  }
+
+  return (
+    asTrimmedText(payload.cwd) ??
+    asTrimmedText(payload.repo_root) ??
+    asTrimmedText(payload.repoRoot) ??
+    asTrimmedText(payload.project_root) ??
+    asTrimmedText(payload.projectRoot)
+  );
+}
+
 export class CodexSourceAdapter implements SourceAdapter {
   public readonly id = 'codex' as const;
 
@@ -155,12 +172,14 @@ export class CodexSourceAdapter implements SourceAdapter {
         const payload = asRecord(line.payload);
         state.sessionId = asTrimmedText(payload?.id) ?? state.sessionId;
         state.provider = asTrimmedText(payload?.model_provider) ?? state.provider;
+        state.repoRoot = resolveRepoRootFromPayload(payload) ?? state.repoRoot;
         continue;
       }
 
       if (line.type === 'turn_context') {
         const payload = asRecord(line.payload);
         state.model = asTrimmedText(payload?.model) ?? state.model;
+        state.repoRoot = resolveRepoRootFromPayload(payload) ?? state.repoRoot;
         continue;
       }
 
@@ -202,6 +221,7 @@ export class CodexSourceAdapter implements SourceAdapter {
             source: this.id,
             sessionId: state.sessionId,
             timestamp,
+            repoRoot: state.repoRoot,
             provider: state.provider,
             model,
             inputTokens: deltaUsage.inputTokens,

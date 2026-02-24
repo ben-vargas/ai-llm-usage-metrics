@@ -46,6 +46,7 @@ describe('PiSourceAdapter', () => {
     expect(events[0]).toMatchObject({
       source: 'pi',
       sessionId: 'session-pi-1',
+      repoRoot: '/tmp/pi-repo',
       provider: 'openai-codex',
       model: 'gpt-5.3-codex',
       inputTokens: 100,
@@ -72,6 +73,7 @@ describe('PiSourceAdapter', () => {
     expect(events[2]).toMatchObject({
       source: 'pi',
       sessionId: 'session-pi-1',
+      repoRoot: '/tmp/pi-repo',
       provider: 'openai',
       model: 'gpt-4.1',
       inputTokens: 2,

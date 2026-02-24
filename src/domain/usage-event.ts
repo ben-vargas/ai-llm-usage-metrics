@@ -13,6 +13,7 @@ export type UsageEvent = {
   source: SourceId;
   sessionId: string;
   timestamp: string;
+  repoRoot?: string;
   provider?: string;
   model?: string;
 
@@ -31,6 +32,7 @@ export type UsageEventInput = {
   source: SourceId;
   sessionId: string;
   timestamp: string | Date;
+  repoRoot?: string;
   provider?: string;
   model?: string;
 
@@ -65,6 +67,15 @@ function requireText(value: string, fieldName: string): string {
 }
 
 function normalizeOptionalText(value: string | undefined): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const normalized = value.trim();
+  return normalized || undefined;
+}
+
+function normalizeOptionalPath(value: string | undefined): string | undefined {
   if (!value) {
     return undefined;
   }
@@ -119,6 +130,7 @@ export function createUsageEvent(input: UsageEventInput): UsageEvent {
     source,
     sessionId: requireText(input.sessionId, 'sessionId'),
     timestamp: normalizeTimestamp(input.timestamp),
+    repoRoot: normalizeOptionalPath(input.repoRoot),
     provider: normalizeOptionalText(input.provider),
     model: normalizeOptionalModel(input.model),
     inputTokens,
