@@ -40,6 +40,21 @@ describe('discoverJsonlFiles', () => {
     expect(discoveredFiles).toEqual([alphaFile, alphaNestedFile, betaFile]);
   });
 
+  it('sorts file names by code point for locale-independent ordering', async () => {
+    const rootDir = await mkdtemp(path.join(os.tmpdir(), 'discover-jsonl-code-point-'));
+    tempDirs.push(rootDir);
+
+    const upperFile = path.join(rootDir, 'A.jsonl');
+    const lowerFile = path.join(rootDir, 'a.jsonl');
+
+    await writeFile(lowerFile, '{}\n', 'utf8');
+    await writeFile(upperFile, '{}\n', 'utf8');
+
+    const discoveredFiles = await discoverJsonlFiles(rootDir);
+
+    expect(discoveredFiles).toEqual([upperFile, lowerFile]);
+  });
+
   it('returns an empty list when the root directory does not exist', async () => {
     const missingDir = path.join(os.tmpdir(), `discover-jsonl-missing-${Date.now()}`);
 

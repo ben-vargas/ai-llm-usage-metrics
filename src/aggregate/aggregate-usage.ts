@@ -166,7 +166,7 @@ export function aggregateUsage(
     addEventToAccumulator(rowAccumulator, event);
   }
 
-  const sortedPeriodKeys = [...periodMap.keys()].sort((left, right) => left.localeCompare(right));
+  const sortedPeriodKeys = [...periodMap.keys()].sort(compareByCodePoint);
   const rows: UsageReportRow[] = [];
   const grandTotals = createEmptyTotals();
   const grandModelTotals = new Map<string, UsageTotals>();

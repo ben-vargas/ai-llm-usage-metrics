@@ -2,6 +2,7 @@ import { CodexSourceAdapter } from './codex/codex-source-adapter.js';
 import { OpenCodeSourceAdapter } from './opencode/opencode-source-adapter.js';
 import { PiSourceAdapter } from './pi/pi-source-adapter.js';
 import type { SourceAdapter } from './source-adapter.js';
+import { compareByCodePoint } from '../utils/compare-by-code-point.js';
 
 type SourceRegistration = {
   id: string;
@@ -132,9 +133,7 @@ function validateSourceDirectoryOverrideIds(
     return;
   }
 
-  const allowedSourceIds = [...sourceDirSupportedIds].sort((left, right) =>
-    left.localeCompare(right),
-  );
+  const allowedSourceIds = [...sourceDirSupportedIds].sort(compareByCodePoint);
 
   throw new Error(
     `Unknown --source-dir source id(s): ${unknownSourceIds.join(', ')}. Allowed values: ${allowedSourceIds.join(', ')}`,

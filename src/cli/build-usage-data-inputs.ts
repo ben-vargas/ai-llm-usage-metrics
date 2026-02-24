@@ -1,4 +1,5 @@
 import type { SourceAdapter } from '../sources/source-adapter.js';
+import { compareByCodePoint } from '../utils/compare-by-code-point.js';
 
 import type { ReportCommandOptions } from './usage-data-contracts.js';
 
@@ -94,7 +95,7 @@ export function validateSourceFilterValues(
     return;
   }
 
-  const allowedSources = [...availableSourceIds].sort((left, right) => left.localeCompare(right));
+  const allowedSources = [...availableSourceIds].sort(compareByCodePoint);
 
   throw new Error(
     `Unknown --source value(s): ${unknownSources.join(', ')}. Allowed values: ${allowedSources.join(', ')}`,

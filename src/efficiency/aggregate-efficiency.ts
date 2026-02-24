@@ -1,4 +1,5 @@
 import type { UsageReportRow } from '../domain/usage-report-row.js';
+import { compareByCodePoint } from '../utils/compare-by-code-point.js';
 import {
   createEmptyEfficiencyOutcomeTotals,
   createEmptyEfficiencyUsageTotals,
@@ -142,7 +143,7 @@ export function aggregateEfficiency(options: AggregateEfficiencyOptions): Effici
   const usageTotalsByPeriod = buildUsageTotalsByPeriod(options.usageRows);
   const periodKeys = [
     ...new Set([...usageTotalsByPeriod.keys(), ...options.periodOutcomes.keys()]),
-  ].sort((left, right) => left.localeCompare(right));
+  ].sort(compareByCodePoint);
 
   const rows: EfficiencyRow[] = [];
   let totalUsage = createEmptyEfficiencyUsageTotals();

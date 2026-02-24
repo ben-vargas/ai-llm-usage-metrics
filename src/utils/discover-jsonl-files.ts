@@ -3,6 +3,7 @@ import type { Dirent } from 'node:fs';
 import path from 'node:path';
 
 import { asRecord } from './as-record.js';
+import { compareByCodePoint } from './compare-by-code-point.js';
 
 function getNodeErrorCode(error: unknown): string | undefined {
   const record = asRecord(error);
@@ -31,7 +32,7 @@ async function walkDirectory(
     throw error;
   }
 
-  entries.sort((left, right) => left.name.localeCompare(right.name));
+  entries.sort((left, right) => compareByCodePoint(left.name, right.name));
 
   for (const entry of entries) {
     const entryPath = path.join(rootDir, entry.name);
