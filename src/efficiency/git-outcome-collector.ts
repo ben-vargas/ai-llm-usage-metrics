@@ -539,6 +539,10 @@ export async function collectGitOutcomes(
   const includeMergeCommits = options.includeMergeCommits ?? false;
   const runCommand = deps.runGitCommand ?? runGitCommand;
 
+  if (options.activeUsageDays?.size === 0) {
+    return createEmptyOutcomeCollection(repoDir, includeMergeCommits);
+  }
+
   if (!deps.runGitCommand) {
     await assertRepoDirReadable(repoDir);
     await assertGitRepository(repoDir, runCommand);

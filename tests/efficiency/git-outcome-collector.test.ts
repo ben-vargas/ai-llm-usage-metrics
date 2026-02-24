@@ -647,6 +647,7 @@ describe('collectGitOutcomes', () => {
       { runGitCommand },
     );
 
+    expect(runGitCommand).not.toHaveBeenCalled();
     expect(result.totalOutcomes).toEqual({
       commitCount: 0,
       linesAdded: 0,
