@@ -98,6 +98,22 @@ describe('createDefaultAdapters', () => {
     );
   });
 
+  it('fails pi discovery when an explicitly configured path is a file', async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), 'usage-adapters-pi-file-path-'));
+    tempDirs.push(tempDir);
+    const piFilePath = path.join(tempDir, 'pi.jsonl');
+    await writeFile(piFilePath, '{}\n', 'utf8');
+
+    const adapters = createDefaultAdapters({
+      piDir: piFilePath,
+    });
+    const piAdapter = adapters.find((adapter) => adapter.id === 'pi');
+
+    await expect(piAdapter?.discoverFiles()).rejects.toThrow(
+      `PI sessions directory is not a directory: ${piFilePath}`,
+    );
+  });
+
   it('fails codex discovery when an explicitly configured directory is missing', async () => {
     const adapters = createDefaultAdapters({
       codexDir: path.join(os.tmpdir(), `missing-codex-${Date.now()}`),
@@ -106,6 +122,22 @@ describe('createDefaultAdapters', () => {
 
     await expect(codexAdapter?.discoverFiles()).rejects.toThrow(
       'Codex sessions directory is missing or unreadable',
+    );
+  });
+
+  it('fails codex discovery when an explicitly configured path is a file', async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), 'usage-adapters-codex-file-path-'));
+    tempDirs.push(tempDir);
+    const codexFilePath = path.join(tempDir, 'codex.jsonl');
+    await writeFile(codexFilePath, '{}\n', 'utf8');
+
+    const adapters = createDefaultAdapters({
+      codexDir: codexFilePath,
+    });
+    const codexAdapter = adapters.find((adapter) => adapter.id === 'codex');
+
+    await expect(codexAdapter?.discoverFiles()).rejects.toThrow(
+      `Codex sessions directory is not a directory: ${codexFilePath}`,
     );
   });
 });

@@ -1,4 +1,4 @@
-import { access, constants } from 'node:fs/promises';
+import { access, constants, stat } from 'node:fs/promises';
 
 import type { UsageEvent } from '../../domain/usage-event.js';
 import type { SourceAdapter, SourceParseFileDiagnostics } from '../source-adapter.js';
@@ -18,6 +18,7 @@ export type OpenCodeSourceAdapterOptions = {
   resolveDefaultDbPaths?: () => string[];
   pathExists?: PathPredicate;
   pathReadable?: PathPredicate;
+  pathIsFile?: PathPredicate;
   loadSqliteModule?: () => Promise<SqliteModule>;
   maxBusyRetries?: number;
   busyRetryDelayMs?: number;
@@ -46,6 +47,14 @@ async function pathReadable(filePath: string): Promise<boolean> {
   }
 }
 
+async function pathIsFile(filePath: string): Promise<boolean> {
+  try {
+    return (await stat(filePath)).isFile();
+  } catch {
+    return false;
+  }
+}
+
 async function sleep(delayMs: number): Promise<void> {
   await new Promise<void>((resolve) => {
     setTimeout(resolve, delayMs);
@@ -59,6 +68,7 @@ export class OpenCodeSourceAdapter implements SourceAdapter {
   private readonly resolveDefaultDbPaths: () => string[];
   private readonly pathExists: PathPredicate;
   private readonly pathReadable: PathPredicate;
+  private readonly pathIsFile: PathPredicate;
   private readonly loadSqliteModule: () => Promise<SqliteModule>;
   private readonly maxBusyRetries: number;
   private readonly busyRetryDelayMs: number;
@@ -70,6 +80,7 @@ export class OpenCodeSourceAdapter implements SourceAdapter {
       options.resolveDefaultDbPaths ?? getDefaultOpenCodeDbPathCandidates;
     this.pathExists = options.pathExists ?? pathExists;
     this.pathReadable = options.pathReadable ?? pathReadable;
+    this.pathIsFile = options.pathIsFile ?? pathIsFile;
     this.loadSqliteModule = options.loadSqliteModule ?? loadNodeSqliteModule;
     this.maxBusyRetries = Math.max(0, options.maxBusyRetries ?? DEFAULT_BUSY_RETRY_COUNT);
     this.busyRetryDelayMs = Math.max(1, options.busyRetryDelayMs ?? DEFAULT_BUSY_RETRY_DELAY_MS);
@@ -89,6 +100,10 @@ export class OpenCodeSourceAdapter implements SourceAdapter {
         throw new Error(`OpenCode DB path is missing or unreadable: ${explicitDbPath}`);
       }
 
+      if ((await this.pathExists(explicitDbPath)) && !(await this.pathIsFile(explicitDbPath))) {
+        throw new Error(`OpenCode DB path is not a file: ${explicitDbPath}`);
+      }
+
       return [explicitDbPath];
     }
 
@@ -96,6 +111,10 @@ export class OpenCodeSourceAdapter implements SourceAdapter {
 
     for (const candidatePath of this.resolveDefaultDbPaths()) {
       if (await this.pathReadable(candidatePath)) {
+        if ((await this.pathExists(candidatePath)) && !(await this.pathIsFile(candidatePath))) {
+          throw new Error(`OpenCode DB path is not a file: ${candidatePath}`);
+        }
+
         return [candidatePath];
       }
 
@@ -126,6 +145,10 @@ export class OpenCodeSourceAdapter implements SourceAdapter {
 
     if (!readable) {
       throw new Error(`OpenCode DB path is unreadable: ${normalizedDbPath}`);
+    }
+
+    if ((await this.pathExists(normalizedDbPath)) && !(await this.pathIsFile(normalizedDbPath))) {
+      throw new Error(`OpenCode DB path is not a file: ${normalizedDbPath}`);
     }
 
     return runWithBusyRetries(() => this.parseFileOnce(normalizedDbPath), {

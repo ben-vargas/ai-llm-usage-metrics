@@ -1,6 +1,6 @@
 import os from 'node:os';
 import path from 'node:path';
-import { access, constants } from 'node:fs/promises';
+import { access, constants, stat } from 'node:fs/promises';
 
 import { createUsageEvent } from '../../domain/usage-event.js';
 import type { UsageEvent } from '../../domain/usage-event.js';
@@ -49,6 +49,14 @@ async function pathReadable(directoryPath: string): Promise<boolean> {
   try {
     await access(directoryPath, constants.R_OK);
     return true;
+  } catch {
+    return false;
+  }
+}
+
+async function pathIsDirectory(directoryPath: string): Promise<boolean> {
+  try {
+    return (await stat(directoryPath)).isDirectory();
   } catch {
     return false;
   }
@@ -181,6 +189,10 @@ export class CodexSourceAdapter implements SourceAdapter {
       throw new Error(
         `Codex sessions directory is missing or unreadable: ${normalizedSessionsDir}`,
       );
+    }
+
+    if (this.requireSessionsDir && !(await pathIsDirectory(normalizedSessionsDir))) {
+      throw new Error(`Codex sessions directory is not a directory: ${normalizedSessionsDir}`);
     }
 
     return discoverJsonlFiles(normalizedSessionsDir);

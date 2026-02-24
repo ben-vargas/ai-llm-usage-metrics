@@ -113,6 +113,19 @@ describe('OpenCodeSourceAdapter', () => {
     );
   });
 
+  it('fails discovery when explicit --opencode-db path is not a file', async () => {
+    const adapter = new OpenCodeSourceAdapter({
+      dbPath: '/tmp/opencode-dir',
+      pathExists: async () => true,
+      pathReadable: async () => true,
+      pathIsFile: async () => false,
+    });
+
+    await expect(adapter.discoverFiles()).rejects.toThrow(
+      'OpenCode DB path is not a file: /tmp/opencode-dir',
+    );
+  });
+
   it('resolves first readable default DB path when no explicit override is set', async () => {
     const adapter = new OpenCodeSourceAdapter({
       resolveDefaultDbPaths: () => ['/tmp/opencode-a.db', '/tmp/opencode-b.db'],
@@ -131,6 +144,19 @@ describe('OpenCodeSourceAdapter', () => {
     });
 
     await expect(adapter.discoverFiles()).resolves.toEqual(['/tmp/opencode-readable.db']);
+  });
+
+  it('fails discovery when first readable default candidate is not a file', async () => {
+    const adapter = new OpenCodeSourceAdapter({
+      resolveDefaultDbPaths: () => ['/tmp/opencode-candidate'],
+      pathExists: async () => true,
+      pathReadable: async () => true,
+      pathIsFile: async () => false,
+    });
+
+    await expect(adapter.discoverFiles()).rejects.toThrow(
+      'OpenCode DB path is not a file: /tmp/opencode-candidate',
+    );
   });
 
   it('fails discovery when a default DB candidate exists but is unreadable', async () => {
@@ -246,6 +272,18 @@ describe('OpenCodeSourceAdapter', () => {
       costUsd: 1.5,
       costMode: 'explicit',
     });
+  });
+
+  it('fails parse when db path resolves to a non-file path', async () => {
+    const adapter = new OpenCodeSourceAdapter({
+      pathExists: async () => true,
+      pathReadable: async () => true,
+      pathIsFile: async () => false,
+    });
+
+    await expect(adapter.parseFileWithDiagnostics('/tmp/opencode-directory')).rejects.toThrow(
+      'OpenCode DB path is not a file: /tmp/opencode-directory',
+    );
   });
 
   it('handles message table and columns with non-lowercase schema names', async () => {

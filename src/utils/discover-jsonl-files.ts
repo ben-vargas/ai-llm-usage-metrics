@@ -42,7 +42,7 @@ async function walkDirectory(
       continue;
     }
 
-    if (entry.isFile() && entry.name.endsWith('.jsonl')) {
+    if (entry.isFile() && entry.name.toLowerCase().endsWith('.jsonl')) {
       acc.push(entryPath);
     }
   }
