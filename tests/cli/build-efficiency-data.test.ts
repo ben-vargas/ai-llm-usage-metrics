@@ -140,6 +140,10 @@ describe('buildEfficiencyData', () => {
         buildUsageData: buildUsageDataMock,
         collectGitOutcomes: collectGitOutcomesMock,
         resolveRepoRoot: async (pathHint) => {
+          if (pathHint === process.cwd()) {
+            return '/tmp/repo';
+          }
+
           if (pathHint === '/workspace/repo-a/app') {
             return '/tmp/repo';
           }
@@ -166,6 +170,7 @@ describe('buildEfficiencyData', () => {
       since: undefined,
       until: undefined,
       includeMergeCommits: undefined,
+      activeUsageDays: new Set(['2026-02-11']),
     });
 
     expect(result.rows).toHaveLength(2);
@@ -187,7 +192,9 @@ describe('buildEfficiencyData', () => {
       repoExcludedUsageEvents: 1,
       repoUnattributedUsageEvents: 1,
     });
-    expect(result.diagnostics.scopeNote).toContain('Usage filters (--source, --provider, --model)');
+    expect(result.diagnostics.scopeNote).toContain(
+      'Usage filters (--source, --provider, --model) affect commit attribution too',
+    );
   });
 
   it('omits scope note when no usage-only filters are active', async () => {
@@ -282,5 +289,60 @@ describe('buildEfficiencyData', () => {
     );
 
     expect(result.diagnostics.scopeNote).toContain('--opencode-db');
+  });
+
+  it('passes an empty active-usage-day set when no events match the target repo', async () => {
+    const collectGitOutcomesMock = vi.fn<
+      (options: { activeUsageDays?: ReadonlySet<string> }) => Promise<{
+        periodOutcomes: Map<
+          string,
+          { commitCount: number; linesAdded: number; linesDeleted: number; linesChanged: number }
+        >;
+        totalOutcomes: {
+          commitCount: number;
+          linesAdded: number;
+          linesDeleted: number;
+          linesChanged: number;
+        };
+        diagnostics: {
+          repoDir: string;
+          includeMergeCommits: boolean;
+          commitsCollected: number;
+          linesAdded: number;
+          linesDeleted: number;
+        };
+      }>
+    >(async () => ({
+      periodOutcomes: new Map(),
+      totalOutcomes: {
+        commitCount: 0,
+        linesAdded: 0,
+        linesDeleted: 0,
+        linesChanged: 0,
+      },
+      diagnostics: {
+        repoDir: '/tmp/repo',
+        includeMergeCommits: false,
+        commitsCollected: 0,
+        linesAdded: 0,
+        linesDeleted: 0,
+      },
+    }));
+
+    await buildEfficiencyData(
+      'daily',
+      { repoDir: '/tmp/repo' },
+      {
+        buildUsageData: async () => createUsageDataResult(),
+        collectGitOutcomes: collectGitOutcomesMock,
+        resolveRepoRoot: async () => undefined,
+      },
+    );
+
+    const options = collectGitOutcomesMock.mock.calls[0]?.[0] as
+      | { activeUsageDays?: ReadonlySet<string> }
+      | undefined;
+    expect(options?.activeUsageDays).toBeDefined();
+    expect(options?.activeUsageDays?.size).toBe(0);
   });
 });

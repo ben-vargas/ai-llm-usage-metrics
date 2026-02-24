@@ -19,6 +19,7 @@ export type GitOutcomeCollectorOptions = {
   since?: string;
   until?: string;
   includeMergeCommits?: boolean;
+  activeUsageDays?: ReadonlySet<string>;
 };
 
 export type GitOutcomeEvent = {
@@ -282,6 +283,24 @@ function filterEventsByDateRange(
   });
 }
 
+function filterEventsByActiveUsageDays(
+  events: GitOutcomeEvent[],
+  timezone: string,
+  activeUsageDays: ReadonlySet<string> | undefined,
+): GitOutcomeEvent[] {
+  if (activeUsageDays === undefined) {
+    return events;
+  }
+
+  if (activeUsageDays.size === 0) {
+    return [];
+  }
+
+  return events.filter((event) =>
+    activeUsageDays.has(getPeriodKey(event.timestamp, 'daily', timezone)),
+  );
+}
+
 function aggregatePeriodOutcomes(
   events: GitOutcomeEvent[],
   granularity: ReportGranularity,
@@ -376,8 +395,13 @@ export async function collectGitOutcomes(
     options.since,
     options.until,
   );
-  const { periodOutcomes, totalOutcomes } = aggregatePeriodOutcomes(
+  const usageAttributedEvents = filterEventsByActiveUsageDays(
     filteredEvents,
+    options.timezone,
+    options.activeUsageDays,
+  );
+  const { periodOutcomes, totalOutcomes } = aggregatePeriodOutcomes(
+    usageAttributedEvents,
     options.granularity,
     options.timezone,
   );

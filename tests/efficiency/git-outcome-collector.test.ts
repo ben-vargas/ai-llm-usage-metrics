@@ -365,4 +365,95 @@ describe('collectGitOutcomes', () => {
     ).rejects.toThrow('Invalid date value: not-a-date');
     expect(runGitCommand).toHaveBeenCalledTimes(1);
   });
+
+  it('counts only commits that fall on days with attributed usage', async () => {
+    const runGitCommand = vi.fn<
+      (
+        repoDir: string,
+        args: string[],
+      ) => Promise<{ lines: string[]; stderr: string; exitCode: number }>
+    >(async (_repoDir, args) => {
+      if (args[0] === 'config') {
+        return {
+          lines: ['dev@example.com'],
+          stderr: '',
+          exitCode: 0,
+        };
+      }
+
+      return {
+        lines: [
+          `${marker}1770681600${marker}abcdef1${marker}dev@example.com`,
+          ' 1 file changed, 9 insertions(+), 1 deletion(-)',
+          `${marker}1770771600${marker}abcdef2${marker}dev@example.com`,
+          ' 1 file changed, 1 insertion(+), 1 deletion(-)',
+        ],
+        stderr: '',
+        exitCode: 0,
+      };
+    });
+
+    const result = await collectGitOutcomes(
+      {
+        repoDir: '/tmp/repo',
+        granularity: 'daily',
+        timezone: 'UTC',
+        activeUsageDays: new Set(['2026-02-11']),
+      },
+      { runGitCommand },
+    );
+
+    expect([...result.periodOutcomes.entries()]).toEqual([
+      [
+        '2026-02-11',
+        {
+          commitCount: 1,
+          linesAdded: 1,
+          linesDeleted: 1,
+          linesChanged: 2,
+        },
+      ],
+    ]);
+    expect(result.totalOutcomes.commitCount).toBe(1);
+  });
+
+  it('returns zero outcomes when active usage day set is empty', async () => {
+    const runGitCommand = vi.fn<
+      (
+        repoDir: string,
+        args: string[],
+      ) => Promise<{ lines: string[]; stderr: string; exitCode: number }>
+    >(async (_repoDir, args) => {
+      if (args[0] === 'config') {
+        return {
+          lines: ['dev@example.com'],
+          stderr: '',
+          exitCode: 0,
+        };
+      }
+
+      return {
+        lines: [`${marker}1770771600${marker}abcdef2${marker}dev@example.com`],
+        stderr: '',
+        exitCode: 0,
+      };
+    });
+
+    const result = await collectGitOutcomes(
+      {
+        repoDir: '/tmp/repo',
+        granularity: 'daily',
+        timezone: 'UTC',
+        activeUsageDays: new Set(),
+      },
+      { runGitCommand },
+    );
+
+    expect(result.totalOutcomes).toEqual({
+      commitCount: 0,
+      linesAdded: 0,
+      linesDeleted: 0,
+      linesChanged: 0,
+    });
+  });
 });

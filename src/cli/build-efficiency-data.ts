@@ -6,7 +6,7 @@ import {
   resolveRepoRootFromPathHint,
   type RepoRootResolver,
 } from '../efficiency/repo-attribution.js';
-import type { ReportGranularity } from '../utils/time-buckets.js';
+import { getPeriodKey, type ReportGranularity } from '../utils/time-buckets.js';
 import { buildUsageData } from './build-usage-data.js';
 import type { EfficiencyCommandOptions, EfficiencyDataResult } from './usage-data-contracts.js';
 
@@ -74,7 +74,7 @@ function resolveScopeNote(options: EfficiencyCommandOptions): string | undefined
     return undefined;
   }
 
-  return `Usage filters (${activeFilters.join(', ')}) only apply to usage metrics; Git outcomes remain repository-level for the same date range.`;
+  return `Usage filters (${activeFilters.join(', ')}) affect commit attribution too: only commit days with matching repo-attributed usage events are counted.`;
 }
 
 export async function buildEfficiencyData(
@@ -87,6 +87,16 @@ export async function buildEfficiencyData(
   const resolveRepoRoot = deps.resolveRepoRoot ?? resolveRepoRootFromPathHint;
 
   const usageData = await buildUsage(granularity, options);
+  const attribution = await attributeUsageEventsToRepo(
+    usageData.events,
+    options.repoDir ?? process.cwd(),
+    resolveRepoRoot,
+  );
+  const activeUsageDays = new Set(
+    attribution.matchedEvents.map((event) =>
+      getPeriodKey(event.timestamp, 'daily', usageData.diagnostics.timezone),
+    ),
+  );
   const gitOutcomes = await collectOutcomes({
     repoDir: options.repoDir,
     granularity,
@@ -94,12 +104,8 @@ export async function buildEfficiencyData(
     since: options.since,
     until: options.until,
     includeMergeCommits: options.includeMergeCommits,
+    activeUsageDays,
   });
-  const attribution = await attributeUsageEventsToRepo(
-    usageData.events,
-    gitOutcomes.diagnostics.repoDir,
-    resolveRepoRoot,
-  );
   const repoScopedUsageRows = aggregateUsage(attribution.matchedEvents, {
     granularity,
     timezone: usageData.diagnostics.timezone,
