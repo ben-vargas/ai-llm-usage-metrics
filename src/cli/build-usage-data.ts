@@ -103,5 +103,5 @@ export async function buildUsageData(
     timezone: normalizedInputs.timezone,
   });
 
-  return assembleUsageDataResult(rows, diagnostics);
+  return assembleUsageDataResult(pricedEvents, rows, diagnostics);
 }

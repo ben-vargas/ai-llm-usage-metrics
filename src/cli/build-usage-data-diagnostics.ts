@@ -52,10 +52,12 @@ export function buildUsageDiagnostics(params: BuildUsageDiagnosticsParams): Usag
 }
 
 export function assembleUsageDataResult(
+  events: UsageDataResult['events'],
   rows: UsageReportRow[],
   diagnostics: UsageDiagnostics,
 ): UsageDataResult {
   return {
+    events,
     rows,
     diagnostics,
   };

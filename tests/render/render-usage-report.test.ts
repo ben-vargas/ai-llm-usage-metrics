@@ -4,6 +4,7 @@ import type { UsageDataResult } from '../../src/cli/usage-data-contracts.js';
 import { renderUsageReport } from '../../src/render/render-usage-report.js';
 
 const sampleUsageData: UsageDataResult = {
+  events: [],
   rows: [
     {
       rowType: 'period_source',
