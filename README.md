@@ -114,7 +114,8 @@ Efficiency reports are repo-attributed: usage events are mapped to a Git reposit
 - `$/1k Lines` uses `Cost / (ΔLines / 1000)`.
 - `Commits/$` uses `Commits / Cost` (shown only when `Cost > 0`).
 
-When a denominator is zero, derived values render as `-`.  
+Efficiency period rows are emitted only when both Git outcomes and repo-attributed usage signal exist for that period.
+When a denominator is zero, derived values in emitted rows render as `-`.  
 When pricing is incomplete, terminal/markdown output prefixes affected USD metrics with `~`.
 
 For source-by-source comparisons, run the same report per source:

@@ -48,6 +48,7 @@ Only usage events mapped to the selected repository root are included.
 
 Rendering rules:
 
+- period rows are emitted only when both Git outcomes and repo-attributed usage signal exist
 - if a denominator is zero, the derived value is `-` (terminal/markdown) or omitted in JSON
 - when pricing is incomplete, affected USD values are approximate (`~` prefix in terminal/markdown)
 
