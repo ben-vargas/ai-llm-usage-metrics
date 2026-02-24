@@ -6,6 +6,7 @@ import {
   resolveRepoRootFromPathHint,
   type RepoRootResolver,
 } from '../efficiency/repo-attribution.js';
+import type { UsageEvent } from '../domain/usage-event.js';
 import { getPeriodKey, type ReportGranularity } from '../utils/time-buckets.js';
 import { buildUsageData } from './build-usage-data.js';
 import type { EfficiencyCommandOptions, EfficiencyDataResult } from './usage-data-contracts.js';
@@ -77,6 +78,10 @@ function resolveScopeNote(options: EfficiencyCommandOptions): string | undefined
   return `Usage filters (${activeFilters.join(', ')}) affect commit attribution too: only commit days with matching repo-attributed usage events are counted.`;
 }
 
+function hasMeaningfulEfficiencyUsageSignal(event: UsageEvent): boolean {
+  return event.totalTokens > 0 || (event.costUsd !== undefined && event.costUsd > 0);
+}
+
 export async function buildEfficiencyData(
   granularity: ReportGranularity,
   options: EfficiencyCommandOptions,
@@ -92,8 +97,11 @@ export async function buildEfficiencyData(
     options.repoDir ?? process.cwd(),
     resolveRepoRoot,
   );
+  const matchedEventsWithSignal = attribution.matchedEvents.filter((event) =>
+    hasMeaningfulEfficiencyUsageSignal(event),
+  );
   const activeUsageDays = new Set(
-    attribution.matchedEvents.map((event) =>
+    matchedEventsWithSignal.map((event) =>
       getPeriodKey(event.timestamp, 'daily', usageData.diagnostics.timezone),
     ),
   );
@@ -106,7 +114,7 @@ export async function buildEfficiencyData(
     includeMergeCommits: options.includeMergeCommits,
     activeUsageDays,
   });
-  const repoScopedUsageRows = aggregateUsage(attribution.matchedEvents, {
+  const repoScopedUsageRows = aggregateUsage(matchedEventsWithSignal, {
     granularity,
     timezone: usageData.diagnostics.timezone,
   });

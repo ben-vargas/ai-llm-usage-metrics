@@ -345,4 +345,98 @@ describe('buildEfficiencyData', () => {
     expect(options?.activeUsageDays).toBeDefined();
     expect(options?.activeUsageDays?.size).toBe(0);
   });
+
+  it('ignores matched zero-signal events when deriving active usage days', async () => {
+    const collectGitOutcomesMock = vi.fn<
+      (options: { activeUsageDays?: ReadonlySet<string> }) => Promise<{
+        periodOutcomes: Map<
+          string,
+          { commitCount: number; linesAdded: number; linesDeleted: number; linesChanged: number }
+        >;
+        totalOutcomes: {
+          commitCount: number;
+          linesAdded: number;
+          linesDeleted: number;
+          linesChanged: number;
+        };
+        diagnostics: {
+          repoDir: string;
+          includeMergeCommits: boolean;
+          commitsCollected: number;
+          linesAdded: number;
+          linesDeleted: number;
+        };
+      }>
+    >(async () => ({
+      periodOutcomes: new Map(),
+      totalOutcomes: {
+        commitCount: 0,
+        linesAdded: 0,
+        linesDeleted: 0,
+        linesChanged: 0,
+      },
+      diagnostics: {
+        repoDir: '/tmp/repo',
+        includeMergeCommits: false,
+        commitsCollected: 0,
+        linesAdded: 0,
+        linesDeleted: 0,
+      },
+    }));
+
+    await buildEfficiencyData(
+      'daily',
+      { repoDir: '/tmp/repo' },
+      {
+        buildUsageData: async () => ({
+          rows: [],
+          diagnostics: {
+            sessionStats: [],
+            sourceFailures: [],
+            skippedRows: [],
+            pricingOrigin: 'none',
+            activeEnvOverrides: [],
+            timezone: 'UTC',
+          },
+          events: [
+            {
+              source: 'pi',
+              sessionId: 'session-zero',
+              timestamp: '2026-02-10T10:00:00.000Z',
+              repoRoot: '/tmp/repo',
+              inputTokens: 0,
+              outputTokens: 0,
+              reasoningTokens: 0,
+              cacheReadTokens: 0,
+              cacheWriteTokens: 0,
+              totalTokens: 0,
+              costUsd: 0,
+              costMode: 'explicit',
+            },
+            {
+              source: 'pi',
+              sessionId: 'session-signal',
+              timestamp: '2026-02-11T10:00:00.000Z',
+              repoRoot: '/tmp/repo',
+              inputTokens: 20,
+              outputTokens: 5,
+              reasoningTokens: 0,
+              cacheReadTokens: 0,
+              cacheWriteTokens: 0,
+              totalTokens: 25,
+              costMode: 'estimated',
+            },
+          ],
+        }),
+        collectGitOutcomes: collectGitOutcomesMock,
+        resolveRepoRoot: async () => '/tmp/repo',
+      },
+    );
+
+    const options = collectGitOutcomesMock.mock.calls[0]?.[0] as
+      | { activeUsageDays?: ReadonlySet<string> }
+      | undefined;
+
+    expect(options?.activeUsageDays).toEqual(new Set(['2026-02-11']));
+  });
 });
