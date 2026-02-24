@@ -255,6 +255,104 @@ describe('collectGitOutcomes', () => {
     ).rejects.toThrow('Git user.email is not configured for');
   });
 
+  it('falls back to global git user.email when local repo user.email is unset', async () => {
+    const runGitCommand = vi.fn<
+      (
+        repoDir: string,
+        args: string[],
+      ) => Promise<{ lines: string[]; stderr: string; exitCode: number }>
+    >(async (_repoDir, args) => {
+      if (args[0] === 'config' && args[1] === '--get') {
+        return {
+          lines: [],
+          stderr: '',
+          exitCode: 1,
+        };
+      }
+
+      if (args[0] === 'config' && args[1] === '--global') {
+        return {
+          lines: ['global@example.com'],
+          stderr: '',
+          exitCode: 0,
+        };
+      }
+
+      return {
+        lines: [`${marker}1770771600${marker}abcdef2${marker}global@example.com`],
+        stderr: '',
+        exitCode: 0,
+      };
+    });
+
+    await expect(
+      collectGitOutcomes(
+        {
+          repoDir: '/tmp/repo',
+          granularity: 'daily',
+          timezone: 'UTC',
+        },
+        { runGitCommand },
+      ),
+    ).resolves.toMatchObject({
+      diagnostics: {
+        commitsCollected: 1,
+      },
+    });
+
+    const gitLogArgs = runGitCommand.mock.calls.at(-1)?.[1] ?? [];
+    expect(gitLogArgs).toContain('--author=<global@example\\.com>');
+  });
+
+  it('falls back to git author identity when config user.email is unavailable', async () => {
+    const runGitCommand = vi.fn<
+      (
+        repoDir: string,
+        args: string[],
+      ) => Promise<{ lines: string[]; stderr: string; exitCode: number }>
+    >(async (_repoDir, args) => {
+      if (args[0] === 'config') {
+        return {
+          lines: [],
+          stderr: '',
+          exitCode: 1,
+        };
+      }
+
+      if (args[0] === 'var') {
+        return {
+          lines: ['Dev Test <ident@example.com> 1770771600 +0000'],
+          stderr: '',
+          exitCode: 0,
+        };
+      }
+
+      return {
+        lines: [`${marker}1770771600${marker}abcdef2${marker}ident@example.com`],
+        stderr: '',
+        exitCode: 0,
+      };
+    });
+
+    await expect(
+      collectGitOutcomes(
+        {
+          repoDir: '/tmp/repo',
+          granularity: 'daily',
+          timezone: 'UTC',
+        },
+        { runGitCommand },
+      ),
+    ).resolves.toMatchObject({
+      diagnostics: {
+        commitsCollected: 1,
+      },
+    });
+
+    const gitLogArgs = runGitCommand.mock.calls.at(-1)?.[1] ?? [];
+    expect(gitLogArgs).toContain('--author=<ident@example\\.com>');
+  });
+
   it('requires configured git user.email when commits exist', async () => {
     const runGitCommand = vi.fn<
       (

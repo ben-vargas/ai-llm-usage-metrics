@@ -178,32 +178,64 @@ function isMissingGitUserEmailError(error: unknown): boolean {
   return error instanceof Error && error.message.startsWith('Git user.email is not configured for');
 }
 
+function resolveConfiguredEmailFromLines(lines: string[]): string | undefined {
+  return lines.map((line) => line.trim()).find((line) => line.length > 0);
+}
+
+function resolveEmailFromGitAuthorIdent(lines: string[]): string | undefined {
+  const identLine = lines.map((line) => line.trim()).find((line) => line.length > 0);
+
+  if (!identLine) {
+    return undefined;
+  }
+
+  const emailMatch = /<([^>]+)>/u.exec(identLine);
+  const email = emailMatch?.[1]?.trim();
+
+  return email && email.length > 0 ? email : undefined;
+}
+
 async function resolveConfiguredAuthorEmail(
   repoDir: string,
   runCommand: (repoDir: string, args: string[]) => Promise<GitCommandResult>,
 ): Promise<string> {
-  const gitConfigResult = await runCommand(repoDir, ['config', '--get', 'user.email']);
+  const configLookupAttempts: string[][] = [
+    ['config', '--get', 'user.email'],
+    ['config', '--global', '--get', 'user.email'],
+  ];
 
-  if (gitConfigResult.exitCode !== 0) {
-    if (gitConfigResult.exitCode === 1) {
-      throw new Error(
-        `Git user.email is not configured for ${repoDir}. Run: git -C ${repoDir} config user.email "you@example.com"`,
-      );
+  for (const args of configLookupAttempts) {
+    const configResult = await runCommand(repoDir, args);
+
+    if (configResult.exitCode === 0) {
+      const configuredEmail = resolveConfiguredEmailFromLines(configResult.lines);
+
+      if (configuredEmail) {
+        return configuredEmail;
+      }
+
+      continue;
     }
 
-    const reason = resolveGitCommandFailureReason(gitConfigResult);
-    throw new Error(`Failed to resolve git user.email from ${repoDir}: ${reason}`);
+    if (configResult.exitCode !== 1) {
+      const reason = resolveGitCommandFailureReason(configResult);
+      throw new Error(`Failed to resolve git user.email from ${repoDir}: ${reason}`);
+    }
   }
 
-  const configuredEmail = gitConfigResult.lines
-    .map((line) => line.trim())
-    .find((line) => line.length > 0);
+  const gitAuthorIdentResult = await runCommand(repoDir, ['var', 'GIT_AUTHOR_IDENT']);
 
-  if (!configuredEmail) {
-    throw new Error(`Git user.email is not configured for ${repoDir}`);
+  if (gitAuthorIdentResult.exitCode === 0) {
+    const authorIdentEmail = resolveEmailFromGitAuthorIdent(gitAuthorIdentResult.lines);
+
+    if (authorIdentEmail) {
+      return authorIdentEmail;
+    }
   }
 
-  return configuredEmail;
+  throw new Error(
+    `Git user.email is not configured for ${repoDir}. Run: git -C ${repoDir} config user.email "you@example.com"`,
+  );
 }
 
 function toIsoTimestamp(timestampSeconds: number): string {
@@ -320,6 +352,7 @@ async function runGitCommand(repoDir: string, args: string[]): Promise<GitComman
       env: {
         ...process.env,
         LC_ALL: 'C',
+        LANG: 'C',
       },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
