@@ -125,6 +125,8 @@ jobs:
       - run: pnpm run build
       - run: pnpm run smoke:dist-opencode
       - run: pnpm run test
+      - name: Enforce coverage threshold
+        run: node .github/scripts/check-coverage-threshold.mjs
       - name: Upload coverage
         if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork }}
         uses: codecov/codecov-action@v5
