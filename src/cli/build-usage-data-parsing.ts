@@ -227,6 +227,25 @@ function matchesProvider(
   return provider?.toLowerCase().includes(providerFilter) ?? false;
 }
 
+function isEventWithinDateRange(
+  event: UsageEvent,
+  timezone: string,
+  since: string | undefined,
+  until: string | undefined,
+): boolean {
+  const eventDate = getPeriodKey(event.timestamp, 'daily', timezone);
+
+  if (since && eventDate < since) {
+    return false;
+  }
+
+  if (until && eventDate > until) {
+    return false;
+  }
+
+  return true;
+}
+
 type ModelFilterRule = {
   value: string;
   mode: 'exact' | 'substring';
@@ -271,27 +290,6 @@ function matchesModel(
   );
 }
 
-function filterEventsByDateRange(
-  events: UsageEvent[],
-  timezone: string,
-  since: string | undefined,
-  until: string | undefined,
-): UsageEvent[] {
-  return events.filter((event) => {
-    const eventDate = getPeriodKey(event.timestamp, 'daily', timezone);
-
-    if (since && eventDate < since) {
-      return false;
-    }
-
-    if (until && eventDate > until) {
-      return false;
-    }
-
-    return true;
-  });
-}
-
 export type UsageEventFilterOptions = {
   timezone: string;
   since?: string;
@@ -300,35 +298,52 @@ export type UsageEventFilterOptions = {
   modelFilter?: string[];
 };
 
+function filterByModelRules(events: UsageEvent[], modelFilter: string[] | undefined): UsageEvent[] {
+  const modelFilterRules = resolveModelFilterRules(events, modelFilter);
+
+  return events.filter((event) => matchesModel(event.model, modelFilterRules));
+}
+
 export function filterUsageEvents(
   events: UsageEvent[],
   options: UsageEventFilterOptions,
 ): UsageEvent[] {
-  const providerFilteredEvents = events.filter((event) =>
-    matchesProvider(event.provider, options.providerFilter),
-  );
-  const providerAndDateFilteredEvents = filterEventsByDateRange(
-    providerFilteredEvents,
-    options.timezone,
-    options.since,
-    options.until,
-  );
-  const modelFilterRules = resolveModelFilterRules(
-    providerAndDateFilteredEvents,
-    options.modelFilter,
-  );
+  const providerAndDateFilteredEvents: UsageEvent[] = [];
 
-  return providerAndDateFilteredEvents.filter((event) =>
-    matchesModel(event.model, modelFilterRules),
-  );
+  for (const event of events) {
+    if (!matchesProvider(event.provider, options.providerFilter)) {
+      continue;
+    }
+
+    if (!isEventWithinDateRange(event, options.timezone, options.since, options.until)) {
+      continue;
+    }
+
+    providerAndDateFilteredEvents.push(event);
+  }
+
+  return filterByModelRules(providerAndDateFilteredEvents, options.modelFilter);
 }
 
 export function filterParsedAdapterEvents(
   parseResults: AdapterParseResult[],
   options: UsageEventFilterOptions,
 ): UsageEvent[] {
-  return filterUsageEvents(
-    parseResults.flatMap((result) => result.events),
-    options,
-  );
+  const providerAndDateFilteredEvents: UsageEvent[] = [];
+
+  for (const result of parseResults) {
+    for (const event of result.events) {
+      if (!matchesProvider(event.provider, options.providerFilter)) {
+        continue;
+      }
+
+      if (!isEventWithinDateRange(event, options.timezone, options.since, options.until)) {
+        continue;
+      }
+
+      providerAndDateFilteredEvents.push(event);
+    }
+  }
+
+  return filterByModelRules(providerAndDateFilteredEvents, options.modelFilter);
 }
