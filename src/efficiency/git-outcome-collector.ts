@@ -129,6 +129,19 @@ async function assertRepoDirReadable(repoDir: string): Promise<void> {
   }
 }
 
+async function assertGitRepository(
+  repoDir: string,
+  runCommand: (repoDir: string, args: string[]) => Promise<GitCommandResult>,
+): Promise<void> {
+  const gitRepoResult = await runCommand(repoDir, ['rev-parse', '--is-inside-work-tree']);
+
+  if (gitRepoResult.exitCode === 0) {
+    return;
+  }
+
+  throw new Error(`Repository is not a git repository: ${repoDir}`);
+}
+
 function isNoCommitHistoryFailure(result: GitCommandResult): boolean {
   if (result.exitCode !== 128) {
     return false;
@@ -169,7 +182,7 @@ async function resolveConfiguredAuthorEmail(
   repoDir: string,
   runCommand: (repoDir: string, args: string[]) => Promise<GitCommandResult>,
 ): Promise<string> {
-  const gitConfigResult = await runCommand(repoDir, ['config', '--local', '--get', 'user.email']);
+  const gitConfigResult = await runCommand(repoDir, ['config', '--get', 'user.email']);
 
   if (gitConfigResult.exitCode !== 0) {
     if (gitConfigResult.exitCode === 1) {
@@ -458,6 +471,7 @@ export async function collectGitOutcomes(
 
   if (!deps.runGitCommand) {
     await assertRepoDirReadable(repoDir);
+    await assertGitRepository(repoDir, runCommand);
   }
 
   let authorEmail: string;

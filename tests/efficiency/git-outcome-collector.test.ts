@@ -1,3 +1,7 @@
+import { mkdtemp, rm } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+
 import { describe, expect, it, vi } from 'vitest';
 
 import {
@@ -99,6 +103,22 @@ describe('parseGitLogShortstatLines', () => {
 });
 
 describe('collectGitOutcomes', () => {
+  it('fails fast when repo dir is not a git repository', async () => {
+    const nonGitDir = await mkdtemp(path.join(os.tmpdir(), 'git-outcomes-non-git-'));
+
+    try {
+      await expect(
+        collectGitOutcomes({
+          repoDir: nonGitDir,
+          granularity: 'daily',
+          timezone: 'UTC',
+        }),
+      ).rejects.toThrow(`Repository is not a git repository: ${nonGitDir}`);
+    } finally {
+      await rm(nonGitDir, { recursive: true, force: true });
+    }
+  });
+
   it('collects and aggregates outcomes with date filtering and default no-merges', async () => {
     const runGitCommand = vi.fn<
       (
@@ -143,7 +163,7 @@ describe('collectGitOutcomes', () => {
     const configArgs = (runGitCommand.mock.calls[0]?.[1] as string[] | undefined) ?? [];
     const args = (runGitCommand.mock.calls[1]?.[1] as string[] | undefined) ?? [];
 
-    expect(configArgs).toEqual(['config', '--local', '--get', 'user.email']);
+    expect(configArgs).toEqual(['config', '--get', 'user.email']);
 
     expect(args).toContain('--no-merges');
     expect(args).toContain('--regexp-ignore-case');
@@ -235,7 +255,7 @@ describe('collectGitOutcomes', () => {
     ).rejects.toThrow('Git user.email is not configured for');
   });
 
-  it('requires repo-local user.email even when commits exist', async () => {
+  it('requires configured git user.email when commits exist', async () => {
     const runGitCommand = vi.fn<
       (
         repoDir: string,
