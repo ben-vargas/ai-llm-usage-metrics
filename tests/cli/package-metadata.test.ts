@@ -58,4 +58,40 @@ describe('resolvePackageMetadata', () => {
       packageVersion: '0.0.0',
     });
   });
+
+  it('returns defaults when all candidates throw at runtime', () => {
+    const metadata = resolvePackageMetadata(() => {
+      throw new Error('module not found');
+    }, ['../package.json', '../../package.json']);
+
+    expect(metadata).toEqual({
+      packageName: 'llm-usage-metrics',
+      packageVersion: '0.0.0',
+    });
+  });
+
+  it('falls back when candidate payload is not an object', () => {
+    const metadata = resolvePackageMetadata(
+      (candidatePath) => {
+        if (candidatePath === '../package.json') {
+          return 'not-an-object';
+        }
+
+        if (candidatePath === '../../package.json') {
+          return {
+            name: 'llm-usage-metrics',
+            version: '3.2.1',
+          };
+        }
+
+        throw new Error(`unexpected path: ${candidatePath}`);
+      },
+      ['../package.json', '../../package.json'],
+    );
+
+    expect(metadata).toEqual({
+      packageName: 'llm-usage-metrics',
+      packageVersion: '3.2.1',
+    });
+  });
 });
