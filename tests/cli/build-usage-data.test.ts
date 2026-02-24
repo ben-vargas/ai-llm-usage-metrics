@@ -1007,6 +1007,51 @@ describe('buildUsageData', () => {
     expect(fetchSpy).toHaveBeenCalledTimes(3);
   });
 
+  it('continues without estimated pricing when --ignore-pricing-failures is enabled', async () => {
+    const cacheRoot = await mkdtemp(path.join(os.tmpdir(), 'usage-pricing-ignore-failure-'));
+    tempDirs.push(cacheRoot);
+    process.env.XDG_CACHE_HOME = cacheRoot;
+
+    const fetchSpy = vi.fn(async () => {
+      throw new Error('network unavailable');
+    });
+    vi.stubGlobal('fetch', fetchSpy);
+
+    const result = await buildUsageData(
+      'daily',
+      {
+        timezone: 'UTC',
+        ignorePricingFailures: true,
+      },
+      {
+        ...withDeterministicRuntimeDeps(),
+        createAdapters: () => [
+          createAdapter('pi', {
+            '/tmp/pi-1.jsonl': [
+              createEvent({
+                source: 'pi',
+                costMode: 'estimated',
+                costUsd: undefined,
+                model: 'gpt-4.1',
+              }),
+            ],
+          }),
+        ],
+      },
+    );
+
+    expect(fetchSpy).toHaveBeenCalledTimes(3);
+    expect(result.diagnostics.pricingOrigin).toBe('none');
+    expect(result.diagnostics.pricingWarning).toContain(
+      'Could not load pricing; continuing without estimated costs',
+    );
+    expect(result.rows.at(-1)).toMatchObject({
+      rowType: 'grand_total',
+      source: 'combined',
+      totalTokens: 15,
+    });
+  });
+
   it('fails pricing-offline mode when cache is unavailable', async () => {
     const cacheRoot = await mkdtemp(path.join(os.tmpdir(), 'usage-pricing-offline-no-cache-'));
     tempDirs.push(cacheRoot);

@@ -156,6 +156,9 @@ llm-usage daily --opencode-db /path/to/opencode.db
 ```bash
 # Use cached pricing only
 llm-usage monthly --pricing-offline
+
+# Continue even if pricing fetch fails
+llm-usage monthly --ignore-pricing-failures
 ```
 
 ## 🧪 Production Benchmarks

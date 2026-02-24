@@ -61,6 +61,10 @@ function addSharedOptions(
     )
     .option('--pricing-url <url>', 'Override LiteLLM pricing source URL')
     .option('--pricing-offline', 'Use cached LiteLLM pricing only (no network fetch)')
+    .option(
+      '--ignore-pricing-failures',
+      'Continue without estimated costs when pricing cannot be loaded',
+    )
     .option('--markdown', 'Render output as markdown table')
     .option('--json', 'Render output as JSON');
 

@@ -25,6 +25,7 @@ export type ReportCommandOptions = {
   perModelColumns?: boolean;
   pricingUrl?: string;
   pricingOffline?: boolean;
+  ignorePricingFailures?: boolean;
 };
 
 export type EfficiencyCommandOptions = Omit<ReportCommandOptions, 'perModelColumns'> & {
@@ -61,6 +62,7 @@ export type UsageDiagnostics = {
   sourceFailures: UsageSourceFailure[];
   skippedRows: UsageSkippedRowsStat[];
   pricingOrigin: UsagePricingOrigin;
+  pricingWarning?: string;
   activeEnvOverrides: EnvVarOverride[];
   timezone: string;
 };

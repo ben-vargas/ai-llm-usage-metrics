@@ -14,6 +14,7 @@ type BuildUsageDiagnosticsParams = {
   successfulParseResults: AdapterParseResult[];
   sourceFailures: UsageSourceFailure[];
   pricingOrigin: UsagePricingOrigin;
+  pricingWarning?: string;
   activeEnvOverrides: UsageDiagnostics['activeEnvOverrides'];
   timezone: string;
 };
@@ -46,6 +47,7 @@ export function buildUsageDiagnostics(params: BuildUsageDiagnosticsParams): Usag
     sourceFailures: params.sourceFailures,
     skippedRows,
     pricingOrigin: params.pricingOrigin,
+    pricingWarning: params.pricingWarning,
     activeEnvOverrides: params.activeEnvOverrides,
     timezone: params.timezone,
   };

@@ -35,6 +35,9 @@ describe('createCli', () => {
       expect(command.options.some((option) => option.long === '--per-model-columns')).toBe(true);
       expect(command.options.some((option) => option.long === '--pricing-url')).toBe(true);
       expect(command.options.some((option) => option.long === '--pricing-offline')).toBe(true);
+      expect(command.options.some((option) => option.long === '--ignore-pricing-failures')).toBe(
+        true,
+      );
       expect(command.options.some((option) => option.long === '--opencode-db')).toBe(true);
       expect(command.options.some((option) => option.long === '--source')).toBe(true);
       expect(command.options.some((option) => option.long === '--source-dir')).toBe(true);
@@ -50,6 +53,9 @@ describe('createCli', () => {
     expect(efficiencyCommand?.options.some((option) => option.long === '--repo-dir')).toBe(true);
     expect(
       efficiencyCommand?.options.some((option) => option.long === '--include-merge-commits'),
+    ).toBe(true);
+    expect(
+      efficiencyCommand?.options.some((option) => option.long === '--ignore-pricing-failures'),
     ).toBe(true);
     expect(efficiencyCommand?.options.some((option) => option.long === '--per-model-columns')).toBe(
       false,
