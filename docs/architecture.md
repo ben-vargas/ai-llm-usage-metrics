@@ -55,7 +55,7 @@ sequenceDiagram
     participant User
     participant Entry as CLI entrypoint
     participant Update as Update notifier
-    participant Run as runUsageReport
+    participant Run as CommandRunner
     participant Build as buildUsageData
     participant Adapter as Source adapters
     participant Pricing as Pricing resolver
@@ -88,6 +88,10 @@ sequenceDiagram
     Build-->>Run: usage events + rows + diagnostics
     Git-->>Run: outcome totals
     Run->>Run: attribute usage events to repo root
+    Run->>Run: aggregateEfficiency(...)
+    Run->>Render: renderEfficiencyReport(data, format)
+    Render-->>Run: report string
+    Run->>Emit: emitDiagnostics(data.diagnostics.usage)
     Run-->>User: stderr diagnostics + stdout efficiency report
 ```
 

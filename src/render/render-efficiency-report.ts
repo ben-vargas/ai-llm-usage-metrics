@@ -1,6 +1,5 @@
 import { markdownTable } from 'markdown-table';
 
-import { formatEnvVarOverrides } from '../config/env-var-display.js';
 import type { UsageReportRow } from '../domain/usage-report-row.js';
 import type { EfficiencyDataResult } from '../cli/usage-data-contracts.js';
 import type { EfficiencyRow } from '../efficiency/efficiency-row.js';
@@ -108,15 +107,7 @@ function renderTerminalEfficiencyReport(
   options: RenderEfficiencyReportOptions,
 ): string {
   const outputLines: string[] = [];
-  const envVarOverrideLines = formatEnvVarOverrides(
-    efficiencyData.diagnostics.usage.activeEnvOverrides,
-  );
   const useColor = options.useColor ?? shouldUseColorByDefault();
-
-  if (envVarOverrideLines.length > 0) {
-    outputLines.push(...envVarOverrideLines);
-    outputLines.push('');
-  }
 
   outputLines.push(
     renderReportHeader({

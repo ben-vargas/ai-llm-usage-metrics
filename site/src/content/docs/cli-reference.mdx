@@ -28,17 +28,17 @@ Generated from root + command help output.
 | Option | Short | Argument | Description |
 | --- | --- | --- | --- |
 | `--codex-dir` | - | `<path>` | Path to .codex sessions directory |
-| `--include-merge-commits` | - | - | Include merge commits in Git outcome metrics |
+| `--include-merge-commits` | - | - | Include merge commits in Git outcome metrics (efficiency only) |
 | `--json` | - | - | Render output as JSON |
 | `--markdown` | - | - | Render output as Markdown table |
 | `--model` | - | `<name>` | Filter by model (repeatable/comma-separated; exact when exact match exists after source/provider/date filters, otherwise substring) (default: []) |
 | `--opencode-db` | - | `<path>` | Path to OpenCode SQLite DB |
-| `--per-model-columns` | - | - | Render per-model metrics as multiline aligned table columns (terminal/Markdown) |
+| `--per-model-columns` | - | - | Render per-model metrics as multiline aligned table columns (terminal/Markdown) (usage reports only) |
 | `--pi-dir` | - | `<path>` | Path to .pi sessions directory |
 | `--pricing-offline` | - | - | Use cached LiteLLM pricing only (no network fetch) |
 | `--pricing-url` | - | `<url>` | Override LiteLLM pricing source URL |
 | `--provider` | - | `<name>` | Provider filter (substring match, optional) |
-| `--repo-dir` | - | `<path>` | Path to repository for Git outcome metrics |
+| `--repo-dir` | - | `<path>` | Path to repository for Git outcome metrics (efficiency only) |
 | `--since` | - | `<YYYY-MM-DD>` | Inclusive start date filter |
 | `--source` | - | `<name>` | Filter by source id (repeatable or comma-separated, supported sources (3): pi, codex, opencode) (default: []) |
 | `--source-dir` | - | `<source-id=path>` | Override source directory for directory-backed sources (repeatable) (default: []) |
@@ -58,7 +58,3 @@ llm-usage daily --json
 llm-usage daily --markdown
 llm-usage efficiency weekly --repo-dir /path/to/repo --json
 ```
-
-## Efficiency attribution
-
-`efficiency` commands attribute usage events to Git repository roots based on source metadata (`cwd`/path fields). Only events attributed to the selected repository contribute to efficiency totals.

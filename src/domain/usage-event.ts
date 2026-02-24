@@ -76,12 +76,7 @@ function normalizeOptionalText(value: string | undefined): string | undefined {
 }
 
 function normalizeOptionalPath(value: string | undefined): string | undefined {
-  if (!value) {
-    return undefined;
-  }
-
-  const normalized = value.trim();
-  return normalized || undefined;
+  return normalizeOptionalText(value);
 }
 
 function normalizeOptionalModel(value: string | undefined): string | undefined {

@@ -255,6 +255,8 @@ export class ParseFileCache {
       entry.fingerprint.size !== fingerprint.size ||
       entry.fingerprint.mtimeMs !== fingerprint.mtimeMs
     ) {
+      this.entriesByKey.delete(createCacheKey(source, filePath));
+      this.dirty = true;
       return undefined;
     }
 

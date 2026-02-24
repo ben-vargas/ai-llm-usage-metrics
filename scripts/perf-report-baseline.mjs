@@ -106,10 +106,14 @@ async function measureScenario(scenario, options) {
 
   for (let index = 0; index < options.warmupRuns + options.sampleRuns; index += 1) {
     const startedAt = performance.now();
-    const output =
-      scenario.kind === 'efficiency'
-        ? await buildEfficiencyReport(scenario.granularity, scenario.options)
-        : await buildUsageReport(scenario.granularity, scenario.options);
+    let output;
+    if (scenario.kind === 'efficiency') {
+      output = await buildEfficiencyReport(scenario.granularity, scenario.options);
+    } else if (scenario.kind === 'usage') {
+      output = await buildUsageReport(scenario.granularity, scenario.options);
+    } else {
+      throw new Error(`Unknown scenario kind: ${scenario.kind}`);
+    }
     const elapsedMs = performance.now() - startedAt;
 
     if (!output || output.length === 0) {

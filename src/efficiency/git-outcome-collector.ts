@@ -65,11 +65,15 @@ function shiftDate(value: string, days: number): string {
   const date = new Date(`${value}T00:00:00.000Z`);
 
   if (Number.isNaN(date.getTime())) {
-    return value;
+    throw new Error(`Invalid date value: ${value}`);
   }
 
   date.setUTCDate(date.getUTCDate() + days);
   return date.toISOString().slice(0, 10);
+}
+
+function escapeGitRegexLiteral(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
 }
 
 function resolveGitCommandFailureReason(result: GitCommandResult): string {
@@ -322,7 +326,8 @@ function buildGitLogArgs(options: {
     'log',
     `--pretty=format:${GIT_COMMIT_MARKER}%ct${GIT_COMMIT_MARKER}%H${GIT_COMMIT_MARKER}%ae`,
     '--shortstat',
-    `--author=<${options.authorEmail}>`,
+    '--regexp-ignore-case',
+    `--author=<${escapeGitRegexLiteral(options.authorEmail)}>`,
   ];
 
   if (!options.includeMergeCommits) {

@@ -16,6 +16,12 @@ const commandReferences = [
   { label: 'monthly', helpArgs: ['monthly', '--help'] },
   { label: 'efficiency <daily|weekly|monthly>', helpArgs: ['efficiency', '--help'] },
 ];
+const efficiencyOnlyOptions = new Set(['--include-merge-commits', '--repo-dir']);
+const usageOnlyOptions = new Set(['--per-model-columns']);
+
+function appendScopeSuffix(description, suffix) {
+  return description.endsWith(suffix) ? description : `${description} ${suffix}`;
+}
 
 function run(command, args, options = {}) {
   const resolvedCommand = command === 'node' ? process.execPath : command;
@@ -49,10 +55,22 @@ function normalizeDescription(text, optionLong) {
       ? text.replace(/\(default:\s*"[^"]+"\)/g, '(default: local system timezone)')
       : text;
 
-  return timezoneNormalizedText
+  const normalizedDescription = timezoneNormalizedText
     .replace(/\bmarkdown\b/giu, 'Markdown')
+    .replace(/\s+\(efficiency only\)/gu, '')
+    .replace(/\s+\(usage reports only\)/gu, '')
     .replace(/\s+/g, ' ')
     .trim();
+
+  if (efficiencyOnlyOptions.has(optionLong)) {
+    return appendScopeSuffix(normalizedDescription, '(efficiency only)');
+  }
+
+  if (usageOnlyOptions.has(optionLong)) {
+    return appendScopeSuffix(normalizedDescription, '(usage reports only)');
+  }
+
+  return normalizedDescription;
 }
 
 function parseOptions(helpText) {

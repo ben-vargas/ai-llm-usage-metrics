@@ -1,4 +1,4 @@
-import { access, constants } from 'node:fs/promises';
+import { access, constants, realpath } from 'node:fs/promises';
 import path from 'node:path';
 
 import type { UsageEvent } from '../domain/usage-event.js';
@@ -24,6 +24,16 @@ async function hasGitMarker(directoryPath: string): Promise<boolean> {
 function normalizeComparablePath(value: string): string {
   const normalizedPath = path.normalize(path.resolve(value));
   return process.platform === 'win32' ? normalizedPath.toLowerCase() : normalizedPath;
+}
+
+async function resolveComparablePath(value: string): Promise<string> {
+  const resolvedPath = path.resolve(value);
+
+  try {
+    return normalizeComparablePath(await realpath(resolvedPath));
+  } catch {
+    return normalizeComparablePath(resolvedPath);
+  }
 }
 
 export async function resolveRepoRootFromPathHint(pathHint: string): Promise<string | undefined> {
@@ -56,8 +66,11 @@ export async function attributeUsageEventsToRepo(
   resolveRepoRoot: RepoRootResolver = resolveRepoRootFromPathHint,
 ): Promise<RepoAttributionResult> {
   const resolvedTargetRepoRoot = await resolveRepoRoot(repoDir).catch(() => undefined);
-  const targetRepoPath = normalizeComparablePath(resolvedTargetRepoRoot ?? repoDir);
-  const rootCache = new Map<string, Promise<string | undefined>>();
+  const targetRepoPath = await resolveComparablePath(resolvedTargetRepoRoot ?? repoDir);
+  const rootCache = new Map<
+    string,
+    Promise<{ resolvedRoot: string; comparableRoot: string } | undefined>
+  >();
   const matchedEvents: UsageEvent[] = [];
   let excludedEventCount = 0;
   let unattributedEventCount = 0;
@@ -67,10 +80,23 @@ export async function attributeUsageEventsToRepo(
       unattributedEventCount += 1;
       continue;
     }
+    const eventRepoRoot = event.repoRoot;
 
     const cachedRootPromise =
-      rootCache.get(event.repoRoot) ?? resolveRepoRoot(event.repoRoot).catch(() => undefined);
-    rootCache.set(event.repoRoot, cachedRootPromise);
+      rootCache.get(eventRepoRoot) ??
+      (async () => {
+        const resolvedRoot = await resolveRepoRoot(eventRepoRoot).catch(() => undefined);
+
+        if (!resolvedRoot) {
+          return undefined;
+        }
+
+        return {
+          resolvedRoot,
+          comparableRoot: await resolveComparablePath(resolvedRoot),
+        };
+      })();
+    rootCache.set(eventRepoRoot, cachedRootPromise);
     const resolvedRoot = await cachedRootPromise;
 
     if (!resolvedRoot) {
@@ -78,14 +104,14 @@ export async function attributeUsageEventsToRepo(
       continue;
     }
 
-    if (normalizeComparablePath(resolvedRoot) !== targetRepoPath) {
+    if (resolvedRoot.comparableRoot !== targetRepoPath) {
       excludedEventCount += 1;
       continue;
     }
 
     matchedEvents.push({
       ...event,
-      repoRoot: resolvedRoot,
+      repoRoot: resolvedRoot.resolvedRoot,
     });
   }
 

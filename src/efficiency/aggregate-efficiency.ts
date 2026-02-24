@@ -118,10 +118,7 @@ function computeDerivedMetrics(
   outcomes: EfficiencyOutcomeTotals,
 ): EfficiencyDerivedMetrics {
   const costUsd = usage.costUsd;
-  const nonCacheTotalTokens = Math.max(
-    0,
-    usage.totalTokens - usage.cacheReadTokens - usage.cacheWriteTokens,
-  );
+  const nonCacheTotalTokens = usage.inputTokens + usage.outputTokens + usage.reasoningTokens;
 
   return {
     usdPerCommit:
@@ -155,8 +152,14 @@ export function aggregateEfficiency(options: AggregateEfficiencyOptions): Effici
     const usageTotals = usageTotalsByPeriod.get(periodKey) ?? createEmptyEfficiencyUsageTotals();
     const outcomeTotals =
       options.periodOutcomes.get(periodKey) ?? createEmptyEfficiencyOutcomeTotals();
+    const hasUsageRow = usageTotalsByPeriod.has(periodKey);
+    const hasUsageSignal =
+      hasUsageRow &&
+      (usageTotals.totalTokens > 0 ||
+        usageTotals.costUsd !== undefined ||
+        usageTotals.costIncomplete === true);
 
-    if (outcomeTotals.commitCount === 0 || usageTotals.totalTokens === 0) {
+    if (outcomeTotals.commitCount === 0 || !hasUsageSignal) {
       continue;
     }
 
