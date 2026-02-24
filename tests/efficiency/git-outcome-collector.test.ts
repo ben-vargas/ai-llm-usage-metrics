@@ -578,6 +578,43 @@ describe('collectGitOutcomes', () => {
     expect(result.totalOutcomes.commitCount).toBe(1);
   });
 
+  it('uses active usage day window to bound git log when explicit since/until are not provided', async () => {
+    const runGitCommand = vi.fn<
+      (
+        repoDir: string,
+        args: string[],
+      ) => Promise<{ lines: string[]; stderr: string; exitCode: number }>
+    >(async (_repoDir, args) => {
+      if (args[0] === 'config') {
+        return {
+          lines: ['dev@example.com'],
+          stderr: '',
+          exitCode: 0,
+        };
+      }
+
+      return {
+        lines: [],
+        stderr: '',
+        exitCode: 0,
+      };
+    });
+
+    await collectGitOutcomes(
+      {
+        repoDir: '/tmp/repo',
+        granularity: 'daily',
+        timezone: 'UTC',
+        activeUsageDays: new Set(['2026-02-11', '2026-02-13']),
+      },
+      { runGitCommand },
+    );
+
+    const args = (runGitCommand.mock.calls[1]?.[1] as string[] | undefined) ?? [];
+    expect(args).toContain('--since=2026-02-10T00:00:00Z');
+    expect(args).toContain('--until=2026-02-14T23:59:59Z');
+  });
+
   it('returns zero outcomes when active usage day set is empty', async () => {
     const runGitCommand = vi.fn<
       (

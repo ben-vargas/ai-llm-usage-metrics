@@ -497,6 +497,40 @@ function buildGitLogArgs(options: {
   return args;
 }
 
+function resolveGitLogDateWindow(options: {
+  since?: string;
+  until?: string;
+  activeUsageDays?: ReadonlySet<string>;
+}): {
+  since?: string;
+  until?: string;
+} {
+  if (!options.activeUsageDays || options.activeUsageDays.size === 0) {
+    return {
+      since: options.since,
+      until: options.until,
+    };
+  }
+
+  let earliestUsageDay: string | undefined;
+  let latestUsageDay: string | undefined;
+
+  for (const usageDay of options.activeUsageDays) {
+    if (!earliestUsageDay || usageDay < earliestUsageDay) {
+      earliestUsageDay = usageDay;
+    }
+
+    if (!latestUsageDay || usageDay > latestUsageDay) {
+      latestUsageDay = usageDay;
+    }
+  }
+
+  return {
+    since: options.since ?? earliestUsageDay,
+    until: options.until ?? latestUsageDay,
+  };
+}
+
 export async function collectGitOutcomes(
   options: GitOutcomeCollectorOptions,
   deps: GitOutcomeCollectorDeps = {},
@@ -528,11 +562,17 @@ export async function collectGitOutcomes(
     throw error;
   }
 
+  const gitLogDateWindow = resolveGitLogDateWindow({
+    since: options.since,
+    until: options.until,
+    activeUsageDays: options.activeUsageDays,
+  });
+
   const gitResult = await runCommand(
     repoDir,
     buildGitLogArgs({
-      since: options.since,
-      until: options.until,
+      since: gitLogDateWindow.since,
+      until: gitLogDateWindow.until,
       includeMergeCommits,
       authorEmail,
     }),
