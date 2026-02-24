@@ -169,7 +169,7 @@ async function resolveConfiguredAuthorEmail(
   repoDir: string,
   runCommand: (repoDir: string, args: string[]) => Promise<GitCommandResult>,
 ): Promise<string> {
-  const gitConfigResult = await runCommand(repoDir, ['config', '--get', 'user.email']);
+  const gitConfigResult = await runCommand(repoDir, ['config', '--local', '--get', 'user.email']);
 
   if (gitConfigResult.exitCode !== 0) {
     if (gitConfigResult.exitCode === 1) {

@@ -143,7 +143,7 @@ describe('collectGitOutcomes', () => {
     const configArgs = (runGitCommand.mock.calls[0]?.[1] as string[] | undefined) ?? [];
     const args = (runGitCommand.mock.calls[1]?.[1] as string[] | undefined) ?? [];
 
-    expect(configArgs).toEqual(['config', '--get', 'user.email']);
+    expect(configArgs).toEqual(['config', '--local', '--get', 'user.email']);
 
     expect(args).toContain('--no-merges');
     expect(args).toContain('--regexp-ignore-case');
@@ -233,6 +233,48 @@ describe('collectGitOutcomes', () => {
         { runGitCommand },
       ),
     ).rejects.toThrow('Git user.email is not configured for');
+  });
+
+  it('requires repo-local user.email even when commits exist', async () => {
+    const runGitCommand = vi.fn<
+      (
+        repoDir: string,
+        args: string[],
+      ) => Promise<{ lines: string[]; stderr: string; exitCode: number }>
+    >(async (_repoDir, args) => {
+      if (args[0] === 'config') {
+        return {
+          lines: [],
+          stderr: '',
+          exitCode: 1,
+        };
+      }
+
+      if (args[0] === 'rev-parse') {
+        return {
+          lines: ['deadbeef'],
+          stderr: '',
+          exitCode: 0,
+        };
+      }
+
+      return {
+        lines: [],
+        stderr: '',
+        exitCode: 0,
+      };
+    });
+
+    await expect(
+      collectGitOutcomes(
+        {
+          repoDir: '/tmp/repo',
+          granularity: 'daily',
+          timezone: 'UTC',
+        },
+        { runGitCommand },
+      ),
+    ).rejects.toThrow('Git user.email is not configured for /tmp/repo');
   });
 
   it('fails with git stderr when resolving user.email errors for unexpected exit codes', async () => {
