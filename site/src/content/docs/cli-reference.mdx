@@ -19,14 +19,16 @@ Commands:
 - `daily`
 - `weekly`
 - `monthly`
+- `efficiency <daily|weekly|monthly>`
 
 ## Options
 
-Generated from root + daily/weekly/monthly help output.
+Generated from root + command help output.
 
 | Option | Short | Argument | Description |
 | --- | --- | --- | --- |
 | `--codex-dir` | - | `<path>` | Path to .codex sessions directory |
+| `--include-merge-commits` | - | - | Include merge commits in Git outcome metrics |
 | `--json` | - | - | Render output as JSON |
 | `--markdown` | - | - | Render output as Markdown table |
 | `--model` | - | `<name>` | Filter by model (repeatable/comma-separated; exact when exact match exists after source/provider/date filters, otherwise substring) (default: []) |
@@ -36,6 +38,7 @@ Generated from root + daily/weekly/monthly help output.
 | `--pricing-offline` | - | - | Use cached LiteLLM pricing only (no network fetch) |
 | `--pricing-url` | - | `<url>` | Override LiteLLM pricing source URL |
 | `--provider` | - | `<name>` | Provider filter (substring match, optional) |
+| `--repo-dir` | - | `<path>` | Path to repository for Git outcome metrics |
 | `--since` | - | `<YYYY-MM-DD>` | Inclusive start date filter |
 | `--source` | - | `<name>` | Filter by source id (repeatable or comma-separated, supported sources (3): pi, codex, opencode) (default: []) |
 | `--source-dir` | - | `<source-id=path>` | Override source directory for directory-backed sources (repeatable) (default: []) |
@@ -53,4 +56,9 @@ llm-usage monthly --since 2026-01-01 --until 2026-01-31
 llm-usage monthly --source opencode --opencode-db /path/to/opencode.db
 llm-usage daily --json
 llm-usage daily --markdown
+llm-usage efficiency weekly --repo-dir /path/to/repo --json
 ```
+
+## Efficiency attribution
+
+`efficiency` commands attribute usage events to Git repository roots based on source metadata (`cwd`/path fields). Only events attributed to the selected repository contribute to efficiency totals.

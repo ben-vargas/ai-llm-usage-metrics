@@ -28,6 +28,7 @@ Aggregate token usage and costs from your local coding agent sessions. Supports 
 - **Zero-Config Discovery** — Automatically finds `.pi`, `.codex`, and OpenCode session data
 - **LiteLLM Pricing** — Real-time pricing sync with offline caching support
 - **Flexible Reports** — Daily, weekly, and monthly aggregations
+- **Efficiency Reports** — Correlate cost/tokens with repository commit outcomes
 - **Multiple Outputs** — Terminal tables, JSON, or Markdown
 - **Smart Filtering** — By source, provider, model, and date ranges
 
@@ -85,6 +86,21 @@ llm-usage daily --markdown
 # Detailed per-model breakdown
 llm-usage monthly --per-model-columns
 ```
+
+### Efficiency Reports
+
+```bash
+# Daily efficiency in current repository
+llm-usage efficiency daily
+
+# Weekly efficiency for a specific repository path
+llm-usage efficiency weekly --repo-dir /path/to/repo
+
+# Include merge commits and export JSON
+llm-usage efficiency monthly --include-merge-commits --json
+```
+
+Efficiency reports are repo-attributed: usage events are mapped to a Git repository root using source metadata (`cwd`/path info), and only events attributed to the selected repo are included in efficiency totals.
 
 ### Filtering
 

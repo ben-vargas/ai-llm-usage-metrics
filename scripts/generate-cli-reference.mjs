@@ -10,10 +10,16 @@ const __dirname = dirname(__filename);
 const rootDir = join(__dirname, '..');
 const distEntrypoint = join(rootDir, 'dist', 'index.js');
 const outputPath = join(rootDir, 'site', 'src', 'content', 'docs', 'cli-reference.mdx');
-const reportCommands = ['daily', 'weekly', 'monthly'];
+const commandReferences = [
+  { label: 'daily', helpArgs: ['daily', '--help'] },
+  { label: 'weekly', helpArgs: ['weekly', '--help'] },
+  { label: 'monthly', helpArgs: ['monthly', '--help'] },
+  { label: 'efficiency <daily|weekly|monthly>', helpArgs: ['efficiency', '--help'] },
+];
 
 function run(command, args, options = {}) {
-  const output = execFileSync(command, args, {
+  const resolvedCommand = command === 'node' ? process.execPath : command;
+  const output = execFileSync(resolvedCommand, args, {
     cwd: rootDir,
     encoding: 'utf8',
     ...options,
@@ -142,11 +148,11 @@ function generateMarkdown(version, options) {
     '',
     'Commands:',
     '',
-    ...reportCommands.map((command) => `- \`${command}\``),
+    ...commandReferences.map((command) => `- \`${command.label}\``),
     '',
     '## Options',
     '',
-    'Generated from root + daily/weekly/monthly help output.',
+    'Generated from root + command help output.',
     '',
     '| Option | Short | Argument | Description |',
     '| --- | --- | --- | --- |',
@@ -171,6 +177,7 @@ function generateMarkdown(version, options) {
     'llm-usage monthly --source opencode --opencode-db /path/to/opencode.db',
     'llm-usage daily --json',
     'llm-usage daily --markdown',
+    'llm-usage efficiency weekly --repo-dir /path/to/repo --json',
     '```',
   );
 
@@ -183,8 +190,8 @@ function main() {
 
   const version = run('node', ['dist/index.js', '--version']);
   const rootHelp = run('node', ['dist/index.js', '--help']);
-  const commandHelps = reportCommands.map((command) =>
-    run('node', ['dist/index.js', command, '--help']),
+  const commandHelps = commandReferences.map((command) =>
+    run('node', ['dist/index.js', ...command.helpArgs]),
   );
 
   const options = sortOptions(

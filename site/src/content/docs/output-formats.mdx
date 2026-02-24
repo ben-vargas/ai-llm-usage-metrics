@@ -32,6 +32,25 @@ llm-usage daily --markdown
 
 Use for docs, changelogs, and issue/PR reporting.
 
+## Efficiency reports
+
+```bash
+llm-usage efficiency daily
+llm-usage efficiency weekly --repo-dir /path/to/repo --json
+```
+
+Efficiency outputs include usage metrics, Git outcomes (`Commits`, `+Lines`, `-Lines`, `ΔLines`), and derived ratios:
+
+- `$/Commit`
+- `$/1k Lines`
+- `Tokens/Commit`
+- `Non-Cache/Commit`
+- `Commits/$`
+
+Usage values in efficiency reports are repo-attributed: only usage events mapped to the selected repository root are included.
+
+When a denominator is zero, derived values render as `-` in terminal/markdown and are omitted in JSON.
+
 ## Per-model columns
 
 Detailed multiline metrics per model:
