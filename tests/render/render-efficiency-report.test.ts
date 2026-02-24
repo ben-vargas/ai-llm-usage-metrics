@@ -1,0 +1,109 @@
+import { describe, expect, it } from 'vitest';
+
+import { renderEfficiencyReport } from '../../src/render/render-efficiency-report.js';
+import type { EfficiencyDataResult } from '../../src/cli/usage-data-contracts.js';
+
+function createEfficiencyDataResult(): EfficiencyDataResult {
+  return {
+    rows: [
+      {
+        rowType: 'period',
+        periodKey: '2026-02-10',
+        inputTokens: 0,
+        outputTokens: 0,
+        reasoningTokens: 0,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+        totalTokens: 0,
+        costUsd: 0,
+        commitCount: 1,
+        linesAdded: 10,
+        linesDeleted: 5,
+        linesChanged: 15,
+        usdPerCommit: 0,
+        usdPer1kLinesChanged: 0,
+        tokensPerCommit: 0,
+        nonCacheTokensPerCommit: 0,
+        commitsPerUsd: undefined,
+      },
+      {
+        rowType: 'grand_total',
+        periodKey: 'ALL',
+        inputTokens: 100,
+        outputTokens: 20,
+        reasoningTokens: 5,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+        totalTokens: 125,
+        costUsd: 2.5,
+        costIncomplete: true,
+        commitCount: 2,
+        linesAdded: 20,
+        linesDeleted: 8,
+        linesChanged: 28,
+        usdPerCommit: 1.25,
+        usdPer1kLinesChanged: 89.28571428571429,
+        tokensPerCommit: 62.5,
+        nonCacheTokensPerCommit: 62.5,
+        commitsPerUsd: 0.8,
+      },
+    ],
+    diagnostics: {
+      usage: {
+        sessionStats: [],
+        sourceFailures: [],
+        skippedRows: [],
+        pricingOrigin: 'none',
+        activeEnvOverrides: [],
+        timezone: 'UTC',
+      },
+      repoDir: '/tmp/repo',
+      includeMergeCommits: false,
+      gitCommitCount: 2,
+      gitLinesAdded: 20,
+      gitLinesDeleted: 8,
+      repoMatchedUsageEvents: 2,
+      repoExcludedUsageEvents: 0,
+      repoUnattributedUsageEvents: 0,
+    },
+  };
+}
+
+describe('renderEfficiencyReport', () => {
+  it('renders markdown output with efficiency columns', () => {
+    const output = renderEfficiencyReport(createEfficiencyDataResult(), 'markdown', {
+      granularity: 'daily',
+    });
+
+    expect(output).toContain('| Period');
+    expect(output).toContain('| Commits');
+    expect(output).toContain('| $/Commit');
+    expect(output).toContain('| Non-Cache/Commit');
+    expect(output).toContain('| 2026-02-10');
+    expect(output).toContain('| ALL');
+    expect(output).toContain('|         - |');
+  });
+
+  it('renders terminal output with title', () => {
+    const output = renderEfficiencyReport(createEfficiencyDataResult(), 'terminal', {
+      granularity: 'weekly',
+      useColor: false,
+    });
+
+    expect(output).toContain('Weekly Efficiency Report');
+    expect(output).toContain('│ Period');
+    expect(output).toContain('│ ALL');
+  });
+
+  it('renders json without undefined derived metrics', () => {
+    const output = renderEfficiencyReport(createEfficiencyDataResult(), 'json', {
+      granularity: 'monthly',
+    });
+
+    const parsed = JSON.parse(output) as Array<Record<string, unknown>>;
+
+    expect(parsed[0]?.commitsPerUsd).toBeUndefined();
+    expect(parsed[1]?.tokensPerCommit).toBe(62.5);
+    expect(parsed[1]?.nonCacheTokensPerCommit).toBe(62.5);
+  });
+});
