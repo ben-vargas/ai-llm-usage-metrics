@@ -132,6 +132,47 @@ describe('ParseFileCache', () => {
     expect(payload.entries).toHaveLength(0);
   });
 
+  it('normalizes source IDs in set/get keys and keeps lookups stable after reload', async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), 'parse-file-cache-source-key-'));
+    tempDirs.push(tempDir);
+    const cacheFilePath = path.join(tempDir, 'parse-file-cache.json');
+
+    const cache = await ParseFileCache.load({
+      cacheFilePath,
+      limits: { ttlMs: 60_000, maxEntries: 100, maxBytes: 1024 * 1024 },
+      now: () => 1_000,
+    });
+
+    cache.set(
+      'CODEX',
+      '/tmp/normalized-source.jsonl',
+      { size: 10, mtimeMs: 20 },
+      { events: [createEvent()], skippedRows: 0 },
+    );
+
+    expect(cache.get('codex', '/tmp/normalized-source.jsonl', { size: 10, mtimeMs: 20 })).toEqual({
+      events: [createEvent()],
+      skippedRows: 0,
+      skippedRowReasons: [],
+    });
+
+    await cache.persist();
+
+    const reloaded = await ParseFileCache.load({
+      cacheFilePath,
+      limits: { ttlMs: 60_000, maxEntries: 100, maxBytes: 1024 * 1024 },
+      now: () => 1_001,
+    });
+
+    expect(
+      reloaded.get('CODEX', '/tmp/normalized-source.jsonl', { size: 10, mtimeMs: 20 }),
+    ).toEqual({
+      events: [createEvent()],
+      skippedRows: 0,
+      skippedRowReasons: [],
+    });
+  });
+
   it('normalizes disk payload entries and ignores malformed rows', async () => {
     const tempDir = await mkdtemp(path.join(os.tmpdir(), 'parse-file-cache-load-'));
     tempDirs.push(tempDir);

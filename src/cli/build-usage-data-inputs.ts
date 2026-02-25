@@ -201,27 +201,27 @@ export function resolveExplicitSourceIds(
   return explicitSourceIds;
 }
 
+function detectDefaultTimezone(): string {
+  const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  if (typeof detectedTimezone === 'string') {
+    const trimmedDetectedTimezone = detectedTimezone.trim();
+
+    if (trimmedDetectedTimezone.length > 0) {
+      return trimmedDetectedTimezone;
+    }
+  }
+
+  return 'UTC';
+}
+
 export function normalizeBuildUsageInputs(
   options: ReportCommandOptions,
 ): NormalizedBuildUsageInputs {
   const { normalizedPricingUrl } = validateBuildOptions(options);
 
   const timezone =
-    options.timezone !== undefined
-      ? options.timezone.trim()
-      : (() => {
-          const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-          if (typeof detectedTimezone === 'string') {
-            const trimmedDetectedTimezone = detectedTimezone.trim();
-
-            if (trimmedDetectedTimezone.length > 0) {
-              return trimmedDetectedTimezone;
-            }
-          }
-
-          return 'UTC';
-        })();
+    options.timezone !== undefined ? options.timezone.trim() : detectDefaultTimezone();
   validateTimezone(timezone);
 
   const providerFilter = normalizeProviderFilter(options.provider);

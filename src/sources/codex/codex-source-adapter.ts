@@ -1,12 +1,12 @@
 import os from 'node:os';
 import path from 'node:path';
-import { access, constants, stat } from 'node:fs/promises';
 
 import { createUsageEvent } from '../../domain/usage-event.js';
 import type { UsageEvent } from '../../domain/usage-event.js';
 import { normalizeNonNegativeInteger } from '../../domain/normalization.js';
 import { asRecord } from '../../utils/as-record.js';
 import { discoverJsonlFiles } from '../../utils/discover-jsonl-files.js';
+import { pathStat } from '../../utils/fs-helpers.js';
 import { readJsonlObjects } from '../../utils/read-jsonl-objects.js';
 import { asTrimmedText, toNumberLike } from '../parsing-utils.js';
 import type { SourceAdapter } from '../source-adapter.js';
@@ -43,23 +43,6 @@ const TOKEN_COUNT_LINE_PATTERN = /"type"\s*:\s*"token_count"/u;
 
 function isBlankText(value: string): boolean {
   return value.trim().length === 0;
-}
-
-async function pathReadable(directoryPath: string): Promise<boolean> {
-  try {
-    await access(directoryPath, constants.R_OK);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function pathIsDirectory(directoryPath: string): Promise<boolean> {
-  try {
-    return (await stat(directoryPath)).isDirectory();
-  } catch {
-    return false;
-  }
 }
 
 function shouldParseCodexJsonlLine(lineText: string): boolean {
@@ -185,14 +168,18 @@ export class CodexSourceAdapter implements SourceAdapter {
 
     const normalizedSessionsDir = this.sessionsDir.trim();
 
-    if (this.requireSessionsDir && !(await pathReadable(normalizedSessionsDir))) {
-      throw new Error(
-        `Codex sessions directory is missing or unreadable: ${normalizedSessionsDir}`,
-      );
-    }
+    if (this.requireSessionsDir) {
+      const sessionsDirStats = await pathStat(normalizedSessionsDir);
 
-    if (this.requireSessionsDir && !(await pathIsDirectory(normalizedSessionsDir))) {
-      throw new Error(`Codex sessions directory is not a directory: ${normalizedSessionsDir}`);
+      if (!sessionsDirStats) {
+        throw new Error(
+          `Codex sessions directory is missing or unreadable: ${normalizedSessionsDir}`,
+        );
+      }
+
+      if (!sessionsDirStats.isDirectory()) {
+        throw new Error(`Codex sessions directory is not a directory: ${normalizedSessionsDir}`);
+      }
     }
 
     return discoverJsonlFiles(normalizedSessionsDir);

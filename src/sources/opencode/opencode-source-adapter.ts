@@ -1,6 +1,5 @@
-import { access, constants, stat } from 'node:fs/promises';
-
 import type { UsageEvent } from '../../domain/usage-event.js';
+import { pathExists, pathIsFile, pathReadable } from '../../utils/fs-helpers.js';
 import type { SourceAdapter, SourceParseFileDiagnostics } from '../source-adapter.js';
 import { getDefaultOpenCodeDbPathCandidates } from './opencode-db-path-resolver.js';
 import { loadNodeSqliteModule, type SqliteModule } from './node-sqlite-loader.js';
@@ -27,32 +26,6 @@ export type OpenCodeSourceAdapterOptions = {
 
 function isBlankText(value: string): boolean {
   return value.trim().length === 0;
-}
-
-async function pathExists(filePath: string): Promise<boolean> {
-  try {
-    await access(filePath, constants.F_OK);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function pathReadable(filePath: string): Promise<boolean> {
-  try {
-    await access(filePath, constants.R_OK);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function pathIsFile(filePath: string): Promise<boolean> {
-  try {
-    return (await stat(filePath)).isFile();
-  } catch {
-    return false;
-  }
 }
 
 async function sleep(delayMs: number): Promise<void> {

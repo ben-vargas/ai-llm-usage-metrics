@@ -1,8 +1,8 @@
 import { buildEfficiencyData } from './build-efficiency-data.js';
 import { emitDiagnostics } from './emit-diagnostics.js';
+import { emitEnvVarOverrides } from './emit-env-var-overrides.js';
 import { warnIfTerminalTableOverflows } from './terminal-overflow-warning.js';
 import type { EfficiencyCommandOptions, EfficiencyDiagnostics } from './usage-data-contracts.js';
-import { formatEnvVarOverrides } from '../config/env-var-display.js';
 import {
   renderEfficiencyReport,
   type EfficiencyReportFormat,
@@ -67,19 +67,7 @@ export async function runEfficiencyReport(
   const preparedReport = await prepareEfficiencyReport(granularity, options);
 
   emitDiagnostics(preparedReport.diagnostics.usage, logger);
-  const envVarOverrideLines = formatEnvVarOverrides(
-    preparedReport.diagnostics.usage.activeEnvOverrides,
-  );
-
-  if (envVarOverrideLines.length > 0) {
-    const [headerLine, ...envVarLines] = envVarOverrideLines;
-    if (headerLine) {
-      logger.info(headerLine);
-    }
-    for (const envVarLine of envVarLines) {
-      logger.dim(envVarLine);
-    }
-  }
+  emitEnvVarOverrides(preparedReport.diagnostics.usage.activeEnvOverrides, logger);
 
   const mergeModeLabel = preparedReport.diagnostics.includeMergeCommits
     ? 'including merge commits'

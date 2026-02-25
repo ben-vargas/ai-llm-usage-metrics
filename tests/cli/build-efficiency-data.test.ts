@@ -3,6 +3,26 @@ import { describe, expect, it, vi } from 'vitest';
 import { buildEfficiencyData } from '../../src/cli/build-efficiency-data.js';
 import type { UsageDataResult } from '../../src/cli/usage-data-contracts.js';
 
+type CollectGitOutcomesFn = (options: { activeUsageDays?: ReadonlySet<string> }) => Promise<{
+  periodOutcomes: Map<
+    string,
+    { commitCount: number; linesAdded: number; linesDeleted: number; linesChanged: number }
+  >;
+  totalOutcomes: {
+    commitCount: number;
+    linesAdded: number;
+    linesDeleted: number;
+    linesChanged: number;
+  };
+  diagnostics: {
+    repoDir: string;
+    includeMergeCommits: boolean;
+    commitsCollected: number;
+    linesAdded: number;
+    linesDeleted: number;
+  };
+}>;
+
 function createUsageDataResult(): UsageDataResult {
   return {
     // Intentionally includes multiple repo-scoped events so buildEfficiencyData
@@ -292,27 +312,7 @@ describe('buildEfficiencyData', () => {
   });
 
   it('passes an empty active-usage-day set when no events match the target repo', async () => {
-    const collectGitOutcomesMock = vi.fn<
-      (options: { activeUsageDays?: ReadonlySet<string> }) => Promise<{
-        periodOutcomes: Map<
-          string,
-          { commitCount: number; linesAdded: number; linesDeleted: number; linesChanged: number }
-        >;
-        totalOutcomes: {
-          commitCount: number;
-          linesAdded: number;
-          linesDeleted: number;
-          linesChanged: number;
-        };
-        diagnostics: {
-          repoDir: string;
-          includeMergeCommits: boolean;
-          commitsCollected: number;
-          linesAdded: number;
-          linesDeleted: number;
-        };
-      }>
-    >(async () => ({
+    const collectGitOutcomesMock = vi.fn<CollectGitOutcomesFn>(async () => ({
       periodOutcomes: new Map(),
       totalOutcomes: {
         commitCount: 0,
@@ -347,27 +347,7 @@ describe('buildEfficiencyData', () => {
   });
 
   it('ignores matched zero-signal events when deriving active usage days', async () => {
-    const collectGitOutcomesMock = vi.fn<
-      (options: { activeUsageDays?: ReadonlySet<string> }) => Promise<{
-        periodOutcomes: Map<
-          string,
-          { commitCount: number; linesAdded: number; linesDeleted: number; linesChanged: number }
-        >;
-        totalOutcomes: {
-          commitCount: number;
-          linesAdded: number;
-          linesDeleted: number;
-          linesChanged: number;
-        };
-        diagnostics: {
-          repoDir: string;
-          includeMergeCommits: boolean;
-          commitsCollected: number;
-          linesAdded: number;
-          linesDeleted: number;
-        };
-      }>
-    >(async () => ({
+    const collectGitOutcomesMock = vi.fn<CollectGitOutcomesFn>(async () => ({
       periodOutcomes: new Map(),
       totalOutcomes: {
         commitCount: 0,

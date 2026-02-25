@@ -1,9 +1,9 @@
 import { buildUsageData } from './build-usage-data.js';
 import { emitDiagnostics } from './emit-diagnostics.js';
+import { emitEnvVarOverrides } from './emit-env-var-overrides.js';
 import type { ReportCommandOptions, UsageDiagnostics } from './usage-data-contracts.js';
 import { warnIfTerminalTableOverflows } from './terminal-overflow-warning.js';
 import { renderUsageReport, type UsageReportFormat } from '../render/render-usage-report.js';
-import { formatEnvVarOverrides } from '../config/env-var-display.js';
 import type { UsageTableLayout } from '../render/row-cells.js';
 import { logger } from '../utils/logger.js';
 import type { ReportGranularity } from '../utils/time-buckets.js';
@@ -69,17 +69,7 @@ export async function runUsageReport(
 ): Promise<void> {
   const preparedReport = await prepareUsageReport(granularity, options);
   emitDiagnostics(preparedReport.diagnostics, logger);
-  const envVarOverrideLines = formatEnvVarOverrides(preparedReport.diagnostics.activeEnvOverrides);
-
-  if (envVarOverrideLines.length > 0) {
-    const [headerLine, ...envVarLines] = envVarOverrideLines;
-    if (headerLine) {
-      logger.info(headerLine);
-    }
-    for (const envVarLine of envVarLines) {
-      logger.dim(envVarLine);
-    }
-  }
+  emitEnvVarOverrides(preparedReport.diagnostics.activeEnvOverrides, logger);
 
   if (preparedReport.format === 'terminal') {
     warnIfTerminalTableOverflows(preparedReport.output, (message) => {

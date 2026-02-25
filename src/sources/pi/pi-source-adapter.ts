@@ -1,12 +1,12 @@
 import os from 'node:os';
 import path from 'node:path';
-import { access, constants, stat } from 'node:fs/promises';
 
 import { createUsageEvent } from '../../domain/usage-event.js';
 import type { UsageEvent } from '../../domain/usage-event.js';
 import type { NumberLike } from '../../domain/normalization.js';
 import { asRecord } from '../../utils/as-record.js';
 import { discoverJsonlFiles } from '../../utils/discover-jsonl-files.js';
+import { pathIsDirectory, pathReadable } from '../../utils/fs-helpers.js';
 import { readJsonlObjects } from '../../utils/read-jsonl-objects.js';
 import { asTrimmedText, toNumberLike } from '../parsing-utils.js';
 import type { SourceAdapter } from '../source-adapter.js';
@@ -57,23 +57,6 @@ const UNIX_SECONDS_ABS_CUTOFF = 10_000_000_000;
 
 function isBlankText(value: string): boolean {
   return value.trim().length === 0;
-}
-
-async function pathReadable(directoryPath: string): Promise<boolean> {
-  try {
-    await access(directoryPath, constants.R_OK);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function pathIsDirectory(directoryPath: string): Promise<boolean> {
-  try {
-    return (await stat(directoryPath)).isDirectory();
-  } catch {
-    return false;
-  }
 }
 
 function normalizeTimestampCandidate(candidate: unknown): string | undefined {

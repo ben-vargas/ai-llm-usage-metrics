@@ -41,6 +41,10 @@ function createCacheKey(source: string, filePath: string): string {
   return `${source}${CACHE_KEY_SEPARATOR}${filePath}`;
 }
 
+function normalizeCacheSource(source: string): string {
+  return normalizeSourceId(source)?.toLowerCase() ?? '';
+}
+
 function toNonNegativeInteger(value: unknown): number | undefined {
   if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
     return undefined;
@@ -255,14 +259,16 @@ export class ParseFileCache {
     filePath: string,
     fingerprint: ParseFileFingerprint,
   ): SourceParseFileDiagnostics | undefined {
-    const entry = this.entriesByKey.get(createCacheKey(source, filePath));
+    const normalizedSource = normalizeCacheSource(source);
+    const cacheKey = createCacheKey(normalizedSource, filePath);
+    const entry = this.entriesByKey.get(cacheKey);
 
     if (!entry) {
       return undefined;
     }
 
     if (entry.cachedAt + this.limits.ttlMs < this.now()) {
-      this.entriesByKey.delete(createCacheKey(source, filePath));
+      this.entriesByKey.delete(cacheKey);
       this.dirty = true;
       return undefined;
     }
@@ -271,7 +277,7 @@ export class ParseFileCache {
       entry.fingerprint.size !== fingerprint.size ||
       entry.fingerprint.mtimeMs !== fingerprint.mtimeMs
     ) {
-      this.entriesByKey.delete(createCacheKey(source, filePath));
+      this.entriesByKey.delete(cacheKey);
       this.dirty = true;
       return undefined;
     }
@@ -289,8 +295,9 @@ export class ParseFileCache {
     fingerprint: ParseFileFingerprint,
     diagnostics: SourceParseFileDiagnostics,
   ): void {
-    this.entriesByKey.set(createCacheKey(source, filePath), {
-      source,
+    const normalizedSource = normalizeCacheSource(source);
+    this.entriesByKey.set(createCacheKey(normalizedSource, filePath), {
+      source: normalizedSource,
       filePath,
       fingerprint: {
         size: fingerprint.size,
