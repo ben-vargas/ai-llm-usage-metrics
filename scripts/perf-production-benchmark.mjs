@@ -79,6 +79,7 @@ function parseCliArgs(argv) {
       case '-h':
         printHelp();
         process.exit(0);
+        return args;
       default:
         throw new Error(`Unknown option: ${arg}`);
     }

@@ -104,11 +104,14 @@ export async function resolveAndApplyPricingToEvents(
     }
 
     const reason = error instanceof Error ? error.message : String(error);
+    const pricingWarning = reason.trim().startsWith('Could not load')
+      ? reason
+      : `Could not load pricing; continuing without estimated costs: ${reason}`;
 
     return {
       pricedEvents: events,
       pricingOrigin,
-      pricingWarning: `Could not load pricing; continuing without estimated costs: ${reason}`,
+      pricingWarning,
     };
   }
 

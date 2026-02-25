@@ -1103,9 +1103,7 @@ describe('buildUsageData', () => {
 
     expect(fetchSpy).toHaveBeenCalledTimes(3);
     expect(result.diagnostics.pricingOrigin).toBe('none');
-    expect(result.diagnostics.pricingWarning).toContain(
-      'Could not load pricing; continuing without estimated costs',
-    );
+    expect(result.diagnostics.pricingWarning).toContain('Could not load LiteLLM pricing');
     expect(result.rows.at(-1)).toMatchObject({
       rowType: 'grand_total',
       source: 'combined',

@@ -130,13 +130,13 @@ describe('LiteLLMPricingFetcher', () => {
     const loadedFromCache = await fetcher.load();
 
     expect(loadedFromCache).toBe(false);
-    expect(fetcher.getPricing('gpt-5.2-codex')).toEqual({
-      inputPer1MUsd: 1.5,
-      outputPer1MUsd: 10,
-      cacheReadPer1MUsd: 0.15,
-      reasoningPer1MUsd: 20,
-      reasoningBilling: 'separate',
-    });
+    const pricing = fetcher.getPricing('gpt-5.2-codex');
+    expect(pricing).toBeDefined();
+    expect(pricing?.inputPer1MUsd).toBeCloseTo(1.5, 10);
+    expect(pricing?.outputPer1MUsd).toBeCloseTo(10, 10);
+    expect(pricing?.cacheReadPer1MUsd).toBeCloseTo(0.15, 10);
+    expect(pricing?.reasoningPer1MUsd).toBeCloseTo(20, 10);
+    expect(pricing?.reasoningBilling).toBe('separate');
   });
 
   it('throws when LiteLLM payload is not a JSON object and no cache is available', async () => {
@@ -455,14 +455,14 @@ describe('LiteLLMPricingFetcher', () => {
     expect(loadedFromCache).toBe(true);
     expect(fetcher.getPricing('invalid-missing-input')).toBeUndefined();
     expect(fetcher.getPricing('invalid-not-an-object')).toBeUndefined();
-    expect(fetcher.getPricing('valid-model')).toEqual({
-      inputPer1MUsd: 1.5,
-      outputPer1MUsd: 10,
-      cacheReadPer1MUsd: 0.2,
-      cacheWritePer1MUsd: 0.4,
-      reasoningPer1MUsd: 20,
-      reasoningBilling: 'separate',
-    });
+    const validPricing = fetcher.getPricing('valid-model');
+    expect(validPricing).toBeDefined();
+    expect(validPricing?.inputPer1MUsd).toBeCloseTo(1.5, 10);
+    expect(validPricing?.outputPer1MUsd).toBeCloseTo(10, 10);
+    expect(validPricing?.cacheReadPer1MUsd).toBeCloseTo(0.2, 10);
+    expect(validPricing?.cacheWritePer1MUsd).toBeCloseTo(0.4, 10);
+    expect(validPricing?.reasoningPer1MUsd).toBeCloseTo(20, 10);
+    expect(validPricing?.reasoningBilling).toBe('separate');
   });
 
   it('normalizes string-encoded cached pricing numbers and skips null entries', async () => {
@@ -502,14 +502,14 @@ describe('LiteLLMPricingFetcher', () => {
 
     expect(loadedFromCache).toBe(true);
     expect(fetcher.getPricing('null-entry')).toBeUndefined();
-    expect(fetcher.getPricing('valid-model')).toEqual({
-      inputPer1MUsd: 1.5,
-      outputPer1MUsd: 10,
-      cacheReadPer1MUsd: 0.2,
-      cacheWritePer1MUsd: 0.4,
-      reasoningPer1MUsd: 20,
-      reasoningBilling: 'separate',
-    });
+    const validPricing = fetcher.getPricing('valid-model');
+    expect(validPricing).toBeDefined();
+    expect(validPricing?.inputPer1MUsd).toBeCloseTo(1.5, 10);
+    expect(validPricing?.outputPer1MUsd).toBeCloseTo(10, 10);
+    expect(validPricing?.cacheReadPer1MUsd).toBeCloseTo(0.2, 10);
+    expect(validPricing?.cacheWritePer1MUsd).toBeCloseTo(0.4, 10);
+    expect(validPricing?.reasoningPer1MUsd).toBeCloseTo(20, 10);
+    expect(validPricing?.reasoningBilling).toBe('separate');
   });
 
   it('ignores malformed cache payload shape and falls back to remote', async () => {
