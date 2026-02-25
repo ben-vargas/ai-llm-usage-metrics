@@ -1,5 +1,43 @@
 # Changelog
 
+## [0.3.3](https://github.com/ayagmar/llm-usage-metrics/compare/v0.3.2...v0.3.3) (2026-02-25)
+
+### Features
+
+* **ci:** streamline CI workflows by separating performance baseline into its own file and updating dependencies ([50cd769](https://github.com/ayagmar/llm-usage-metrics/commit/50cd7693cccf303ce5bfcc0a0ca852bfc29774ae))
+* **cli:** wire efficiency command execution ([4e5682c](https://github.com/ayagmar/llm-usage-metrics/commit/4e5682c5712379f49d8a3153206e6db4468b6d61))
+* **efficiency:** add repo attribution and outcome aggregation ([c4f15d4](https://github.com/ayagmar/llm-usage-metrics/commit/c4f15d47ecea9fa9a2fa006d3cefa7b83240412a))
+* **efficiency:** count commits only on AI-active repo days ([d36d844](https://github.com/ayagmar/llm-usage-metrics/commit/d36d84499081c3ee0ebf2c8ad509b0fce116ebb6))
+* **perf:** add production benchmark runner and docs ([281aaf7](https://github.com/ayagmar/llm-usage-metrics/commit/281aaf74f33a64d25f16a87162cad9ab1f004da8))
+* **render:** add efficiency report formatters ([025acd3](https://github.com/ayagmar/llm-usage-metrics/commit/025acd3326f69fda9bbcc0ceca83492144cac014))
+* **sources:** capture repo roots in usage events ([66e6358](https://github.com/ayagmar/llm-usage-metrics/commit/66e6358730f42494cbbc8b43e1e72deabf09bc4b))
+
+### Bug Fixes
+
+* **ci:** skip opencode smoke when sqlite is unavailable ([7c583d9](https://github.com/ayagmar/llm-usage-metrics/commit/7c583d982db22421a97cdacdc873cfbc837b6c02))
+* **cli:** continue when pricing load fails ([8e7957a](https://github.com/ayagmar/llm-usage-metrics/commit/8e7957aae44752c896ff59d2702f3c8e849a200e))
+* **cli:** harden timezone fallback and update-check env parsing ([eea483b](https://github.com/ayagmar/llm-usage-metrics/commit/eea483bb5a2b4f30c20975a747d5c4917d5b27d6))
+* **cli:** resolve remaining PR [#24](https://github.com/ayagmar/llm-usage-metrics/issues/24) review findings ([7d269b1](https://github.com/ayagmar/llm-usage-metrics/commit/7d269b19e6f48ad3ffa0be743860060b33ba4e21))
+* **core:** use code-point sorting for deterministic ordering ([9db6761](https://github.com/ayagmar/llm-usage-metrics/commit/9db6761310c9ff566edd1de1275715908a82c43e))
+* **efficiency:** clarify all-tokens metric and edge-case tests ([a0bb818](https://github.com/ayagmar/llm-usage-metrics/commit/a0bb818bf769ecc79355aa982a141965917d0b41))
+* **efficiency:** handle empty repos and invalid repo-dir paths ([8b5c2ba](https://github.com/ayagmar/llm-usage-metrics/commit/8b5c2ba5241072eec24e4cfc142a9f310f7bb4d4))
+* **efficiency:** harden repo attribution and reporting semantics ([706aa05](https://github.com/ayagmar/llm-usage-metrics/commit/706aa0599100dc568ce6f1639977942385a65be6))
+* **efficiency:** harden repo-dir and review regressions ([82b129d](https://github.com/ayagmar/llm-usage-metrics/commit/82b129de3c6df6257f6ea5986455ebe4f5e7360b))
+* **efficiency:** ignore zero-signal events in active-day attribution ([ed34f63](https://github.com/ayagmar/llm-usage-metrics/commit/ed34f63f85ddf51a0a67d53a1fa4bd9fe5ca1363))
+* **efficiency:** require repo-local git author identity ([acfc228](https://github.com/ayagmar/llm-usage-metrics/commit/acfc2287f9cfbc1075002cab57f2b2e542b41423))
+* **efficiency:** resolve author email across layered git configs ([a1c43d4](https://github.com/ayagmar/llm-usage-metrics/commit/a1c43d4a79f7fda65dd690c3540343f809e2d212))
+* **efficiency:** skip git scan when usage-day set is empty ([61cc76a](https://github.com/ayagmar/llm-usage-metrics/commit/61cc76abe77091d6535d04f1df00a25238ba14da))
+* **efficiency:** validate git repo and resolve effective user email ([69475cc](https://github.com/ayagmar/llm-usage-metrics/commit/69475cc5b4877c2076f498a1f27b33197e323885))
+* **review:** address remaining CodeRabbit feedback ([da1be12](https://github.com/ayagmar/llm-usage-metrics/commit/da1be127f679112b8457a3e2e75def1ad8b651be))
+* **sources:** validate explicit session dirs and drop zero-signal pi rows ([449ecbd](https://github.com/ayagmar/llm-usage-metrics/commit/449ecbd2a24737fc811b326a24cc4534e603ba7c))
+* **sources:** validate explicit source paths and JSONL extension ([fc0c85f](https://github.com/ayagmar/llm-usage-metrics/commit/fc0c85fc4c0916003703292a59b54b70609059db))
+* **update:** compare prerelease identifiers by code point ([6f6f56b](https://github.com/ayagmar/llm-usage-metrics/commit/6f6f56b77a3f068f317f39d7adc48dbce88b9903))
+
+### Performance Improvements
+
+* **cli:** reduce filtering allocations in parsing path ([dd2357f](https://github.com/ayagmar/llm-usage-metrics/commit/dd2357f2923159f1f345d69166bb55ea1824637b))
+* **efficiency:** bound git log by usage-day window ([643ed86](https://github.com/ayagmar/llm-usage-metrics/commit/643ed8669aa978cb5c6d77dd987c5b107c28c769))
+
 ## [0.3.2](https://github.com/ayagmar/llm-usage-metrics/compare/v0.3.1...v0.3.2) (2026-02-23)
 
 ### Features
