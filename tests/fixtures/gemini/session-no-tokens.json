@@ -1,0 +1,16 @@
+{
+  "sessionId": "session-004",
+  "projectHash": "abc123",
+  "messages": [
+    {
+      "type": "user",
+      "timestamp": "2026-02-25T13:00:00Z",
+      "content": "Just a user message"
+    },
+    {
+      "type": "gemini",
+      "timestamp": "2026-02-25T13:05:00Z",
+      "model": "gemini-3-flash-preview"
+    }
+  ]
+}

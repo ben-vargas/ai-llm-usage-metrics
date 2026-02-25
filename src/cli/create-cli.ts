@@ -36,6 +36,7 @@ function addSharedOptions(
   const configuredCommand = command
     .option('--pi-dir <path>', 'Path to .pi sessions directory')
     .option('--codex-dir <path>', 'Path to .codex sessions directory')
+    .option('--gemini-dir <path>', 'Path to .gemini directory')
     .option('--opencode-db <path>', 'Path to OpenCode SQLite DB')
     .option(
       '--source-dir <source-id=path>',
@@ -143,7 +144,7 @@ function rootDescription(): string {
     '  $ llm-usage monthly --since 2026-01-01 --until 2026-01-31 --source pi,codex --json',
     '  $ llm-usage monthly --source opencode --opencode-db /path/to/opencode.db --json',
     '  $ llm-usage monthly --model claude --per-model-columns',
-    '  $ llm-usage daily --source-dir pi=/tmp/pi-sessions',
+    '  $ llm-usage daily --source-dir pi=/tmp/pi-sessions --source-dir gemini=/tmp/.gemini',
     '  $ llm-usage efficiency weekly --repo-dir /path/to/repo --json',
     '  $ npx --yes llm-usage-metrics daily',
   ].join('\n');

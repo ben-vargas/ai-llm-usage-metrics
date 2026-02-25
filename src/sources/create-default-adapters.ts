@@ -1,4 +1,5 @@
 import { CodexSourceAdapter } from './codex/codex-source-adapter.js';
+import { GeminiSourceAdapter } from './gemini/gemini-source-adapter.js';
 import { OpenCodeSourceAdapter } from './opencode/opencode-source-adapter.js';
 import { PiSourceAdapter } from './pi/pi-source-adapter.js';
 import type { SourceAdapter } from './source-adapter.js';
@@ -16,6 +17,7 @@ type SourceRegistration = {
 export type CreateDefaultAdaptersOptions = {
   piDir?: string;
   codexDir?: string;
+  geminiDir?: string;
   opencodeDb?: string;
   sourceDir?: string[];
 };
@@ -77,6 +79,22 @@ const sourceRegistrations: readonly SourceRegistration[] = [
       return new CodexSourceAdapter({
         sessionsDir: directoryConfig.path,
         requireSessionsDir: directoryConfig.requireExistingPath,
+      });
+    },
+  },
+  {
+    id: 'gemini',
+    sourceDirOverride: { kind: 'directory' },
+    create: (options, sourceDirectoryOverrides) => {
+      const directoryConfig = resolveDirectoryConfig(
+        'gemini',
+        options.geminiDir,
+        sourceDirectoryOverrides,
+      );
+
+      return new GeminiSourceAdapter({
+        geminiDir: directoryConfig.path,
+        requireGeminiDir: directoryConfig.requireExistingPath,
       });
     },
   },
@@ -151,7 +169,7 @@ function validateOpencodeOverride(opencodeDb: string | undefined): void {
 }
 
 function validateDirectoryOverride(
-  optionName: '--pi-dir' | '--codex-dir',
+  optionName: '--pi-dir' | '--codex-dir' | '--gemini-dir',
   value: string | undefined,
 ): void {
   if (value === undefined) {
@@ -201,6 +219,7 @@ export function createDefaultAdapters(options: CreateDefaultAdaptersOptions): So
   validateOpencodeOverride(options.opencodeDb);
   validateDirectoryOverride('--pi-dir', options.piDir);
   validateDirectoryOverride('--codex-dir', options.codexDir);
+  validateDirectoryOverride('--gemini-dir', options.geminiDir);
 
   const sourceDirectoryOverrides = parseSourceDirectoryOverrides(options.sourceDir);
   validateSourceDirectoryOverrideIds(sourceDirectoryOverrides);

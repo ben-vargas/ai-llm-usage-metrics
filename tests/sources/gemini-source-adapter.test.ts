@@ -1,0 +1,187 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+import { describe, expect, it } from 'vitest';
+
+import {
+  GeminiSourceAdapter,
+  getDefaultGeminiDir,
+} from '../../src/sources/gemini/gemini-source-adapter.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const fixturesDir = path.join(__dirname, '..', 'fixtures', 'gemini');
+
+describe('GeminiSourceAdapter', () => {
+  it('exposes stable source id and default directory', () => {
+    const adapter = new GeminiSourceAdapter();
+
+    expect(adapter.id).toBe('gemini');
+    expect(path.basename(getDefaultGeminiDir())).toBe('.gemini');
+    expect(path.isAbsolute(getDefaultGeminiDir())).toBe(true);
+  });
+
+  describe('discoverFiles', () => {
+    it('discovers only session files inside tmp/*/chats', async () => {
+      const adapter = new GeminiSourceAdapter({ geminiDir: fixturesDir });
+
+      await expect(adapter.discoverFiles()).resolves.toEqual([
+        path.join(fixturesDir, 'tmp', 'legacy-project', 'chats', 'nested-no-project-hash.json'),
+        path.join(fixturesDir, 'tmp', 'test-project', 'chats', 'nested-session.json'),
+      ]);
+    });
+
+    it('returns empty array when tmp directory is missing', async () => {
+      const adapter = new GeminiSourceAdapter({
+        geminiDir: path.join(fixturesDir, 'missing-root'),
+      });
+
+      await expect(adapter.discoverFiles()).resolves.toEqual([]);
+    });
+
+    it('validates explicit directory options', async () => {
+      const blankDirAdapter = new GeminiSourceAdapter({ geminiDir: '   ' });
+      await expect(blankDirAdapter.discoverFiles()).rejects.toThrow(
+        'Gemini directory must be a non-empty path',
+      );
+
+      const missingRequiredDirAdapter = new GeminiSourceAdapter({
+        geminiDir: path.join(fixturesDir, 'missing-root'),
+        requireGeminiDir: true,
+      });
+      await expect(missingRequiredDirAdapter.discoverFiles()).rejects.toThrow(
+        'Gemini directory is missing or unreadable',
+      );
+    });
+  });
+
+  describe('parseFile', () => {
+    it('parses usage and maps token fields correctly', async () => {
+      const adapter = new GeminiSourceAdapter({ geminiDir: fixturesDir });
+      const filePath = path.join(fixturesDir, 'session-with-usage.json');
+      const events = await adapter.parseFile(filePath);
+
+      expect(events).toHaveLength(2);
+
+      expect(events[0]).toMatchObject({
+        source: 'gemini',
+        sessionId: 'session-001',
+        provider: 'google',
+        model: 'gemini-3-flash-preview',
+        timestamp: '2026-02-25T10:05:00.000Z',
+        inputTokens: 105,
+        outputTokens: 50,
+        reasoningTokens: 25,
+        cacheReadTokens: 10,
+        totalTokens: 190,
+        costMode: 'estimated',
+        repoRoot: '/home/user/projects/my-app',
+      });
+
+      expect(events[1]).toMatchObject({
+        inputTokens: 210,
+        outputTokens: 100,
+        reasoningTokens: 50,
+        cacheReadTokens: 20,
+        totalTokens: 380,
+      });
+    });
+
+    it('computes total tokens when source total is missing', async () => {
+      const adapter = new GeminiSourceAdapter({ geminiDir: fixturesDir });
+      const filePath = path.join(fixturesDir, 'session-no-project-hash.json');
+      const events = await adapter.parseFile(filePath);
+
+      expect(events).toHaveLength(1);
+      expect(events[0].totalTokens).toBe(80);
+    });
+
+    it('does not fabricate repoRoot when project mapping is unavailable', async () => {
+      const adapter = new GeminiSourceAdapter({ geminiDir: fixturesDir });
+      const filePath = path.join(fixturesDir, 'session-no-project-hash.json');
+      const events = await adapter.parseFile(filePath);
+
+      expect(events[0].repoRoot).toBeUndefined();
+    });
+
+    it('resolves repoRoot from tmp directory identifier when present in projects.json', async () => {
+      const adapter = new GeminiSourceAdapter({ geminiDir: fixturesDir });
+      const filePath = path.join(
+        fixturesDir,
+        'tmp',
+        'legacy-project',
+        'chats',
+        'nested-no-project-hash.json',
+      );
+      const events = await adapter.parseFile(filePath);
+
+      expect(events).toHaveLength(1);
+      expect(events[0].repoRoot).toBe('/home/user/projects/legacy');
+    });
+
+    it('skips messages without billable token usage', async () => {
+      const adapter = new GeminiSourceAdapter({ geminiDir: fixturesDir });
+
+      await expect(
+        adapter.parseFile(path.join(fixturesDir, 'session-zero-tokens.json')),
+      ).resolves.toHaveLength(0);
+      await expect(
+        adapter.parseFile(path.join(fixturesDir, 'session-no-tokens.json')),
+      ).resolves.toHaveLength(0);
+    });
+
+    it('falls back to filename when sessionId is missing', async () => {
+      const adapter = new GeminiSourceAdapter({ geminiDir: fixturesDir });
+      const events = await adapter.parseFile(
+        path.join(fixturesDir, 'session-missing-sessionid.json'),
+      );
+
+      expect(events).toHaveLength(1);
+      expect(events[0].sessionId).toBe('session-missing-sessionid');
+    });
+
+    it('can parse files even when geminiDir option is blank', async () => {
+      const adapter = new GeminiSourceAdapter({ geminiDir: '   ' });
+      const events = await adapter.parseFile(path.join(fixturesDir, 'session-with-usage.json'));
+
+      expect(events).toHaveLength(2);
+      expect(events[0].repoRoot).toBeUndefined();
+    });
+  });
+
+  describe('parseFileWithDiagnostics', () => {
+    it('tracks skipped reason counts', async () => {
+      const adapter = new GeminiSourceAdapter({ geminiDir: fixturesDir });
+      const result = await adapter.parseFileWithDiagnostics(
+        path.join(fixturesDir, 'session-with-usage.json'),
+      );
+
+      expect(result.events).toHaveLength(2);
+      expect(result.skippedRows).toBe(1);
+      expect(result.skippedRowReasons).toEqual([{ reason: 'non_gemini_message', count: 1 }]);
+    });
+
+    it('reports parse and shape errors', async () => {
+      const adapter = new GeminiSourceAdapter({ geminiDir: fixturesDir });
+
+      const malformed = await adapter.parseFileWithDiagnostics(
+        path.join(fixturesDir, 'invalid-json.txt'),
+      );
+      expect(malformed.skippedRowReasons).toEqual([{ reason: 'json_parse_error', count: 1 }]);
+
+      const invalidRoot = await adapter.parseFileWithDiagnostics(
+        path.join(fixturesDir, 'session-invalid-root.json'),
+      );
+      expect(invalidRoot.skippedRowReasons).toEqual([{ reason: 'invalid_session_data', count: 1 }]);
+    });
+
+    it('reports invalid timestamp rows', async () => {
+      const adapter = new GeminiSourceAdapter({ geminiDir: fixturesDir });
+      const result = await adapter.parseFileWithDiagnostics(
+        path.join(fixturesDir, 'session-invalid-timestamp.json'),
+      );
+
+      expect(result.events).toHaveLength(0);
+      expect(result.skippedRowReasons).toEqual([{ reason: 'invalid_timestamp', count: 1 }]);
+    });
+  });
+});

@@ -39,6 +39,7 @@ describe('createCli', () => {
         true,
       );
       expect(command.options.some((option) => option.long === '--opencode-db')).toBe(true);
+      expect(command.options.some((option) => option.long === '--gemini-dir')).toBe(true);
       expect(command.options.some((option) => option.long === '--source')).toBe(true);
       expect(command.options.some((option) => option.long === '--source-dir')).toBe(true);
       expect(command.options.some((option) => option.long === '--model')).toBe(true);
@@ -97,7 +98,7 @@ describe('createCli', () => {
       ?.helpInformation();
     const compactDailyCommandHelp = dailyCommandHelp?.replace(/\s+/gu, ' ');
 
-    expect(help).toContain('Supported sources (3): pi, codex, opencode');
+    expect(help).toContain('Supported sources (4): pi, codex, gemini, opencode');
     expect(help).toContain('Show daily usage report');
     expect(help).toContain('llm-usage <command> --help');
     expect(help).toContain('--source opencode --opencode-db /path/to/opencode.db');

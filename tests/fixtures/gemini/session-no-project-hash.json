@@ -1,0 +1,15 @@
+{
+  "sessionId": "session-002",
+  "startTime": "2026-02-25T11:00:00Z",
+  "messages": [
+    {
+      "type": "gemini",
+      "timestamp": "2026-02-25T11:05:00Z",
+      "model": "gemini-3-pro",
+      "tokens": {
+        "input": 50,
+        "output": 30
+      }
+    }
+  ]
+}
