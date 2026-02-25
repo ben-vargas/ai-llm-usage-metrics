@@ -6,19 +6,27 @@
     "moonshotai.kimi-k2.5": "kimi-k2.5",
     "moonshot/kimi-k2.5": "kimi-k2.5",
 
+    "gpt-5.3-codex-spark": "gpt-5.3-codex",
+
+    "gemini-3-pro": "gemini-3-pro",
+    "antigravity-gemini-3-flash": "gemini-3-flash",
+    "antigravity-gemini-3-pro": "gemini-3-pro",
+    "antigravity-gemini-3-pro-high": "gemini-3-pro",
+
     "claude sonnet 4.6": "claude-sonnet-4.6",
     "claude-sonnet-4.6": "claude-sonnet-4.6",
     "claude-sonnet-4-6": "claude-sonnet-4.6",
     "anthropic/claude-sonnet-4.6": "claude-sonnet-4.6",
-    "anthropic.claude-sonnet-4-6": "claude-sonnet-4.6",
-
-    "gpt-5.3-codex": "gpt-5.2-codex"
+    "anthropic.claude-sonnet-4-6": "claude-sonnet-4.6"
   },
   "notes": {
-    "gpt-5.3-codex": "Temporary fallback to gpt-5.2-codex until upstream publishes direct gpt-5.3-codex token pricing"
+    "gpt-5.3-codex-spark": "Alias to gpt-5.3-codex because upstream publishes token pricing on the gpt-5.3-codex key"
   },
   "preferredPricingKeyByCanonicalModel": {
     "kimi-k2.5": "moonshot/kimi-k2.5",
+    "gpt-5.3-codex": "gpt-5.3-codex",
+    "gemini-3-flash": "gemini/gemini-3-flash-preview",
+    "gemini-3-pro": "gemini/gemini-3-pro-preview",
     "claude-sonnet-4.6": "anthropic.claude-sonnet-4-6"
   }
 }

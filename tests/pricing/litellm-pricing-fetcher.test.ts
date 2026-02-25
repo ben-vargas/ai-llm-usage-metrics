@@ -604,6 +604,18 @@ describe('LiteLLMPricingFetcher', () => {
               input_cost_per_token: 0.0000006,
               output_cost_per_token: 0.000003,
             },
+            'gpt-5.3-codex': {
+              input_cost_per_token: 0.00000175,
+              output_cost_per_token: 0.000014,
+            },
+            'gemini/gemini-3-flash-preview': {
+              input_cost_per_token: 0.0000005,
+              output_cost_per_token: 0.000003,
+            },
+            'gemini/gemini-3-pro-preview': {
+              input_cost_per_token: 0.000002,
+              output_cost_per_token: 0.000012,
+            },
             'anthropic.claude-sonnet-4-6': {
               input_cost_per_token: 0.000003,
               output_cost_per_token: 0.000015,
@@ -618,14 +630,25 @@ describe('LiteLLMPricingFetcher', () => {
 
     expect(fetcher.resolveModelAlias('k2p5')).toBe('moonshot/kimi-k2.5');
     expect(fetcher.resolveModelAlias('moonshotai.kimi-k2.5')).toBe('moonshot/kimi-k2.5');
+    expect(fetcher.resolveModelAlias('gpt-5.3-codex-spark')).toBe('gpt-5.3-codex');
+    expect(fetcher.resolveModelAlias('gemini-3-pro')).toBe('gemini/gemini-3-pro-preview');
+    expect(fetcher.resolveModelAlias('antigravity-gemini-3-flash')).toBe(
+      'gemini/gemini-3-flash-preview',
+    );
+    expect(fetcher.resolveModelAlias('antigravity-gemini-3-pro-high')).toBe(
+      'gemini/gemini-3-pro-preview',
+    );
     expect(fetcher.resolveModelAlias('claude-sonnet-4.6')).toBe('anthropic.claude-sonnet-4-6');
 
     expect(fetcher.getPricing('k2p5')?.inputPer1MUsd).toBeCloseTo(0.6, 10);
     expect(fetcher.getPricing('kimi-k2.5')?.outputPer1MUsd).toBeCloseTo(3, 10);
+    expect(fetcher.getPricing('gpt-5.3-codex-spark')?.inputPer1MUsd).toBeCloseTo(1.75, 10);
+    expect(fetcher.getPricing('gemini-3-pro')?.outputPer1MUsd).toBeCloseTo(12, 10);
+    expect(fetcher.getPricing('antigravity-gemini-3-flash')?.inputPer1MUsd).toBeCloseTo(0.5, 10);
     expect(fetcher.getPricing('claude sonnet 4.6')?.outputPer1MUsd).toBeCloseTo(15, 10);
   });
 
-  it('maps gpt-5.3-codex through a temporary gpt-5.2-codex fallback alias until upstream direct pricing exists', async () => {
+  it('uses direct gpt-5.3-codex pricing when available upstream', async () => {
     const rootDir = await mkdtemp(path.join(os.tmpdir(), 'litellm-pricing-codex-fallback-'));
     tempDirs.push(rootDir);
 
@@ -642,6 +665,10 @@ describe('LiteLLMPricingFetcher', () => {
               input_cost_per_token: 0.0000015,
               output_cost_per_token: 0.00001,
             },
+            'gpt-5.3-codex': {
+              input_cost_per_token: 0.00000175,
+              output_cost_per_token: 0.000014,
+            },
           }),
           { status: 200 },
         );
@@ -650,8 +677,8 @@ describe('LiteLLMPricingFetcher', () => {
 
     await fetcher.load();
 
-    expect(fetcher.resolveModelAlias('gpt-5.3-codex')).toBe('gpt-5.2-codex');
-    expect(fetcher.getPricing('gpt-5.3-codex')?.inputPer1MUsd).toBeCloseTo(1.5, 10);
+    expect(fetcher.resolveModelAlias('gpt-5.3-codex')).toBe('gpt-5.3-codex');
+    expect(fetcher.getPricing('gpt-5.3-codex')?.inputPer1MUsd).toBeCloseTo(1.75, 10);
   });
 
   it('matches provider-prefixed LiteLLM keys from bare model names', async () => {
