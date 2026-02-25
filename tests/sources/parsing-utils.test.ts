@@ -1,12 +1,18 @@
 import { describe, expect, it } from 'vitest';
 
-import { asTrimmedText, toNumberLike } from '../../src/sources/parsing-utils.js';
+import { asTrimmedText, isBlankText, toNumberLike } from '../../src/sources/parsing-utils.js';
 
 describe('source parsing helpers', () => {
   it('normalizes trimmed text values', () => {
     expect(asTrimmedText('  hello  ')).toBe('hello');
     expect(asTrimmedText('   ')).toBeUndefined();
     expect(asTrimmedText(123)).toBeUndefined();
+  });
+
+  it('checks blank strings', () => {
+    expect(isBlankText('')).toBe(true);
+    expect(isBlankText('   ')).toBe(true);
+    expect(isBlankText(' value ')).toBe(false);
   });
 
   it('converts unknown values to NumberLike safely', () => {

@@ -8,7 +8,7 @@ import { asRecord } from '../../utils/as-record.js';
 import { discoverJsonlFiles } from '../../utils/discover-jsonl-files.js';
 import { pathIsDirectory, pathReadable } from '../../utils/fs-helpers.js';
 import { readJsonlObjects } from '../../utils/read-jsonl-objects.js';
-import { asTrimmedText, toNumberLike } from '../parsing-utils.js';
+import { asTrimmedText, isBlankText, toNumberLike } from '../parsing-utils.js';
 import type { SourceAdapter } from '../source-adapter.js';
 
 const defaultSessionsDir = path.join(os.homedir(), '.pi', 'agent', 'sessions');
@@ -54,10 +54,6 @@ function shouldParsePiJsonlLine(lineText: string): boolean {
 const allowAllProviders: ProviderFilter = () => true;
 
 const UNIX_SECONDS_ABS_CUTOFF = 10_000_000_000;
-
-function isBlankText(value: string): boolean {
-  return value.trim().length === 0;
-}
 
 function normalizeTimestampCandidate(candidate: unknown): string | undefined {
   let date: Date | undefined;

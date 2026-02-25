@@ -8,7 +8,7 @@ import { asRecord } from '../../utils/as-record.js';
 import { discoverJsonlFiles } from '../../utils/discover-jsonl-files.js';
 import { pathStat } from '../../utils/fs-helpers.js';
 import { readJsonlObjects } from '../../utils/read-jsonl-objects.js';
-import { asTrimmedText, toNumberLike } from '../parsing-utils.js';
+import { asTrimmedText, isBlankText, toNumberLike } from '../parsing-utils.js';
 import type { SourceAdapter } from '../source-adapter.js';
 
 const defaultSessionsDir = path.join(os.homedir(), '.codex', 'sessions');
@@ -40,10 +40,6 @@ const SESSION_META_LINE_PATTERN = /"type"\s*:\s*"session_meta"/u;
 const TURN_CONTEXT_LINE_PATTERN = /"type"\s*:\s*"turn_context"/u;
 const EVENT_MSG_LINE_PATTERN = /"type"\s*:\s*"event_msg"/u;
 const TOKEN_COUNT_LINE_PATTERN = /"type"\s*:\s*"token_count"/u;
-
-function isBlankText(value: string): boolean {
-  return value.trim().length === 0;
-}
 
 function shouldParseCodexJsonlLine(lineText: string): boolean {
   if (SESSION_META_LINE_PATTERN.test(lineText) || TURN_CONTEXT_LINE_PATTERN.test(lineText)) {

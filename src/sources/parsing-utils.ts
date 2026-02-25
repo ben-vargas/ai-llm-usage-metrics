@@ -9,6 +9,10 @@ export function asTrimmedText(value: unknown): string | undefined {
   return normalized || undefined;
 }
 
+export function isBlankText(value: string): boolean {
+  return value.trim().length === 0;
+}
+
 export function toNumberLike(value: unknown): NumberLike {
   if (
     value === null ||
