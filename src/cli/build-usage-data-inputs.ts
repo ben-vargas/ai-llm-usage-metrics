@@ -1,4 +1,5 @@
 import type { SourceAdapter } from '../sources/source-adapter.js';
+import { compareByCodePoint } from '../utils/compare-by-code-point.js';
 
 import type { ReportCommandOptions } from './usage-data-contracts.js';
 
@@ -94,7 +95,7 @@ export function validateSourceFilterValues(
     return;
   }
 
-  const allowedSources = [...availableSourceIds].sort((left, right) => left.localeCompare(right));
+  const allowedSources = [...availableSourceIds].sort(compareByCodePoint);
 
   throw new Error(
     `Unknown --source value(s): ${unknownSources.join(', ')}. Allowed values: ${allowedSources.join(', ')}`,
@@ -200,13 +201,27 @@ export function resolveExplicitSourceIds(
   return explicitSourceIds;
 }
 
+function detectDefaultTimezone(): string {
+  const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  if (typeof detectedTimezone === 'string') {
+    const trimmedDetectedTimezone = detectedTimezone.trim();
+
+    if (trimmedDetectedTimezone.length > 0) {
+      return trimmedDetectedTimezone;
+    }
+  }
+
+  return 'UTC';
+}
+
 export function normalizeBuildUsageInputs(
   options: ReportCommandOptions,
 ): NormalizedBuildUsageInputs {
   const { normalizedPricingUrl } = validateBuildOptions(options);
 
-  const timezoneInput = options.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const timezone = timezoneInput.trim();
+  const timezone =
+    options.timezone !== undefined ? options.timezone.trim() : detectDefaultTimezone();
   validateTimezone(timezone);
 
   const providerFilter = normalizeProviderFilter(options.provider);

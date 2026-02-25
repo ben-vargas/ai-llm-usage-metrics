@@ -1,439 +1,992 @@
 ---
 import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+const rootPkg = JSON.parse(
+  readFileSync(resolve(process.cwd(), '..', 'package.json'), 'utf-8'),
+);
+const pkgVersion = rootPkg.version ?? '0.0.0';
 
 const basePath = import.meta.env.BASE_URL.endsWith('/')
   ? import.meta.env.BASE_URL
   : `${import.meta.env.BASE_URL}/`;
 const screenshotPath = `${basePath}screenshot.png`;
 const docsPath = `${basePath}getting-started/`;
-
-const docLinks = [
-  { label: 'Getting Started', href: `${basePath}getting-started/`, desc: 'Install and run your first report' },
-  { label: 'CLI Reference', href: `${basePath}cli-reference/`, desc: 'All commands and options' },
-  { label: 'Data Sources', href: `${basePath}sources/`, desc: 'pi, codex, opencode' },
-  { label: 'Configuration', href: `${basePath}configuration/`, desc: 'Customize behavior' },
-];
+const efficiencyPath = `${basePath}efficiency/`;
+const benchmarksPath = `${basePath}benchmarks/`;
+const cliRefPath = `${basePath}cli-reference/`;
+const sourcesPath = `${basePath}sources/`;
 ---
 
 <StarlightPage frontmatter={{ title: 'Overview', template: 'splash' }}>
   <div class="grain-overlay" aria-hidden="true"></div>
 
-  <!-- Hero Section -->
-  <section class="hero-split" aria-labelledby="hero-title">
-    <div class="hero-content">
-      <a href="https://www.npmjs.com/package/llm-usage-metrics" target="_blank" rel="noopener noreferrer" class="badge" id="version-badge">
-        <span class="status-dot" aria-hidden="true"></span>
-        <span class="badge-text">checking version...</span>
-      </a>
+  <!-- Version pill - top right -->
+  <div class="version-floating">
+    <a href="https://www.npmjs.com/package/llm-usage-metrics" target="_blank" rel="noopener noreferrer" class="version-pill">
+      <span class="version-dot" aria-hidden="true"></span>
+      v{pkgVersion}
+    </a>
+  </div>
 
-      <h1 id="hero-title">
-        Quantify your local<br />
-        <em>inference</em> pipeline.
-      </h1>
-
-      <p class="lead">
-        Parse local LLM usage from your coding agent sessions. Aggregate token metrics,
-        apply LiteLLM pricing, and generate reports from <code>.pi</code>,
-        <code>.codex</code>, and OpenCode workflows.
-      </p>
-
-      <div
-        class="install-command"
-        role="button"
-        tabindex="0"
-        aria-label="Copy install command"
-      >
-        <div class="install-inner">
-          <span class="dollar" aria-hidden="true">$</span>
-          <span class="cmd">npm install -g llm-usage-metrics</span>
-        </div>
-        <div class="install-action" aria-hidden="true">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-          </svg>
-        </div>
-        <span class="install-toast" role="status" aria-live="polite" aria-atomic="true">Copied</span>
-      </div>
-
-      <div class="hero-actions">
-        <a href={docsPath} class="btn btn-primary">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
-            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
-          </svg>
-          Read Documentation
-        </a>
-        <a href="https://github.com/ayagmar/llm-usage-metrics" class="btn btn-secondary">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M12 .5C5.37.5 0 5.78 0 12.29c0 5.21 3.44 9.63 8.21 11.19.6.11.82-.25.82-.57 0-.28-.01-1.02-.02-2-3.34.71-4.04-1.58-4.04-1.58-.55-1.36-1.33-1.72-1.33-1.72-1.09-.73.08-.72.08-.72 1.2.08 1.84 1.22 1.84 1.22 1.07 1.8 2.81 1.28 3.5.98.1-.76.42-1.28.76-1.58-2.67-.3-5.47-1.31-5.47-5.83 0-1.29.47-2.34 1.23-3.16-.12-.3-.53-1.5.12-3.12 0 0 1-.31 3.28 1.21A11.5 11.5 0 0 1 12 6.29c1.01.01 2.03.13 2.99.39 2.28-1.52 3.28-1.21 3.28-1.21.65 1.62.24 2.82.12 3.12.76.82 1.23 1.87 1.23 3.16 0 4.53-2.81 5.53-5.48 5.82.43.37.82 1.09.82 2.19 0 1.58-.02 2.86-.02 3.24 0 .32.22.68.82.57C20.57 21.92 24 17.5 24 12.29 24 5.78 18.63.5 12 .5z"/>
-          </svg>
-          GitHub
-        </a>
-      </div>
+  <!-- Hero -->
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="hero-badge-row">
+      <span class="speed-badge">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        20x faster than ccusage
+      </span>
+      <span class="oss-badge">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Open Source &middot; MIT
+      </span>
     </div>
 
-    <!-- Screenshot -->
-    <div class="screenshot-container">
+    <h1 id="hero-title">
+      Know exactly what your<br />
+      AI coding costs.
+    </h1>
+
+    <p class="hero-lead">
+      Parse token usage from <strong>pi</strong>, <strong>Codex</strong>, and <strong>OpenCode</strong> sessions.
+      Apply real pricing. Get efficiency metrics that tie spend to Git outcomes.
+      All local. Sub-second reports.
+    </p>
+
+    <div class="install-bar" role="button" tabindex="0" aria-label="Copy install command">
+      <div class="install-inner">
+        <span class="dollar" aria-hidden="true">$</span>
+        <span class="cmd">npm install -g llm-usage-metrics</span>
+      </div>
+      <div class="install-copy" aria-hidden="true">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+      </div>
+      <span class="install-toast" role="status" aria-live="polite">Copied</span>
+    </div>
+
+    <div class="hero-actions">
+      <a href={docsPath} class="btn btn-primary">
+        Get Started
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </a>
+      <a href="https://github.com/ayagmar/llm-usage-metrics" class="btn btn-ghost" target="_blank" rel="noopener noreferrer">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.37.5 0 5.78 0 12.29c0 5.21 3.44 9.63 8.21 11.19.6.11.82-.25.82-.57 0-.28-.01-1.02-.02-2-3.34.71-4.04-1.58-4.04-1.58-.55-1.36-1.33-1.72-1.33-1.72-1.09-.73.08-.72.08-.72 1.2.08 1.84 1.22 1.84 1.22 1.07 1.8 2.81 1.28 3.5.98.1-.76.42-1.28.76-1.58-2.67-.3-5.47-1.31-5.47-5.83 0-1.29.47-2.34 1.23-3.16-.12-.3-.53-1.5.12-3.12 0 0 1-.31 3.28 1.21A11.5 11.5 0 0 1 12 6.29c1.01.01 2.03.13 2.99.39 2.28-1.52 3.28-1.21 3.28-1.21.65 1.62.24 2.82.12 3.12.76.82 1.23 1.87 1.23 3.16 0 4.53-2.81 5.53-5.48 5.82.43.37.82 1.09.82 2.19 0 1.58-.02 2.86-.02 3.24 0 .32.22.68.82.57C20.57 21.92 24 17.5 24 12.29 24 5.78 18.63.5 12 .5z"/></svg>
+        Star on GitHub
+      </a>
+    </div>
+  </section>
+
+  <!-- Speed proof -->
+  <section class="speed-proof" aria-labelledby="speed-title">
+    <h2 id="speed-title" class="sr-only">Performance</h2>
+    <div class="speed-grid">
+      <div class="speed-card">
+        <div class="speed-number">0.79<span class="speed-unit">s</span></div>
+        <div class="speed-label">Monthly report<br /><span class="speed-detail">cached, production data</span></div>
+      </div>
+      <div class="speed-card accent">
+        <div class="speed-number">20<span class="speed-unit">x</span></div>
+        <div class="speed-label">Faster than ccusage<br /><span class="speed-detail">cached benchmark</span></div>
+      </div>
+      <div class="speed-card">
+        <div class="speed-number">3.4<span class="speed-unit">x</span></div>
+        <div class="speed-label">Faster cold start<br /><span class="speed-detail">no cache, fresh run</span></div>
+      </div>
+      <div class="speed-card">
+        <div class="speed-number">81k<span class="speed-unit">+</span></div>
+        <div class="speed-label">Events parsed<br /><span class="speed-detail">across 559 sessions</span></div>
+      </div>
+    </div>
+    <div class="speed-cta">
+      <a href={benchmarksPath} class="link-arrow">See full benchmark methodology<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+    </div>
+  </section>
+
+  <!-- Screenshot -->
+  <section class="terminal-showcase" aria-label="Terminal output preview">
+    <div class="terminal-frame">
+      <div class="terminal-dots" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </div>
       <img
         src={screenshotPath}
-        alt="Terminal output from llm-usage-metrics showing token usage and cost breakdown"
-        class="screenshot"
+        alt="Terminal output showing token usage, cost breakdown, and efficiency metrics"
+        class="terminal-img"
         loading="lazy"
         width="1222"
         height="946"
         tabindex="0"
         role="button"
-        aria-label="View screenshot fullscreen"
+        aria-label="View fullscreen"
       />
     </div>
   </section>
 
-  <!-- Documentation Section -->
-  <section class="docs-section" aria-labelledby="docs-title">
-    <div class="docs-header">
-      <h2 id="docs-title">Documentation</h2>
-      <p class="docs-subtitle">Everything you need to get started and master the CLI</p>
-    </div>
+  <!-- Efficiency Feature Spotlight -->
+  <section class="efficiency-section" aria-labelledby="eff-title">
+    <div class="section-eyebrow">New</div>
+    <h2 id="eff-title">Efficiency Reports</h2>
+    <p class="section-desc">
+      The first CLI to correlate Git outcomes with LLM costs.
+      Know your cost per commit, tokens per line, and true ROI.
+    </p>
 
-    <div class="docs-grid">
-      {docLinks.map((doc, index) => (
-        <a href={doc.href} class="doc-card liquid-glass" style={`--index: ${index}`}>
-          <div class="doc-icon" aria-hidden="true">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="16" y1="13" x2="8" y2="13"></line>
-              <line x1="16" y1="17" x2="8" y2="17"></line>
-              <polyline points="10 9 9 9 8 9"></polyline>
-            </svg>
-          </div>
-          <h3>{doc.label}</h3>
-          <p>{doc.desc}</p>
-          <div class="doc-arrow" aria-hidden="true">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-              <polyline points="12 5 19 12 12 19"></polyline>
-            </svg>
-          </div>
-        </a>
-      ))}
+    <div class="eff-grid">
+      <div class="eff-metrics">
+        <div class="eff-metric-card">
+          <div class="eff-metric-icon">$/commit</div>
+          <div class="eff-metric-desc">Cost per commit tells you what each unit of shipped work actually costs in tokens.</div>
+        </div>
+        <div class="eff-metric-card">
+          <div class="eff-metric-icon">$/1k lines</div>
+          <div class="eff-metric-desc">Spend per thousand lines changed. Compare across repos, models, or time periods.</div>
+        </div>
+        <div class="eff-metric-card">
+          <div class="eff-metric-icon">tokens/commit</div>
+          <div class="eff-metric-desc">Cache-aware and non-cache variants. Understand if your workflow is cache-efficient.</div>
+        </div>
+      </div>
+      <div class="eff-code liquid-glass">
+        <pre class="eff-block"><span class="cmt"># Efficiency audit for your repo</span>
+$ llm-usage <span class="kw">efficiency</span> monthly --repo-dir ./my-project
+
+<span class="cmt"># Compare sources head-to-head</span>
+$ llm-usage <span class="kw">efficiency</span> monthly --source pi
+$ llm-usage <span class="kw">efficiency</span> monthly --source codex
+
+<span class="cmt"># Export to JSON for dashboards</span>
+$ llm-usage <span class="kw">efficiency</span> weekly --json > report.json</pre>
+      </div>
+    </div>
+    <div class="eff-cta">
+      <a href={efficiencyPath} class="btn btn-secondary">
+        Learn about efficiency reports
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </a>
     </div>
   </section>
 
-  <!-- Bento Grid Features -->
-  <section class="features" aria-labelledby="features-title">
-    <h2 id="features-title" class="sr-only">Features</h2>
-    <div class="bento-grid">
-      <div class="bento-item wide liquid-glass">
-        <div class="bento-content">
-          <div class="fcard-icon" aria-hidden="true">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"/>
-              <circle cx="12" cy="12" r="6"/>
-              <circle cx="12" cy="12" r="2"/>
-            </svg>
-          </div>
-          <h3>Zero-Config Discovery Engine</h3>
-          <p>Scans your file system and autonomously locates <code>.pi</code> workspaces, <code>.codex</code> logs, and OpenCode databases without manual configuration.</p>
+  <!-- Features -->
+  <section class="features-section" aria-labelledby="features-title">
+    <h2 id="features-title">Built for engineers</h2>
+    <p class="section-desc">Every feature exists to save you time and give you signal, not noise.</p>
+
+    <div class="features-grid">
+      <div class="feature-card liquid-glass">
+        <div class="feature-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
         </div>
-        <div class="bento-visual">
-          <div class="infinite-scroll-y" aria-hidden="true">
-            <div class="scroll-content">
-              <div class="log-line"><span class="ti">scan</span> ~/.pi/agent/sessions/</div>
-              <div class="log-line"><span class="ti">scan</span> ~/.codex/sessions/</div>
-              <div class="log-line"><span class="ti">connect</span> ~/.opencode/opencode.db</div>
-              <div class="log-line dim">mapped 1,248 events</div>
-              <div class="log-line"><span class="ti">scan</span> ~/.pi/agent/sessions/</div>
-              <div class="log-line"><span class="ti">scan</span> ~/.codex/sessions/</div>
-              <div class="log-line"><span class="ti">connect</span> ~/.opencode/opencode.db</div>
-              <div class="log-line dim">mapped 1,248 events</div>
-            </div>
-          </div>
-        </div>
+        <h3>Zero-config discovery</h3>
+        <p>Finds <code>.pi</code>, <code>.codex</code>, and OpenCode databases automatically. No manifest files, no setup wizards.</p>
       </div>
 
-      <div class="bento-item liquid-glass">
-        <div class="bento-content">
-          <div class="fcard-icon" aria-hidden="true">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-            </svg>
-          </div>
-          <h3>Dynamic Pricing</h3>
-          <p>Synchronizes with LiteLLM's pricing repository with offline caching for isolated environments.</p>
+      <div class="feature-card liquid-glass">
+        <div class="feature-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
         </div>
-        <div class="bento-visual">
-          <div class="pulse-indicator" aria-hidden="true">
-            <span class="dot"></span>
-            <span class="text">Syncing LiteLLM</span>
-          </div>
-        </div>
+        <h3>LiteLLM pricing</h3>
+        <p>Syncs with LiteLLM's pricing repo. Offline caching for air-gapped environments. Always accurate cost estimates.</p>
       </div>
 
-      <div class="bento-item liquid-glass">
-        <div class="bento-content">
-          <div class="fcard-icon" aria-hidden="true">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-              <line x1="9" y1="3" x2="9" y2="21"/>
-            </svg>
-          </div>
-          <h3>Multiple Output Formats</h3>
-          <p>Emit <code>JSON</code> for pipelines, <code>Markdown</code> for docs, or ANSI columns for terminal review.</p>
+      <div class="feature-card liquid-glass">
+        <div class="feature-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
         </div>
+        <h3>JSON, Markdown, terminal</h3>
+        <p>Pipe <code>--json</code> into jq. Paste <code>--markdown</code> into PRs. Or read ANSI tables in your terminal.</p>
+      </div>
+
+      <div class="feature-card liquid-glass">
+        <div class="feature-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <h3>Parse cache</h3>
+        <p>Session files are parsed once and cached. Subsequent runs skip unchanged files for sub-second reporting.</p>
+      </div>
+
+      <div class="feature-card liquid-glass">
+        <div class="feature-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+        </div>
+        <h3>Flexible filtering</h3>
+        <p>Slice by source, model, provider, or date range. Combine filters for laser-focused analysis.</p>
+      </div>
+
+      <div class="feature-card liquid-glass">
+        <div class="feature-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+        </div>
+        <h3>Local-first</h3>
+        <p>No telemetry. No cloud dependency. Your usage data never leaves your machine.</p>
       </div>
     </div>
   </section>
 
-  <!-- Examples Section -->
-  <section class="examples" aria-labelledby="examples-title">
-    <div class="section-header">
-      <h2 id="examples-title">Quick Start Examples</h2>
-      <p class="sub">Common commands to get you started quickly.</p>
-    </div>
+  <!-- Quick examples -->
+  <section class="examples-section" aria-labelledby="examples-title">
+    <h2 id="examples-title">Common workflows</h2>
+    <p class="section-desc">Copy-paste commands for real scenarios.</p>
 
     <div class="ex-container liquid-glass">
       <div class="ex-sidebar" role="tablist" aria-label="Example categories">
-        <button class="ex-tab active" data-panel="ex-basics" role="tab" aria-selected="true" tabindex="0">Daily Reports</button>
+        <button class="ex-tab active" data-panel="ex-reports" role="tab" aria-selected="true" tabindex="0">Reports</button>
+        <button class="ex-tab" data-panel="ex-efficiency" role="tab" aria-selected="false" tabindex="-1">Efficiency</button>
         <button class="ex-tab" data-panel="ex-filter" role="tab" aria-selected="false" tabindex="-1">Filtering</button>
-        <button class="ex-tab" data-panel="ex-output" role="tab" aria-selected="false" tabindex="-1">Output Formats</button>
-        <button class="ex-tab" data-panel="ex-config" role="tab" aria-selected="false" tabindex="-1">Configuration</button>
+        <button class="ex-tab" data-panel="ex-output" role="tab" aria-selected="false" tabindex="-1">Output</button>
       </div>
       <div class="ex-content">
-        <div id="ex-basics" class="ex-panel active" role="tabpanel">
-          <pre class="ex-block"><span class="cmt"># Daily report</span>
-$ llm-usage <span class="flag">daily</span>
+        <div id="ex-reports" class="ex-panel active" role="tabpanel">
+          <pre class="ex-block"><span class="cmt"># Daily usage report</span>
+$ llm-usage <span class="kw">daily</span>
 
 <span class="cmt"># Weekly with timezone</span>
-$ llm-usage <span class="flag">weekly</span> --timezone Europe/Paris
+$ llm-usage <span class="kw">weekly</span> --timezone Europe/Paris
 
 <span class="cmt"># Monthly date range</span>
-$ llm-usage <span class="flag">monthly</span> --since 2026-01-01 --until 2026-01-31</pre>
+$ llm-usage <span class="kw">monthly</span> --since 2026-01-01 --until 2026-01-31</pre>
+        </div>
+        <div id="ex-efficiency" class="ex-panel" role="tabpanel" hidden>
+          <pre class="ex-block"><span class="cmt"># Efficiency audit for current repo</span>
+$ llm-usage <span class="kw">efficiency</span> daily
+
+<span class="cmt"># Specific repo directory</span>
+$ llm-usage <span class="kw">efficiency</span> weekly --repo-dir ./my-project
+
+<span class="cmt"># Compare source efficiency</span>
+$ llm-usage <span class="kw">efficiency</span> monthly --source codex --json</pre>
         </div>
         <div id="ex-filter" class="ex-panel" role="tabpanel" hidden>
-          <pre class="ex-block"><span class="cmt"># Filter by source</span>
-$ llm-usage <span class="flag">monthly</span> --source pi,codex
+          <pre class="ex-block"><span class="cmt"># By source</span>
+$ llm-usage <span class="kw">monthly</span> --source pi,codex
 
-<span class="cmt"># Filter by model</span>
-$ llm-usage <span class="flag">monthly</span> --model claude
+<span class="cmt"># By model</span>
+$ llm-usage <span class="kw">monthly</span> --model claude
 
-<span class="cmt"># Filter by provider</span>
-$ llm-usage <span class="flag">monthly</span> --provider openai</pre>
+<span class="cmt"># By provider</span>
+$ llm-usage <span class="kw">monthly</span> --provider openai</pre>
         </div>
         <div id="ex-output" class="ex-panel" role="tabpanel" hidden>
-          <pre class="ex-block"><span class="cmt"># JSON output</span>
-$ llm-usage <span class="flag">daily</span> --json
+          <pre class="ex-block"><span class="cmt"># Pipe JSON to jq</span>
+$ llm-usage <span class="kw">daily</span> --json | jq '.totals.cost'
 
-<span class="cmt"># Markdown table</span>
-$ llm-usage <span class="flag">daily</span> --markdown
+<span class="cmt"># Markdown for PR comments</span>
+$ llm-usage <span class="kw">daily</span> --markdown >> report.md
 
-<span class="cmt"># Default terminal output</span>
-$ llm-usage <span class="flag">daily</span></pre>
-        </div>
-        <div id="ex-config" class="ex-panel" role="tabpanel" hidden>
-          <pre class="ex-block"><span class="cmt"># Custom source directories</span>
-$ llm-usage <span class="flag">daily</span> --source-dir pi=/var/lib/pi --source-dir codex=/var/log/codex
-
-<span class="cmt"># Explicit OpenCode DB path</span>
-$ llm-usage <span class="flag">daily</span> --source opencode --opencode-db /path/to/opencode.db
-
-<span class="cmt"># Offline pricing mode</span>
-$ llm-usage <span class="flag">monthly</span> --pricing-offline</pre>
+<span class="cmt"># Default ANSI terminal</span>
+$ llm-usage <span class="kw">daily</span></pre>
         </div>
       </div>
+    </div>
+  </section>
+
+  <!-- Explore docs -->
+  <section class="docs-nav" aria-labelledby="docs-nav-title">
+    <h2 id="docs-nav-title">Explore the docs</h2>
+    <div class="docs-nav-grid">
+      <a href={docsPath} class="doc-link">
+        <span class="doc-link-label">Getting Started</span>
+        <span class="doc-link-desc">Install and run your first report</span>
+      </a>
+      <a href={cliRefPath} class="doc-link">
+        <span class="doc-link-label">CLI Reference</span>
+        <span class="doc-link-desc">Every command and option</span>
+      </a>
+      <a href={efficiencyPath} class="doc-link">
+        <span class="doc-link-label">Efficiency</span>
+        <span class="doc-link-desc">Git-correlated cost metrics</span>
+      </a>
+      <a href={sourcesPath} class="doc-link">
+        <span class="doc-link-label">Data Sources</span>
+        <span class="doc-link-desc">pi, Codex, OpenCode adapters</span>
+      </a>
     </div>
   </section>
 
   <!-- Footer -->
   <footer class="site-footer">
-    <div class="footer-content">
+    <div class="footer-inner">
       <div class="footer-brand">
-        <img src={`${basePath}favicon.svg`} alt="" width="24" height="24" />
+        <img src={`${basePath}favicon.svg`} alt="" width="20" height="20" />
         <span>llm-usage-metrics</span>
       </div>
       <div class="footer-links">
-        <a href={docsPath}>Documentation</a>
-        <a href="https://github.com/ayagmar/llm-usage-metrics">GitHub</a>
-        <a href="https://www.npmjs.com/package/llm-usage-metrics">npm</a>
+        <a href={docsPath}>Docs</a>
+        <a href="https://github.com/ayagmar/llm-usage-metrics" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <a href="https://www.npmjs.com/package/llm-usage-metrics" target="_blank" rel="noopener noreferrer">npm</a>
       </div>
-      <p class="footer-copy">MIT License · Built with <a href="https://astro.build">Astro</a> & <a href="https://starlight.astro.build">Starlight</a></p>
+      <p class="footer-copy">MIT License</p>
     </div>
   </footer>
 
   <!-- Lightbox -->
   <div id="lightbox" class="lightbox" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Screenshot preview">
-    <button class="lightbox-close" aria-label="Close screenshot preview">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="18" y1="6" x2="6" y2="18"></line>
-        <line x1="6" y1="6" x2="18" y2="18"></line>
-      </svg>
+    <button class="lightbox-close" aria-label="Close">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </button>
     <div class="lightbox-scroll">
-      <img
-        src={screenshotPath}
-        alt="Terminal output from llm-usage-metrics showing token usage and cost breakdown"
-        class="lightbox-image"
-      />
+      <img src={screenshotPath} alt="Terminal output from llm-usage-metrics" class="lightbox-image" />
     </div>
   </div>
 
   <script is:inline>
     (() => {
-      // Install command copy
-      const installBar = document.querySelector('.install-command');
+      // Install copy
+      const bar = document.querySelector('.install-bar');
       const toast = document.querySelector('.install-toast');
-      const installCommand = 'npm install -g llm-usage-metrics';
-      let toastTimer;
-
-      function showToast(message, isError = false) {
-        if (!toast) return;
-        toast.textContent = message;
-        toast.classList.toggle('error', isError);
-        toast.classList.add('show');
-        clearTimeout(toastTimer);
-        toastTimer = setTimeout(() => {
-          toast.classList.remove('show', 'error');
-          toast.textContent = 'Copied';
-        }, 1500);
+      let tid;
+      function copyCmd() {
+        if (!navigator.clipboard?.writeText) return;
+        navigator.clipboard.writeText('npm install -g llm-usage-metrics').then(() => {
+          if (!toast) return;
+          toast.classList.add('show');
+          clearTimeout(tid);
+          tid = setTimeout(() => toast.classList.remove('show'), 1400);
+        });
       }
+      bar?.addEventListener('click', copyCmd);
+      bar?.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); copyCmd(); } });
 
-      function copyInstallCommand() {
-        if (!navigator.clipboard?.writeText) {
-          showToast('Copy unavailable', true);
-          return;
-        }
-        navigator.clipboard
-          .writeText(installCommand)
-          .then(() => showToast('Copied'))
-          .catch(() => showToast('Copy failed', true));
-      }
-
-      installBar?.addEventListener('click', copyInstallCommand);
-      installBar?.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          copyInstallCommand();
-        }
-      });
-
-      // Tab system
+      // Tabs
       const tabs = Array.from(document.querySelectorAll('.ex-tab'));
       const panels = Array.from(document.querySelectorAll('.ex-panel'));
-
-      function activateTab(tab) {
-        const panelId = tab.dataset.panel;
-        if (!panelId) return;
-
-        tabs.forEach((t) => {
-          t.classList.remove('active');
-          t.setAttribute('aria-selected', 'false');
-          t.setAttribute('tabindex', '-1');
-        });
-        panels.forEach((p) => {
-          p.classList.remove('active');
-          p.hidden = true;
-        });
-
-        tab.classList.add('active');
-        tab.setAttribute('aria-selected', 'true');
-        tab.setAttribute('tabindex', '0');
-        tab.focus();
-
-        const panel = document.getElementById(panelId);
-        if (panel) {
-          panel.classList.add('active');
-          panel.hidden = false;
-        }
+      function activate(tab) {
+        const id = tab.dataset.panel;
+        tabs.forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected','false'); t.tabIndex = -1; });
+        panels.forEach(p => { p.classList.remove('active'); p.hidden = true; });
+        tab.classList.add('active'); tab.setAttribute('aria-selected','true'); tab.tabIndex = 0; tab.focus();
+        const p = document.getElementById(id);
+        if (p) { p.classList.add('active'); p.hidden = false; }
       }
-
-      tabs.forEach((tab, index) => {
-        tab.addEventListener('click', () => activateTab(tab));
+      tabs.forEach((tab, i) => {
+        tab.addEventListener('click', () => activate(tab));
         tab.addEventListener('keydown', (e) => {
-          let nextIndex = null;
-          switch (e.key) {
-            case 'ArrowRight':
-              nextIndex = (index + 1) % tabs.length;
-              break;
-            case 'ArrowLeft':
-              nextIndex = (index - 1 + tabs.length) % tabs.length;
-              break;
-            case 'Home':
-              nextIndex = 0;
-              break;
-            case 'End':
-              nextIndex = tabs.length - 1;
-              break;
-          }
-          if (nextIndex !== null) {
-            e.preventDefault();
-            activateTab(tabs[nextIndex]);
-          }
+          let n = null;
+          if (e.key === 'ArrowRight') n = (i+1)%tabs.length;
+          else if (e.key === 'ArrowLeft') n = (i-1+tabs.length)%tabs.length;
+          else if (e.key === 'Home') n = 0;
+          else if (e.key === 'End') n = tabs.length-1;
+          if (n !== null) { e.preventDefault(); activate(tabs[n]); }
         });
       });
 
       // Lightbox
-      const trigger = document.querySelector('.screenshot');
-      const lightbox = document.getElementById('lightbox');
-      const closeButton = lightbox?.querySelector('.lightbox-close');
-      let lastFocused = null;
-
-      function openLightbox() {
-        if (!lightbox) return;
-        lastFocused = document.activeElement;
-        lightbox.classList.add('open');
-        lightbox.setAttribute('aria-hidden', 'false');
-        document.body.style.overflow = 'hidden';
-        closeButton?.focus();
-      }
-
-      function closeLightbox() {
-        if (!lightbox) return;
-        lightbox.classList.remove('open');
-        lightbox.setAttribute('aria-hidden', 'true');
-        document.body.style.overflow = '';
-        lastFocused?.focus?.();
-      }
-
-      trigger?.addEventListener('click', openLightbox);
-      trigger?.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          openLightbox();
-        }
-      });
-      closeButton?.addEventListener('click', closeLightbox);
-      lightbox?.addEventListener('click', (e) => {
-        if (e.target === lightbox) closeLightbox();
-      });
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && lightbox?.classList.contains('open')) {
-          closeLightbox();
-        }
-      });
-
-      // Version badge - client-side only
-      const badge = document.getElementById('version-badge');
-      const badgeText = badge?.querySelector('.badge-text');
-      if (badge && badgeText) {
-        badge.classList.add('loading');
-        fetch('https://registry.npmjs.org/llm-usage-metrics/latest')
-          .then((r) => r.json())
-          .then((data) => {
-            badgeText.textContent = data?.version ? `v${data.version}` : 'v0.1.11';
-            badge.classList.remove('loading');
-          })
-          .catch(() => {
-            badgeText.textContent = 'v0.1.11';
-            badge.classList.remove('loading');
-          });
-      }
+      const trigger = document.querySelector('.terminal-img');
+      const lb = document.getElementById('lightbox');
+      const cls = lb?.querySelector('.lightbox-close');
+      let prev = null;
+      function openLb() { if(!lb)return; prev=document.activeElement; lb.classList.add('open'); lb.setAttribute('aria-hidden','false'); document.body.style.overflow='hidden'; cls?.focus(); }
+      function closeLb() { if(!lb)return; lb.classList.remove('open'); lb.setAttribute('aria-hidden','true'); document.body.style.overflow=''; prev?.focus?.(); }
+      trigger?.addEventListener('click', openLb);
+      trigger?.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' '){e.preventDefault();openLb();} });
+      cls?.addEventListener('click', closeLb);
+      lb?.addEventListener('click', e => { if(e.target===lb)closeLb(); });
+      document.addEventListener('keydown', e => { if(e.key==='Escape'&&lb?.classList.contains('open'))closeLb(); });
     })();
   </script>
 </StarlightPage>
 
 <style>
-  /* Grain overlay */
+  /* ─── Hide Starlight auto-generated page title ─────────── */
+  :global(main > .content-panel:has(h1#_top)) {
+    display: none !important;
+  }
+  /* Reduce Starlight content wrapper padding on splash page */
+  :global(main > .content-panel:last-of-type) {
+    padding-top: 0.5rem !important;
+  }
+
+  /* ─── Version pill ─────────────────────────────────────── */
+  .version-floating {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: -0.5rem;
+  }
+  .version-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.85rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-accent);
+    background: var(--color-accent-subtle);
+    border: 1px solid var(--color-accent-glow);
+    border-radius: 9999px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+  .version-pill:hover {
+    background: var(--color-accent);
+    color: var(--color-bg);
+  }
+  .version-dot {
+    width: 5px;
+    height: 5px;
+    background: var(--color-accent);
+    border-radius: 50%;
+  }
+  .version-pill:hover .version-dot { background: var(--color-bg); }
+
+  /* ─── Hero ─────────────────────────────────────────────── */
+  .hero {
+    text-align: center;
+    padding: 2.5rem 1rem 1.5rem;
+    max-width: 780px;
+    margin: 0 auto;
+  }
+  @media (min-width: 768px) { .hero { padding: 4rem 2rem 2.5rem; } }
+
+  .hero-badge-row {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+  }
+  .speed-badge, .oss-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.8rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 9999px;
+    letter-spacing: 0.01em;
+  }
+  @media (min-width: 768px) {
+    .speed-badge, .oss-badge { font-size: 0.8rem; padding: 0.4rem 0.9rem; }
+  }
+  .speed-badge {
+    background: var(--color-accent-subtle);
+    color: var(--color-accent);
+    border: 1px solid var(--color-accent-glow);
+  }
+  .oss-badge {
+    background: var(--color-bg-elevated);
+    color: var(--color-text-muted);
+    border: 1px solid var(--border-default);
+  }
+
+  h1 {
+    font-size: 2.1rem;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.035em;
+    color: var(--color-text);
+    margin-bottom: 1rem;
+  }
+  @media (min-width: 480px) { h1 { font-size: 2.75rem; } }
+  @media (min-width: 768px) { h1 { font-size: 3.75rem; } }
+
+  .hero-lead {
+    font-size: 0.95rem;
+    line-height: 1.65;
+    color: var(--color-text-secondary);
+    max-width: 600px;
+    margin: 0 auto 1.5rem;
+  }
+  @media (min-width: 768px) { .hero-lead { font-size: 1.1rem; margin-bottom: 2rem; } }
+  .hero-lead strong { color: var(--color-text); font-weight: 600; }
+
+  /* ─── Install bar ──────────────────────────────────────── */
+  .install-bar {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 0.85rem;
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--border-default);
+    border-radius: 0.6rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    position: relative;
+    margin-bottom: 1.5rem;
+    max-width: 100%;
+    overflow: hidden;
+  }
+  @media (min-width: 768px) {
+    .install-bar { gap: 0.75rem; padding: 0.65rem 1rem; margin-bottom: 2rem; }
+  }
+  .install-bar:hover { border-color: var(--border-strong); background: var(--color-bg-code); }
+  .install-bar:active { transform: scale(0.98); }
+  .install-inner { display: flex; align-items: center; gap: 0.45rem; font-family: var(--font-mono); font-size: 0.78rem; }
+  @media (min-width: 768px) { .install-inner { font-size: 0.85rem; } }
+  .dollar { color: var(--color-text-dim); user-select: none; }
+  .cmd { color: var(--color-text); }
+  .install-copy { color: var(--color-text-dim); }
+  .install-toast {
+    position: absolute;
+    bottom: calc(100% + 0.5rem);
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0.35rem 0.75rem;
+    background: var(--color-accent);
+    color: var(--color-bg);
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 0.4rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+  }
+  .install-toast.show { opacity: 1; }
+
+  /* ─── Hero actions ─────────────────────────────────────── */
+  .hero-actions {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.7rem 1.35rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border-radius: 0.6rem;
+    text-decoration: none;
+    transition: all 0.15s ease;
+    border: none;
+    cursor: pointer;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary {
+    background: var(--color-accent);
+    color: var(--color-bg);
+  }
+  .btn-primary:hover {
+    background: var(--color-accent-hover);
+    box-shadow: 0 0 24px var(--color-accent-glow);
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--color-text);
+    border: 1px solid var(--border-default);
+  }
+  .btn-ghost:hover { background: var(--color-bg-elevated); border-color: var(--border-strong); }
+  .btn-secondary {
+    background: var(--color-bg-elevated);
+    color: var(--color-text);
+    border: 1px solid var(--border-default);
+  }
+  .btn-secondary:hover { border-color: var(--border-strong); background: var(--color-bg-card); }
+
+  /* ─── Speed proof ──────────────────────────────────────── */
+  .speed-proof {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 3rem 1rem;
+  }
+  .speed-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1px;
+    background: var(--border-default);
+    border: 1px solid var(--border-default);
+    border-radius: 0.75rem;
+    overflow: hidden;
+  }
+  @media (min-width: 768px) { .speed-grid { grid-template-columns: repeat(4, 1fr); } }
+  .speed-card {
+    padding: 1.5rem 1rem;
+    background: var(--color-bg);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 120px;
+  }
+  .speed-number {
+    font-size: 2.25rem;
+    font-weight: 700;
+    color: var(--color-text);
+    letter-spacing: -0.03em;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .speed-card.accent .speed-number { color: var(--color-accent); }
+  .speed-unit { font-size: 1.25rem; font-weight: 500; opacity: 0.6; }
+  .speed-label {
+    margin-top: 0.6rem;
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+    line-height: 1.45;
+  }
+  .speed-detail { color: var(--color-text-dim); font-size: 0.7rem; }
+  .speed-cta { text-align: center; margin-top: 1rem; }
+  .link-arrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.85rem;
+    color: var(--color-accent);
+    text-decoration: none;
+    font-weight: 500;
+    transition: gap 0.15s ease;
+  }
+  .link-arrow:hover { gap: 0.6rem; }
+
+  /* ─── Terminal showcase ────────────────────────────────── */
+  .terminal-showcase {
+    max-width: 950px;
+    margin: 0 auto;
+    padding: 0 1rem 3rem;
+  }
+  .terminal-frame {
+    border: 1px solid var(--border-default);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    background: var(--color-bg-code);
+  }
+  .terminal-dots {
+    display: flex;
+    gap: 6px;
+    padding: 0.65rem 0.85rem;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .terminal-dots span {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--border-default);
+  }
+  .terminal-img {
+    width: 100%;
+    height: auto;
+    display: block;
+    cursor: zoom-in;
+  }
+  .terminal-img:focus { outline: 2px solid var(--border-focus); outline-offset: -2px; }
+
+  /* ─── Efficiency section ───────────────────────────────── */
+  .efficiency-section {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 3rem 1rem;
+    text-align: center;
+  }
+  @media (min-width: 768px) { .efficiency-section { padding: 4rem 1rem; } }
+  .section-eyebrow {
+    display: inline-block;
+    padding: 0.25rem 0.7rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-accent);
+    background: var(--color-accent-subtle);
+    border: 1px solid var(--color-accent-glow);
+    border-radius: 9999px;
+    margin-bottom: 0.75rem;
+  }
+  .efficiency-section h2 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--color-text);
+    margin-bottom: 0.5rem;
+  }
+  @media (min-width: 768px) { .efficiency-section h2 { font-size: 2rem; } }
+  .section-desc {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    max-width: 560px;
+    margin: 0 auto 2rem;
+    line-height: 1.6;
+  }
+  @media (min-width: 768px) { .section-desc { font-size: 1rem; margin-bottom: 2.5rem; } }
+  .eff-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    text-align: left;
+  }
+  @media (min-width: 768px) { .eff-grid { grid-template-columns: 1fr 1.4fr; } }
+
+  .eff-metrics { display: flex; flex-direction: column; gap: 0.75rem; }
+  .eff-metric-card {
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--border-default);
+    border-radius: 0.6rem;
+    background: var(--color-bg-elevated);
+    transition: border-color 0.15s ease;
+  }
+  .eff-metric-card:hover { border-color: var(--color-accent-glow); }
+  .eff-metric-icon {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--color-accent);
+    margin-bottom: 0.35rem;
+  }
+  .eff-metric-desc {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    line-height: 1.5;
+  }
+
+  .eff-code {
+    padding: 1.25rem;
+    overflow-x: auto;
+  }
+  .eff-block {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 0.825rem;
+    line-height: 1.7;
+    color: var(--color-text);
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  .eff-block .cmt { color: var(--color-text-dim); }
+  .eff-block .kw { color: var(--color-accent); font-weight: 600; }
+
+  .eff-cta { margin-top: 2rem; }
+
+  /* ─── Features section ─────────────────────────────────── */
+  .features-section {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 3rem 1rem;
+    text-align: center;
+  }
+  @media (min-width: 768px) { .features-section { padding: 4rem 1rem; } }
+  .features-section h2 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--color-text);
+    margin-bottom: 0.5rem;
+  }
+  @media (min-width: 768px) { .features-section h2 { font-size: 2rem; } }
+  .features-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    text-align: left;
+    margin-top: 2rem;
+  }
+  @media (min-width: 640px) { .features-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 960px) { .features-grid { grid-template-columns: repeat(3, 1fr); } }
+
+  .feature-card {
+    padding: 1.5rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .feature-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 32px -12px var(--shadow-elevated);
+  }
+  .feature-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: var(--color-accent-subtle);
+    border: 1px solid var(--color-accent-glow);
+    border-radius: 0.6rem;
+    color: var(--color-accent);
+    margin-bottom: 0.75rem;
+  }
+  .feature-card h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--color-text);
+    margin-bottom: 0.35rem;
+  }
+  .feature-card p {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    line-height: 1.55;
+  }
+  .feature-card code {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+    padding: 0.1em 0.3em;
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: 0.2rem;
+    color: var(--color-text);
+  }
+
+  /* ─── Examples section ─────────────────────────────────── */
+  .examples-section {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 3rem 1rem;
+    text-align: center;
+  }
+  @media (min-width: 768px) { .examples-section { padding: 4rem 1rem; } }
+  .examples-section h2 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--color-text);
+    margin-bottom: 0.5rem;
+  }
+  @media (min-width: 768px) { .examples-section h2 { font-size: 2rem; } }
+
+  .ex-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    overflow: hidden;
+    text-align: left;
+    margin-top: 2rem;
+  }
+  @media (min-width: 640px) { .ex-container { grid-template-columns: 180px 1fr; } }
+
+  .ex-sidebar {
+    display: flex;
+    flex-direction: column;
+    padding: 0.75rem;
+    gap: 0.25rem;
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--color-bg-elevated);
+  }
+  @media (min-width: 640px) {
+    .ex-sidebar { border-bottom: none; border-right: 1px solid var(--border-subtle); }
+  }
+  .ex-tab {
+    padding: 0.6rem 0.85rem;
+    text-align: left;
+    background: transparent;
+    border: none;
+    border-radius: 0.4rem;
+    color: var(--color-text-muted);
+    font-size: 0.825rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .ex-tab:hover { background: var(--color-bg-card); color: var(--color-text); }
+  .ex-tab.active { background: var(--color-accent-subtle); color: var(--color-accent); }
+  .ex-tab:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
+
+  .ex-content {
+    padding: 1.25rem;
+    overflow-x: auto;
+    background: var(--color-bg-code);
+  }
+  .ex-panel { display: none; }
+  .ex-panel.active { display: block; animation: fadeIn 0.15s ease; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(3px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .ex-block {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 0.825rem;
+    line-height: 1.7;
+    color: var(--color-text);
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  .ex-block .cmt { color: var(--color-text-dim); }
+  .ex-block .kw { color: var(--color-accent); font-weight: 600; }
+
+  /* ─── Docs nav ─────────────────────────────────────────── */
+  .docs-nav {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 3rem 1rem;
+    text-align: center;
+  }
+  @media (min-width: 768px) { .docs-nav { padding: 4rem 1rem; } }
+  .docs-nav h2 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--color-text);
+    margin-bottom: 1.25rem;
+  }
+  @media (min-width: 768px) { .docs-nav h2 { font-size: 2rem; margin-bottom: 1.5rem; } }
+  .docs-nav-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1px;
+    background: var(--border-default);
+    border: 1px solid var(--border-default);
+    border-radius: 0.75rem;
+    overflow: hidden;
+  }
+  @media (min-width: 640px) { .docs-nav-grid { grid-template-columns: repeat(2, 1fr); } }
+  .doc-link {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 1.25rem 1.5rem;
+    background: var(--color-bg);
+    text-decoration: none;
+    transition: background 0.15s ease;
+  }
+  .doc-link:hover { background: var(--color-bg-elevated); }
+  .doc-link-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--color-text);
+  }
+  .doc-link:hover .doc-link-label { color: var(--color-accent); }
+  .doc-link-desc {
+    font-size: 0.8rem;
+    color: var(--color-text-dim);
+  }
+
+  /* ─── Footer ───────────────────────────────────────────── */
+  .site-footer {
+    padding: 2.5rem 1rem;
+    border-top: 1px solid var(--border-default);
+  }
+  .footer-inner {
+    max-width: 900px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    text-align: center;
+  }
+  @media (min-width: 640px) {
+    .footer-inner {
+      flex-direction: row;
+      justify-content: space-between;
+      text-align: left;
+      gap: 1rem;
+    }
+  }
+  .footer-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--color-text);
+  }
+  .footer-links {
+    display: flex;
+    gap: 1.25rem;
+  }
+  .footer-links a {
+    color: var(--color-text-dim);
+    text-decoration: none;
+    font-size: 0.8rem;
+    transition: color 0.15s ease;
+  }
+  .footer-links a:hover { color: var(--color-accent); }
+  .footer-copy {
+    font-size: 0.75rem;
+    color: var(--color-text-dim);
+    width: 100%;
+    text-align: center;
+    margin-top: 0.5rem;
+  }
+  @media (min-width: 640px) { .footer-copy { width: auto; text-align: right; margin-top: 0; } }
+
+  /* ─── Grain overlay ────────────────────────────────────── */
   .grain-overlay {
     position: fixed;
     inset: 0;
@@ -444,700 +997,39 @@ $ llm-usage <span class="flag">monthly</span> --pricing-offline</pre>
     mix-blend-mode: overlay;
   }
 
-  /* Hero section */
-  .hero-split {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 2rem;
-    padding: 2rem 1rem;
-    max-width: 1200px;
-    margin: 0 auto;
-    align-items: center;
-  }
-
-  @media (min-width: 1024px) {
-    .hero-split {
-      grid-template-columns: 1fr 1fr;
-      gap: 4rem;
-      padding: 4rem 2rem;
-    }
-  }
-
-  .hero-content {
-    order: 1;
-  }
-
-  @media (min-width: 1024px) {
-    .hero-content {
-      order: 0;
-    }
-  }
-
-  /* Badge */
-  .badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    background: var(--color-bg-elevated);
-    border: 1px solid var(--border-default);
-    border-radius: 9999px;
-    font-size: 0.875rem;
-    color: var(--color-text-muted);
-    margin-bottom: 1.5rem;
-  }
-
-  .badge.loading .status-dot {
-    animation: pulse 1.5s ease-in-out infinite;
-  }
-
-  .status-dot {
-    width: 6px;
-    height: 6px;
-    background: var(--color-accent);
-    border-radius: 50%;
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
-  }
-
-  /* Typography */
-  h1 {
-    font-size: 2.5rem;
-    font-weight: 600;
-    line-height: 1.1;
-    letter-spacing: -0.025em;
-    margin-bottom: 1rem;
-    color: var(--color-text);
-  }
-
-  @media (min-width: 768px) {
-    h1 {
-      font-size: 3.5rem;
-    }
-  }
-
-  h1 em {
-    color: var(--color-accent);
-    font-style: normal;
-  }
-
-  .lead {
-    font-size: 1.125rem;
-    color: var(--color-text-secondary);
-    line-height: 1.6;
-    max-width: 540px;
-    margin-bottom: 2rem;
-  }
-
-  /* Install command */
-  .install-command {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 0.75rem 1rem;
-    background: var(--color-bg-elevated);
-    border: 1px solid var(--border-default);
-    border-radius: 0.75rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    position: relative;
-    margin-bottom: 1.5rem;
-    max-width: fit-content;
-  }
-
-  .install-command:hover {
-    border-color: var(--border-strong);
-    background: var(--color-bg-code);
-  }
-
-  .install-command:active {
-    transform: translateY(1px) scale(0.99);
-  }
-
-  .install-inner {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-family: var(--font-mono);
-    font-size: 0.875rem;
-  }
-
-  .dollar {
-    color: var(--color-text-dim);
-  }
-
-  .cmd {
-    color: var(--color-text);
-  }
-
-  .install-action {
-    color: var(--color-text-muted);
-  }
-
-  .install-toast {
-    position: absolute;
-    bottom: calc(100% + 0.5rem);
-    left: 50%;
-    transform: translateX(-50%);
-    padding: 0.5rem 1rem;
-    background: var(--color-accent);
-    color: var(--color-bg);
-    font-size: 0.875rem;
-    font-weight: 500;
-    border-radius: 0.5rem;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease;
-    white-space: nowrap;
-  }
-
-  .install-toast.show {
-    opacity: 1;
-  }
-
-  .install-toast.error {
-    background: var(--color-red);
-  }
-
-  /* Hero actions */
-  .hero-actions {
-    display: flex;
-    gap: 1rem;
-    flex-wrap: wrap;
-  }
-
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    border-radius: 0.75rem;
-    text-decoration: none;
-    transition: all 0.2s ease;
-  }
-
-  .btn-primary {
-    background: var(--color-accent);
-    color: var(--color-bg);
-  }
-
-  .btn-primary:hover {
-    background: var(--color-accent-hover);
-    box-shadow: 0 0 20px var(--color-accent-glow);
-  }
-
-  .btn-secondary {
-    background: transparent;
-    color: var(--color-text);
-    border: 1px solid var(--border-default);
-  }
-
-  .btn-secondary:hover {
-    background: var(--color-bg-elevated);
-    border-color: var(--border-strong);
-  }
-
-  .btn:active {
-    transform: translateY(1px) scale(0.98);
-  }
-
-  /* Screenshot */
-  .screenshot-container {
-    order: 0;
-  }
-
-  @media (min-width: 1024px) {
-    .screenshot-container {
-      order: 1;
-    }
-  }
-
-  .screenshot {
-    width: 100%;
-    height: auto;
-    border-radius: 0.75rem;
-    border: 1px solid var(--border-default);
-    cursor: zoom-in;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-  }
-
-  .screenshot:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 20px 40px -15px var(--shadow-elevated);
-  }
-
-  .screenshot:focus {
-    outline: 2px solid var(--border-focus);
-    outline-offset: 4px;
-  }
-
-  /* Documentation Section */
-  .docs-section {
-    padding: 4rem 1rem;
-    max-width: 1200px;
-    margin: 0 auto;
-  }
-
-  @media (min-width: 768px) {
-    .docs-section {
-      padding: 5rem 2rem;
-    }
-  }
-
-  .docs-header {
-    text-align: center;
-    margin-bottom: 2.5rem;
-  }
-
-  .docs-header h2 {
-    font-size: 1.875rem;
-    font-weight: 600;
-    color: var(--color-text);
-    margin-bottom: 0.5rem;
-  }
-
-  .docs-subtitle {
-    color: var(--color-text-muted);
-    font-size: 1rem;
-  }
-
-  .docs-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-
-  @media (min-width: 640px) {
-    .docs-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-  }
-
-  @media (min-width: 1024px) {
-    .docs-grid {
-      grid-template-columns: repeat(4, 1fr);
-    }
-  }
-
-  .doc-card {
-    display: flex;
-    flex-direction: column;
-    padding: 1.5rem;
-    text-decoration: none;
-    color: inherit;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    animation: fadeInUp 0.4s ease backwards;
-    animation-delay: calc(var(--index) * 100ms);
-  }
-
-  @keyframes fadeInUp {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  .doc-card:hover {
-    transform: translateY(-4px);
-    box-shadow:
-      inset 0 1px 0 var(--border-subtle),
-      inset 0 0 20px var(--border-subtle),
-      0 30px 60px -20px var(--shadow-elevated);
-  }
-
-  .doc-card:hover .doc-arrow {
-    transform: translateX(4px);
-    color: var(--color-accent);
-  }
-
-  .doc-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    background: var(--color-accent-subtle);
-    border: 1px solid var(--color-accent-glow);
-    border-radius: 0.75rem;
-    color: var(--color-accent);
-    margin-bottom: 1rem;
-  }
-
-  .doc-card h3 {
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--color-text);
-    margin-bottom: 0.25rem;
-  }
-
-  .doc-card p {
-    font-size: 0.875rem;
-    color: var(--color-text-muted);
-    line-height: 1.5;
-    flex: 1;
-  }
-
-  .doc-arrow {
-    margin-top: 1rem;
-    color: var(--color-text-dim);
-    transition: transform 0.2s ease, color 0.2s ease;
-  }
-
-  /* Features section */
-  .features {
-    padding: 4rem 1rem;
-    max-width: 1200px;
-    margin: 0 auto;
-  }
-
-  @media (min-width: 768px) {
-    .features {
-      padding: 5rem 2rem;
-    }
-  }
-
-  .bento-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-  }
-
-  @media (min-width: 768px) {
-    .bento-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-  }
-
-  .bento-item {
-    padding: 1.5rem;
-    border-radius: var(--radius-xl);
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    overflow: hidden;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-  }
-
-  .bento-item:hover {
-    transform: translateY(-2px);
-    box-shadow:
-      inset 0 1px 0 var(--border-subtle),
-      inset 0 0 20px var(--border-subtle),
-      0 30px 60px -20px var(--shadow-elevated);
-  }
-
-  @media (min-width: 768px) {
-    .bento-item {
-      padding: 2rem;
-    }
-  }
-
-  .bento-item.wide {
-    grid-column: 1 / -1;
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 2rem;
-  }
-
-  @media (min-width: 768px) {
-    .bento-item.wide {
-      grid-template-columns: 1fr 1fr;
-      align-items: center;
-    }
-  }
-
-  .fcard-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    background: var(--color-accent-subtle);
-    border: 1px solid var(--color-accent-glow);
-    border-radius: 0.75rem;
-    color: var(--color-accent);
-    margin-bottom: 1rem;
-  }
-
-  .bento-content h3 {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--color-text);
-    margin-bottom: 0.5rem;
-  }
-
-  .bento-content p {
-    color: var(--color-text-muted);
-    font-size: 0.9375rem;
-    line-height: 1.6;
-  }
-
-  .bento-content code {
-    color: var(--color-text);
-    font-family: var(--font-mono);
-    font-size: 0.875em;
-    padding: 0.15em 0.35em;
-    background: var(--color-bg-elevated);
-    border-radius: 0.25rem;
-    border: 1px solid var(--border-subtle);
-  }
-
-  .pulse-indicator {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 0.75rem;
-    background: var(--color-accent-subtle);
-    border: 1px solid var(--color-accent-glow);
-    border-radius: 9999px;
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    color: var(--color-accent);
-  }
-
-  .pulse-indicator .dot {
-    width: 6px;
-    height: 6px;
-    background: var(--color-accent);
-    border-radius: 50%;
-    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
-
-  .bento-visual {
-    margin-top: auto;
-    padding-top: 1.5rem;
-  }
-
-  .bento-item.wide .bento-visual {
-    margin-top: 0;
-    padding-top: 0;
-  }
-
-  .infinite-scroll-y {
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
-    color: var(--color-text-dim);
-    position: relative;
-    height: 160px;
-    overflow: hidden;
-    mask-image: linear-gradient(to bottom, transparent, black 20%, black 80%, transparent);
-    -webkit-mask-image: linear-gradient(to bottom, transparent, black 20%, black 80%, transparent);
-    background: var(--color-bg-code);
-    border: 1px solid var(--border-subtle);
-    border-radius: 0.75rem;
-    padding: 1.25rem;
-  }
-
-  .scroll-content {
-    display: flex;
-    flex-direction: column;
-    animation: scroll-up 12s linear infinite;
-  }
-
-  .scroll-content:hover {
-    animation-play-state: paused;
-  }
-
-  @keyframes scroll-up {
-    0% { transform: translateY(0); }
-    100% { transform: translateY(-50%); }
-  }
-
-  .log-line {
-    padding: 0.35rem 0;
-  }
-
-  .log-line.dim {
-    opacity: 0.5;
-  }
-
-  .ti {
-    color: var(--color-accent);
-  }
-
-  /* Examples section */
-  .examples {
-    padding: 4rem 1rem 6rem;
-    max-width: 1200px;
-    margin: 0 auto;
-  }
-
-  @media (min-width: 768px) {
-    .examples {
-      padding: 5rem 2rem 8rem;
-    }
-  }
-
-  .section-header {
-    text-align: center;
-    margin-bottom: 2rem;
-  }
-
-  .section-header h2 {
-    font-size: 1.875rem;
-    font-weight: 600;
-    color: var(--color-text);
-    margin-bottom: 0.5rem;
-  }
-
-  .section-header .sub {
-    color: var(--color-text-muted);
-  }
-
-  .ex-container {
-    display: grid;
-    grid-template-columns: 1fr;
-    border-radius: var(--radius-xl);
-    overflow: hidden;
-  }
-
-  @media (min-width: 768px) {
-    .ex-container {
-      grid-template-columns: 200px 1fr;
-    }
-  }
-
-  .ex-sidebar {
-    display: flex;
-    flex-direction: column;
-    padding: 1rem;
-    gap: 0.5rem;
-    border-bottom: 1px solid var(--border-subtle);
-    background: var(--color-bg-elevated);
-  }
-
-  @media (min-width: 768px) {
-    .ex-sidebar {
-      border-bottom: none;
-      border-right: 1px solid var(--border-subtle);
-    }
-  }
-
-  .ex-tab {
-    padding: 0.75rem 1rem;
-    text-align: left;
-    background: transparent;
-    border: none;
-    border-radius: 0.5rem;
-    color: var(--color-text-muted);
-    font-size: 0.875rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-
-  .ex-tab:hover {
-    background: var(--color-bg-card);
-    color: var(--color-text);
-  }
-
-  .ex-tab.active {
-    background: var(--color-accent-subtle);
-    color: var(--color-accent);
-  }
-
-  .ex-tab:focus-visible {
-    outline: 2px solid var(--border-focus);
-    outline-offset: 2px;
-  }
-
-  .ex-content {
-    padding: 1.5rem;
-    overflow-x: auto;
-    background: var(--color-bg-code);
-  }
-
-  .ex-panel {
-    display: none;
-  }
-
-  .ex-panel.active {
-    display: block;
-    animation: fadeIn 0.2s ease;
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(4px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .ex-block {
-    margin: 0;
-    font-family: var(--font-mono);
-    font-size: 0.875rem;
-    line-height: 1.7;
-    color: var(--color-text);
-    white-space: pre-wrap;
-    word-break: break-all;
-  }
-
-  .ex-block .cmt {
-    color: var(--color-text-dim);
-  }
-
-  .ex-block .flag {
-    color: var(--color-cyan);
-  }
-
-  .ex-block .val {
-    color: var(--color-yellow);
-  }
-
-  /* Lightbox */
+  /* ─── Lightbox ─────────────────────────────────────────── */
   .lightbox {
     position: fixed;
     inset: 0;
     z-index: 100;
-    background: rgba(0, 0, 0, 0.95);
+    background: rgba(0,0,0,0.95);
     backdrop-filter: blur(10px);
     display: flex;
     flex-direction: column;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.25s ease;
   }
-
-  .lightbox.open {
-    opacity: 1;
-    pointer-events: auto;
-  }
-
+  .lightbox.open { opacity: 1; pointer-events: auto; }
   .lightbox-close {
     position: absolute;
     top: 1rem;
     right: 1rem;
     z-index: 101;
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.1);
     border-radius: 50%;
     color: #fafafa;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background 0.15s ease;
   }
-
-  .lightbox-close:hover {
-    background: rgba(255, 255, 255, 0.2);
-  }
-
-  .lightbox-close:focus-visible {
-    outline: 2px solid rgba(16, 185, 129, 0.5);
-    outline-offset: 2px;
-  }
-
+  .lightbox-close:hover { background: rgba(255,255,255,0.2); }
+  .lightbox-close:focus-visible { outline: 2px solid rgba(52,211,153,0.5); outline-offset: 2px; }
   .lightbox-scroll {
     flex: 1;
     overflow: auto;
@@ -1147,111 +1039,17 @@ $ llm-usage <span class="flag">monthly</span> --pricing-offline</pre>
     justify-content: center;
     cursor: zoom-out;
   }
+  .lightbox-image { max-width: 100%; height: auto; border-radius: 0.5rem; }
 
-  .lightbox-image {
-    max-width: 100%;
-    height: auto;
-    border-radius: 0.5rem;
-  }
-
-  /* Screen reader only */
+  /* ─── Utility ──────────────────────────────────────────── */
   .sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
   }
 
-  /* Footer */
-  .site-footer {
-    padding: 3rem 1rem;
-    border-top: 1px solid var(--border-default);
-    background: var(--color-bg-elevated);
-  }
-
-  @media (min-width: 768px) {
-    .site-footer {
-      padding: 4rem 2rem;
-    }
-  }
-
-  .footer-content {
-    max-width: 1200px;
-    margin: 0 auto;
-    text-align: center;
-  }
-
-  .footer-brand {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-weight: 600;
-    color: var(--color-text);
-    margin-bottom: 1rem;
-  }
-
-  .footer-links {
-    display: flex;
-    justify-content: center;
-    gap: 1.5rem;
-    margin-bottom: 1.5rem;
-  }
-
-  .footer-links a {
-    color: var(--color-text-muted);
-    text-decoration: none;
-    font-size: 0.875rem;
-    transition: color 0.2s ease;
-  }
-
-  .footer-links a:hover {
-    color: var(--color-accent);
-  }
-
-  .footer-copy {
-    font-size: 0.75rem;
-    color: var(--color-text-dim);
-  }
-
-  .footer-copy a {
-    color: var(--color-text-muted);
-    text-decoration: none;
-  }
-
-  .footer-copy a:hover {
-    color: var(--color-accent);
-  }
-
-  /* Badge as link */
-  a.badge {
-    text-decoration: none;
-    cursor: pointer;
-  }
-
-  a.badge:hover {
-    border-color: var(--color-accent);
-    background: var(--color-accent-subtle);
-  }
-
-  a.badge:hover .badge-text {
-    color: var(--color-accent);
-  }
-
-  /* Reduced motion */
   @media (prefers-reduced-motion: reduce) {
-    .grain-overlay,
-    .status-dot {
-      display: none;
-    }
-
-    *,
-    *::before,
-    *::after {
+    .grain-overlay { display: none; }
+    *, *::before, *::after {
       animation-duration: 0.01ms !important;
       transition-duration: 0.01ms !important;
     }

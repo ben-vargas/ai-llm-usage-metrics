@@ -28,6 +28,7 @@ Aggregate token usage and costs from your local coding agent sessions. Supports 
 - **Zero-Config Discovery** — Automatically finds `.pi`, `.codex`, and OpenCode session data
 - **LiteLLM Pricing** — Real-time pricing sync with offline caching support
 - **Flexible Reports** — Daily, weekly, and monthly aggregations
+- **Efficiency Reports** — Correlate cost/tokens with repository commit outcomes
 - **Multiple Outputs** — Terminal tables, JSON, or Markdown
 - **Smart Filtering** — By source, provider, model, and date ranges
 
@@ -58,6 +59,8 @@ llm-usage daily
 | **codex**    | `~/.codex/sessions/**/*.jsonl`    | Automatic                        |
 | **OpenCode** | `~/.opencode/opencode.db`         | Auto or explicit `--opencode-db` |
 
+OpenCode source support requires Node.js 24+ runtime with built-in `node:sqlite`.
+
 ## 🎯 Usage
 
 ### Basic Reports
@@ -85,6 +88,45 @@ llm-usage daily --markdown
 # Detailed per-model breakdown
 llm-usage monthly --per-model-columns
 ```
+
+### Efficiency Reports
+
+```bash
+# Daily efficiency in current repository
+llm-usage efficiency daily
+
+# Weekly efficiency for a specific repository path
+llm-usage efficiency weekly --repo-dir /path/to/repo
+
+# Include merge commits and export JSON
+llm-usage efficiency monthly --include-merge-commits --json
+```
+
+Efficiency reports are repo-attributed: usage events are mapped to a Git repository root using source metadata (`cwd`/path info), and only events attributed to the selected repo are included in efficiency totals.
+
+#### Reading efficiency output
+
+- `Commits`, `+Lines`, `-Lines`, `ΔLines` come from local Git shortstat outcomes (for your configured Git author).
+- `Input`, `Output`, `Reasoning`, `Cache Read`, `Cache Write`, `Total`, and `Cost` come from repo-attributed usage events.
+- `All Tokens/Commit` uses `Total / Commits` and includes cache read/write tokens.
+- `Non-Cache/Commit` uses `(Input + Output + Reasoning) / Commits` and excludes cache read/write tokens.
+- `$/Commit` uses `Cost / Commits`.
+- `$/1k Lines` uses `Cost / (ΔLines / 1000)`.
+- `Commits/$` uses `Commits / Cost` (shown only when `Cost > 0`).
+
+Efficiency period rows are emitted only when both Git outcomes and repo-attributed usage signal exist for that period.
+When a denominator is zero, derived values in emitted rows render as `-`.  
+When pricing is incomplete, terminal/markdown output prefixes affected USD metrics with `~`.
+
+For source-by-source comparisons, run the same report per source:
+
+```bash
+llm-usage efficiency monthly --repo-dir /path/to/repo --source pi
+llm-usage efficiency monthly --repo-dir /path/to/repo --source codex
+llm-usage efficiency monthly --repo-dir /path/to/repo --source opencode
+```
+
+Note: usage filters (`--source`, `--provider`, `--model`, `--pi-dir`, `--codex-dir`, `--opencode-db`, `--source-dir`) also constrain commit attribution: only commit days with matching repo-attributed usage events are counted.
 
 ### Filtering
 
@@ -117,6 +159,57 @@ llm-usage daily --opencode-db /path/to/opencode.db
 ```bash
 # Use cached pricing only
 llm-usage monthly --pricing-offline
+
+# Continue even if pricing fetch fails
+llm-usage monthly --ignore-pricing-failures
+```
+
+## 🧪 Production Benchmarks
+
+Benchmarked on **February 24, 2026** on a local production machine:
+
+- OS: CachyOS (Linux 6.19.2-2-cachyos)
+- CPU: Intel Core Ultra 9 185H (22 logical CPUs)
+- RAM: 62 GiB
+- Storage: NVMe SSD
+
+Compared commands:
+
+```bash
+ccusage-codex monthly
+llm-usage monthly --provider openai
+```
+
+Timed benchmark summary (5 runs per scenario):
+
+| Tool                                                    | Cache mode | Median (s) | Mean (s) |
+| ------------------------------------------------------- | ---------- | ---------: | -------: |
+| `ccusage-codex monthly`                                 | no cache   |     14.247 |   14.456 |
+| `ccusage-codex monthly --offline`                       | with cache |     14.043 |   14.268 |
+| `llm-usage monthly --provider openai`                   | no cache   |      4.192 |    4.196 |
+| `llm-usage monthly --provider openai --pricing-offline` | with cache |      0.793 |    0.784 |
+
+On this dataset and machine:
+
+- `llm-usage` is `3.40x` faster than `ccusage-codex` in no-cache mode.
+- `llm-usage` is `17.71x` faster than `ccusage-codex` in cached mode.
+- `llm-usage` improves `5.29x` with cache; `ccusage-codex` improves `1.01x`.
+
+Full methodology, cache-mode definition, and scope caveats are documented in the Astro docs: [Benchmarks](https://ayagmar.github.io/llm-usage-metrics/benchmarks/).
+
+Re-run benchmark locally:
+
+```bash
+pnpm run perf:production-benchmark -- --runs 5
+```
+
+Generate machine-readable artifacts:
+
+```bash
+pnpm run perf:production-benchmark -- \
+  --runs 5 \
+  --json-output ./tmp/production-benchmark.json \
+  --markdown-output ./tmp/production-benchmark.md
 ```
 
 ## ⚙️ Configuration
@@ -169,8 +262,10 @@ pnpm cli daily
 
 - **[Getting Started](https://ayagmar.github.io/llm-usage-metrics/getting-started/)** — Installation and first steps
 - **[CLI Reference](https://ayagmar.github.io/llm-usage-metrics/cli-reference/)** — Complete command reference
+- **[Efficiency](https://ayagmar.github.io/llm-usage-metrics/efficiency/)** — Efficiency report semantics and interpretation
 - **[Data Sources](https://ayagmar.github.io/llm-usage-metrics/sources/)** — Source configuration
 - **[Configuration](https://ayagmar.github.io/llm-usage-metrics/configuration/)** — Environment variables
+- **[Benchmarks](https://ayagmar.github.io/llm-usage-metrics/benchmarks/)** — Production benchmark methodology and results
 - **[Architecture](https://ayagmar.github.io/llm-usage-metrics/architecture/)** — Technical overview
 
 ## 🤝 Contributing

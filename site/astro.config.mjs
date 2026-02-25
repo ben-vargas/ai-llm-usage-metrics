@@ -20,16 +20,16 @@ export default defineConfig({
       ],
       sidebar: [
         {
-          label: 'Documentation',
-          link: '/',
-        },
-        {
           label: 'Getting Started',
           link: '/getting-started',
         },
         {
           label: 'CLI Reference',
           link: '/cli-reference',
+        },
+        {
+          label: 'Efficiency',
+          link: '/efficiency',
         },
         {
           label: 'Data Sources',
@@ -51,6 +51,10 @@ export default defineConfig({
         {
           label: 'Output Formats',
           link: '/output-formats',
+        },
+        {
+          label: 'Benchmarks',
+          link: '/benchmarks',
         },
         {
           label: 'Pricing',

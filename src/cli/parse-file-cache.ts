@@ -10,7 +10,7 @@ import { normalizeSkippedRowReasons } from './normalize-skipped-row-reasons.js';
 import { asRecord } from '../utils/as-record.js';
 import { getUserCacheRootDir } from '../utils/cache-root-dir.js';
 
-const PARSE_FILE_CACHE_VERSION = 1;
+const PARSE_FILE_CACHE_VERSION = 2;
 const CACHE_KEY_SEPARATOR = '\u0000';
 
 export type ParseFileFingerprint = {
@@ -41,6 +41,10 @@ function createCacheKey(source: string, filePath: string): string {
   return `${source}${CACHE_KEY_SEPARATOR}${filePath}`;
 }
 
+function normalizeCacheSource(source: string): string {
+  return normalizeSourceId(source)?.toLowerCase() ?? '';
+}
+
 function toNonNegativeInteger(value: unknown): number | undefined {
   if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
     return undefined;
@@ -57,6 +61,26 @@ function toNonNegativeNumber(value: unknown): number | undefined {
   return value;
 }
 
+function normalizeCachedTimestamp(value: unknown): string | undefined {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const normalized = value.trim();
+
+  if (!normalized) {
+    return undefined;
+  }
+
+  const timestamp = new Date(normalized);
+
+  if (Number.isNaN(timestamp.getTime())) {
+    return undefined;
+  }
+
+  return timestamp.toISOString() === normalized ? normalized : undefined;
+}
+
 function normalizeCachedUsageEvent(value: unknown): UsageEvent | undefined {
   const record = asRecord(value);
 
@@ -64,15 +88,12 @@ function normalizeCachedUsageEvent(value: unknown): UsageEvent | undefined {
     return undefined;
   }
 
-  const source = normalizeSourceId(record.source);
+  const source = normalizeSourceId(record.source)?.toLowerCase();
   const sessionId = typeof record.sessionId === 'string' ? record.sessionId.trim() : '';
-  const timestamp = typeof record.timestamp === 'string' ? record.timestamp.trim() : '';
+  const timestamp = normalizeCachedTimestamp(record.timestamp);
+  const repoRoot = typeof record.repoRoot === 'string' ? record.repoRoot.trim() : '';
 
   if (!source || !sessionId || !timestamp) {
-    return undefined;
-  }
-
-  if (Number.isNaN(new Date(timestamp).getTime())) {
     return undefined;
   }
 
@@ -102,7 +123,7 @@ function normalizeCachedUsageEvent(value: unknown): UsageEvent | undefined {
   }
 
   const provider = typeof record.provider === 'string' ? record.provider.trim() : '';
-  const model = typeof record.model === 'string' ? record.model.trim() : '';
+  const model = typeof record.model === 'string' ? record.model.trim().toLowerCase() : '';
   const costUsd = toNonNegativeNumber(record.costUsd);
 
   if (costMode === 'explicit' && costUsd === undefined) {
@@ -113,6 +134,7 @@ function normalizeCachedUsageEvent(value: unknown): UsageEvent | undefined {
     source,
     sessionId,
     timestamp,
+    repoRoot: repoRoot || undefined,
     provider: provider || undefined,
     model: model || undefined,
     inputTokens,
@@ -167,7 +189,7 @@ function normalizeCacheEntry(value: unknown): ParseFileCacheEntry | undefined {
     return undefined;
   }
 
-  const source = typeof record.source === 'string' ? record.source.trim() : '';
+  const source = normalizeSourceId(record.source)?.toLowerCase() ?? '';
   const filePath = typeof record.filePath === 'string' ? record.filePath.trim() : '';
   const cachedAt = toNonNegativeInteger(record.cachedAt);
   const fingerprint = asRecord(record.fingerprint);
@@ -237,14 +259,16 @@ export class ParseFileCache {
     filePath: string,
     fingerprint: ParseFileFingerprint,
   ): SourceParseFileDiagnostics | undefined {
-    const entry = this.entriesByKey.get(createCacheKey(source, filePath));
+    const normalizedSource = normalizeCacheSource(source);
+    const cacheKey = createCacheKey(normalizedSource, filePath);
+    const entry = this.entriesByKey.get(cacheKey);
 
     if (!entry) {
       return undefined;
     }
 
     if (entry.cachedAt + this.limits.ttlMs < this.now()) {
-      this.entriesByKey.delete(createCacheKey(source, filePath));
+      this.entriesByKey.delete(cacheKey);
       this.dirty = true;
       return undefined;
     }
@@ -253,6 +277,8 @@ export class ParseFileCache {
       entry.fingerprint.size !== fingerprint.size ||
       entry.fingerprint.mtimeMs !== fingerprint.mtimeMs
     ) {
+      this.entriesByKey.delete(cacheKey);
+      this.dirty = true;
       return undefined;
     }
 
@@ -269,8 +295,9 @@ export class ParseFileCache {
     fingerprint: ParseFileFingerprint,
     diagnostics: SourceParseFileDiagnostics,
   ): void {
-    this.entriesByKey.set(createCacheKey(source, filePath), {
-      source,
+    const normalizedSource = normalizeCacheSource(source);
+    this.entriesByKey.set(createCacheKey(normalizedSource, filePath), {
+      source: normalizedSource,
       filePath,
       fingerprint: {
         size: fingerprint.size,

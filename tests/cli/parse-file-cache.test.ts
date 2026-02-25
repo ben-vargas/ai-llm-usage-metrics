@@ -111,19 +111,85 @@ describe('ParseFileCache', () => {
     expect(payload.entries).toHaveLength(0);
   });
 
+  it('evicts stale fingerprint entries so they do not persist forever', async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), 'parse-file-cache-fingerprint-'));
+    tempDirs.push(tempDir);
+    const cacheFilePath = path.join(tempDir, 'parse-file-cache.json');
+    const limits = { ttlMs: 60_000, maxEntries: 100, maxBytes: 1024 * 1024 };
+
+    const cache = await ParseFileCache.load({ cacheFilePath, limits, now: () => 1_000 });
+    cache.set(
+      'codex',
+      '/tmp/cached.jsonl',
+      { size: 10, mtimeMs: 20 },
+      { events: [createEvent()], skippedRows: 0 },
+    );
+
+    expect(cache.get('codex', '/tmp/cached.jsonl', { size: 11, mtimeMs: 20 })).toBeUndefined();
+
+    await cache.persist();
+    const payload = JSON.parse(await readFile(cacheFilePath, 'utf8')) as { entries: unknown[] };
+    expect(payload.entries).toHaveLength(0);
+  });
+
+  it('normalizes source IDs in set/get keys and keeps lookups stable after reload', async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), 'parse-file-cache-source-key-'));
+    tempDirs.push(tempDir);
+    const cacheFilePath = path.join(tempDir, 'parse-file-cache.json');
+
+    const cache = await ParseFileCache.load({
+      cacheFilePath,
+      limits: { ttlMs: 60_000, maxEntries: 100, maxBytes: 1024 * 1024 },
+      now: () => 1_000,
+    });
+
+    cache.set(
+      'CODEX',
+      '/tmp/normalized-source.jsonl',
+      { size: 10, mtimeMs: 20 },
+      { events: [createEvent()], skippedRows: 0 },
+    );
+
+    expect(cache.get('codex', '/tmp/normalized-source.jsonl', { size: 10, mtimeMs: 20 })).toEqual({
+      events: [createEvent()],
+      skippedRows: 0,
+      skippedRowReasons: [],
+    });
+
+    await cache.persist();
+
+    const reloaded = await ParseFileCache.load({
+      cacheFilePath,
+      limits: { ttlMs: 60_000, maxEntries: 100, maxBytes: 1024 * 1024 },
+      now: () => 1_001,
+    });
+
+    expect(
+      reloaded.get('CODEX', '/tmp/normalized-source.jsonl', { size: 10, mtimeMs: 20 }),
+    ).toEqual({
+      events: [createEvent()],
+      skippedRows: 0,
+      skippedRowReasons: [],
+    });
+  });
+
   it('normalizes disk payload entries and ignores malformed rows', async () => {
     const tempDir = await mkdtemp(path.join(os.tmpdir(), 'parse-file-cache-load-'));
     tempDirs.push(tempDir);
     const cacheFilePath = path.join(tempDir, 'parse-file-cache.json');
-    const validEvent = createEvent({ sessionId: 'from-cache' });
+    const validEvent = createEvent({
+      source: 'CODEX',
+      sessionId: 'from-cache',
+      model: 'GPT-4.1',
+    });
 
     await writeFile(
       cacheFilePath,
       JSON.stringify({
-        version: 1,
+        version: 2,
         entries: [
           {
-            source: 'codex',
+            source: 'CODEX',
             filePath: '/tmp/ok.jsonl',
             fingerprint: { size: 12, mtimeMs: 34 },
             cachedAt: 42,
@@ -159,6 +225,17 @@ describe('ParseFileCache', () => {
               skippedRowReasons: [{ reason: 'x', count: 1 }],
             },
           },
+          {
+            source: 'codex',
+            filePath: '/tmp/bad-timestamp.jsonl',
+            fingerprint: { size: 12, mtimeMs: 34 },
+            cachedAt: 42,
+            diagnostics: {
+              events: [{ ...validEvent, timestamp: '2026-02-01T00:00:00Z' }],
+              skippedRows: 0,
+              skippedRowReasons: [{ reason: 'x', count: 1 }],
+            },
+          },
         ],
       }),
       'utf8',
@@ -172,8 +249,11 @@ describe('ParseFileCache', () => {
 
     expect(cache.get('codex', '/tmp/bad.jsonl', { size: 12, mtimeMs: 34 })).toBeUndefined();
     expect(cache.get('codex', '/tmp/bad-source.jsonl', { size: 12, mtimeMs: 34 })).toBeUndefined();
+    expect(
+      cache.get('codex', '/tmp/bad-timestamp.jsonl', { size: 12, mtimeMs: 34 }),
+    ).toBeUndefined();
     expect(cache.get('codex', '/tmp/ok.jsonl', { size: 12, mtimeMs: 34 })).toEqual({
-      events: [validEvent],
+      events: [{ ...createEvent({ sessionId: 'from-cache', model: 'gpt-4.1' }) }],
       skippedRows: 9,
       skippedRowReasons: [{ reason: 'truncated', count: 3 }],
     });
@@ -200,7 +280,7 @@ describe('ParseFileCache', () => {
       version: number;
       entries: unknown[];
     };
-    expect(persisted).toEqual({ version: 1, entries: [] });
+    expect(persisted).toEqual({ version: 2, entries: [] });
   });
 
   it('handles unsupported cache versions by resetting payload on persist', async () => {
@@ -224,7 +304,7 @@ describe('ParseFileCache', () => {
       version: number;
       entries: unknown[];
     };
-    expect(persisted).toEqual({ version: 1, entries: [] });
+    expect(persisted).toEqual({ version: 2, entries: [] });
   });
 
   it('bounds persisted payload by max entries and max bytes', async () => {

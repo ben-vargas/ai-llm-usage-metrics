@@ -6,6 +6,7 @@ import type { UsageEvent } from '../../domain/usage-event.js';
 import type { NumberLike } from '../../domain/normalization.js';
 import { asRecord } from '../../utils/as-record.js';
 import { discoverJsonlFiles } from '../../utils/discover-jsonl-files.js';
+import { pathIsDirectory, pathReadable } from '../../utils/fs-helpers.js';
 import { readJsonlObjects } from '../../utils/read-jsonl-objects.js';
 import { asTrimmedText, toNumberLike } from '../parsing-utils.js';
 import type { SourceAdapter } from '../source-adapter.js';
@@ -17,6 +18,7 @@ type ProviderFilter = (provider: string | undefined) => boolean;
 type PiSessionState = {
   sessionId?: string;
   sessionTimestamp?: string;
+  repoRoot?: string;
   provider?: string;
   model?: string;
 };
@@ -34,6 +36,7 @@ type PiUsageExtract = {
 export type PiSourceAdapterOptions = {
   sessionsDir?: string;
   providerFilter?: ProviderFilter;
+  requireSessionsDir?: boolean;
 };
 
 const PI_MESSAGE_LINE_PATTERN = /"type"\s*:\s*"message"/u;
@@ -51,6 +54,10 @@ function shouldParsePiJsonlLine(lineText: string): boolean {
 const allowAllProviders: ProviderFilter = () => true;
 
 const UNIX_SECONDS_ABS_CUTOFF = 10_000_000_000;
+
+function isBlankText(value: string): boolean {
+  return value.trim().length === 0;
+}
 
 function normalizeTimestampCandidate(candidate: unknown): string | undefined {
   let date: Date | undefined;
@@ -109,16 +116,40 @@ function extractUsageFromRecord(usage: Record<string, unknown>): PiUsageExtract 
     costUsd: toNumberLike(cost?.total),
   };
 
-  const hasKnownUsageField =
-    extracted.inputTokens !== undefined ||
-    extracted.outputTokens !== undefined ||
-    extracted.reasoningTokens !== undefined ||
-    extracted.cacheReadTokens !== undefined ||
-    extracted.cacheWriteTokens !== undefined ||
-    extracted.totalTokens !== undefined ||
-    extracted.costUsd !== undefined;
+  const toFiniteNumber = (value: NumberLike | undefined): number | undefined => {
+    if (value === null || value === undefined) {
+      return undefined;
+    }
 
-  return hasKnownUsageField ? extracted : undefined;
+    if (typeof value === 'string' && value.trim().length === 0) {
+      return undefined;
+    }
+
+    const parsed = typeof value === 'number' ? value : Number(value);
+
+    if (!Number.isFinite(parsed)) {
+      return undefined;
+    }
+
+    return parsed;
+  };
+
+  const usageCandidates = [
+    extracted.inputTokens,
+    extracted.outputTokens,
+    extracted.reasoningTokens,
+    extracted.cacheReadTokens,
+    extracted.cacheWriteTokens,
+    extracted.totalTokens,
+  ];
+  const hasPositiveUsageSignal = usageCandidates.some((value) => {
+    const parsed = toFiniteNumber(value);
+    return parsed !== undefined && parsed > 0;
+  });
+  const explicitCost = toFiniteNumber(extracted.costUsd);
+  const hasPositiveCostSignal = explicitCost !== undefined && explicitCost > 0;
+
+  return hasPositiveUsageSignal || hasPositiveCostSignal ? extracted : undefined;
 }
 
 function extractUsage(line: Record<string, unknown>, message: Record<string, unknown> | undefined) {
@@ -144,19 +175,55 @@ function getFallbackSessionId(filePath: string): string {
   return path.basename(filePath, '.jsonl');
 }
 
+function resolveRepoRootFromRecord(
+  record: Record<string, unknown> | undefined,
+): string | undefined {
+  if (!record) {
+    return undefined;
+  }
+
+  const pathRecord = asRecord(record.path);
+
+  return (
+    asTrimmedText(pathRecord?.root) ??
+    asTrimmedText(pathRecord?.cwd) ??
+    asTrimmedText(record.cwd) ??
+    asTrimmedText(record.repo_root) ??
+    asTrimmedText(record.repoRoot) ??
+    asTrimmedText(record.project_root) ??
+    asTrimmedText(record.projectRoot)
+  );
+}
+
 export class PiSourceAdapter implements SourceAdapter {
   public readonly id = 'pi' as const;
 
   private readonly sessionsDir: string;
   private readonly providerFilter: ProviderFilter;
+  private readonly requireSessionsDir: boolean;
 
   public constructor(options: PiSourceAdapterOptions = {}) {
     this.sessionsDir = options.sessionsDir ?? defaultSessionsDir;
     this.providerFilter = options.providerFilter ?? allowAllProviders;
+    this.requireSessionsDir = options.requireSessionsDir ?? false;
   }
 
   public async discoverFiles(): Promise<string[]> {
-    return discoverJsonlFiles(this.sessionsDir);
+    if (isBlankText(this.sessionsDir)) {
+      throw new Error('PI sessions directory must be a non-empty path');
+    }
+
+    const normalizedSessionsDir = this.sessionsDir.trim();
+
+    if (this.requireSessionsDir && !(await pathReadable(normalizedSessionsDir))) {
+      throw new Error(`PI sessions directory is missing or unreadable: ${normalizedSessionsDir}`);
+    }
+
+    if (this.requireSessionsDir && !(await pathIsDirectory(normalizedSessionsDir))) {
+      throw new Error(`PI sessions directory is not a directory: ${normalizedSessionsDir}`);
+    }
+
+    return discoverJsonlFiles(normalizedSessionsDir);
   }
 
   public async parseFile(filePath: string): Promise<UsageEvent[]> {
@@ -169,12 +236,14 @@ export class PiSourceAdapter implements SourceAdapter {
       if (line.type === 'session') {
         state.sessionId = asTrimmedText(line.id) ?? state.sessionId;
         state.sessionTimestamp = asTrimmedText(line.timestamp) ?? state.sessionTimestamp;
+        state.repoRoot = resolveRepoRootFromRecord(line) ?? state.repoRoot;
         continue;
       }
 
       if (line.type === 'model_change') {
         state.provider = asTrimmedText(line.provider) ?? state.provider;
         state.model = asTrimmedText(line.modelId) ?? asTrimmedText(line.model) ?? state.model;
+        state.repoRoot = resolveRepoRootFromRecord(line) ?? state.repoRoot;
         continue;
       }
 
@@ -207,6 +276,8 @@ export class PiSourceAdapter implements SourceAdapter {
         asTrimmedText(line.modelId) ??
         asTrimmedText(message?.model) ??
         state.model;
+      const repoRoot =
+        resolveRepoRootFromRecord(line) ?? resolveRepoRootFromRecord(message) ?? state.repoRoot;
 
       try {
         events.push(
@@ -214,6 +285,7 @@ export class PiSourceAdapter implements SourceAdapter {
             source: this.id,
             sessionId: state.sessionId,
             timestamp,
+            repoRoot,
             provider,
             model,
             ...usage,

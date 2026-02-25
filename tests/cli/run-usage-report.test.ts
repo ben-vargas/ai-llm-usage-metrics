@@ -255,7 +255,7 @@ describe('buildUsageReport', () => {
     }
   });
 
-  it('renders terminal output with env override section and report header', async () => {
+  it('renders terminal output with report header only', async () => {
     const emptyDir = await mkdtemp(path.join(os.tmpdir(), 'usage-terminal-output-'));
     tempDirs.push(emptyDir);
 
@@ -268,8 +268,8 @@ describe('buildUsageReport', () => {
       timezone: 'UTC',
     });
 
-    expect(report).toContain('Active environment overrides:');
-    expect(report).toContain('LLM_USAGE_PARSE_MAX_PARALLEL=8');
+    expect(report).not.toContain('Active environment overrides:');
+    expect(report).not.toContain('LLM_USAGE_PARSE_MAX_PARALLEL=8');
     expect(report).toContain('Monthly Token Usage Report');
     expect(report).not.toContain('Timezone');
     expect(report).toContain('│ Period');
@@ -277,8 +277,7 @@ describe('buildUsageReport', () => {
     expect(report.startsWith('\n')).toBe(false);
 
     const headerIndex = report.indexOf('┌');
-    const envSectionIndex = report.indexOf('Active environment overrides:');
-    expect(headerIndex).toBeGreaterThan(envSectionIndex);
+    expect(headerIndex).toBeGreaterThan(-1);
   });
 
   it('does not prepend a blank line in terminal output when no overrides are active', async () => {
@@ -449,6 +448,34 @@ describe('buildUsageReport', () => {
       expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('No sessions found'));
       expect(logSpy).toHaveBeenCalledTimes(1);
       expect(errorSpy.mock.invocationCallOrder[0]).toBeLessThan(logSpy.mock.invocationCallOrder[0]);
+    } finally {
+      errorSpy.mockRestore();
+      logSpy.mockRestore();
+    }
+  });
+
+  it('emits active environment overrides to stderr diagnostics in runUsageReport', async () => {
+    const emptyDir = await mkdtemp(path.join(os.tmpdir(), 'usage-run-env-overrides-'));
+    tempDirs.push(emptyDir);
+    process.env.LLM_USAGE_PARSE_MAX_PARALLEL = '8';
+
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+
+    try {
+      await runUsageReport('daily', {
+        piDir: emptyDir,
+        codexDir: emptyDir,
+        source: directoryBackedSources,
+        timezone: 'UTC',
+      });
+
+      expect(String(logSpy.mock.calls[0]?.[0])).not.toContain('Active environment overrides:');
+      const stderrLines = errorSpy.mock.calls.map((call) => String(call[0]));
+      expect(stderrLines.some((line) => line.includes('Active environment overrides:'))).toBe(true);
+      expect(stderrLines.some((line) => line.includes('LLM_USAGE_PARSE_MAX_PARALLEL=8'))).toBe(
+        true,
+      );
     } finally {
       errorSpy.mockRestore();
       logSpy.mockRestore();

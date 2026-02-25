@@ -104,6 +104,20 @@ function normalizeSessionIdCandidate(value: unknown): string | undefined {
   return asTrimmedText(value);
 }
 
+function resolveRepoRoot(messagePayload: Record<string, unknown>): string | undefined {
+  const pathPayload = asRecord(messagePayload.path);
+
+  return (
+    asTrimmedText(pathPayload?.root) ??
+    asTrimmedText(pathPayload?.cwd) ??
+    asTrimmedText(messagePayload.cwd) ??
+    asTrimmedText(messagePayload.repo_root) ??
+    asTrimmedText(messagePayload.repoRoot) ??
+    asTrimmedText(messagePayload.project_root) ??
+    asTrimmedText(messagePayload.projectRoot)
+  );
+}
+
 function hasUsageSignal(usageFields: Array<unknown>, explicitCost: number | undefined): boolean {
   if (explicitCost !== undefined) {
     return true;
@@ -179,6 +193,7 @@ export function parseOpenCodeMessageRows(
 
     const provider = asTrimmedText(payload.providerID) ?? asTrimmedText(payload.provider);
     const model = asTrimmedText(payload.modelID) ?? asTrimmedText(payload.model);
+    const repoRoot = resolveRepoRoot(payload);
     const tokens = asRecord(payload.tokens);
     const tokenCache = asRecord(tokens?.cache);
     const inputTokens = toNumberLike(tokens?.input);
@@ -212,6 +227,7 @@ export function parseOpenCodeMessageRows(
           source: sourceId,
           sessionId,
           timestamp,
+          repoRoot,
           provider,
           model,
           inputTokens,

@@ -14,6 +14,8 @@
 
 This keeps source-specific complexity isolated and report output deterministic.
 
+`efficiency` reports reuse the usage pipeline, attribute usage events to a repository root, then join repo-scoped usage totals with local Git outcome totals.
+
 ## Runtime flow (flowchart)
 
 ```mermaid
@@ -22,6 +24,15 @@ flowchart LR
     B --> C[Command parser\nsrc/cli/create-cli.ts]
     C --> D[runUsageReport]
     D --> E[buildUsageData]
+    C --> O[runEfficiencyReport]
+    O --> E
+    O --> P[collectGitOutcomes]
+    O --> S[attributeUsageEventsToRepo]
+    E --> S
+    P --> Q[aggregateEfficiency]
+    S --> Q
+    Q --> R[renderEfficiencyReport]
+    R --> L
 
     E --> F[Source adapters\npi/codex/opencode]
     F --> G[UsageEvent list]
@@ -34,6 +45,7 @@ flowchart LR
 
     D --> M[emitDiagnostics]
     M --> N[stderr diagnostics]
+    O --> M
 ```
 
 ## End-to-end sequence
@@ -43,13 +55,14 @@ sequenceDiagram
     participant User
     participant Entry as CLI entrypoint
     participant Update as Update notifier
-    participant Run as runUsageReport
+    participant Run as CommandRunner
     participant Build as buildUsageData
     participant Adapter as Source adapters
     participant Pricing as Pricing resolver
     participant Agg as Aggregator
     participant Render as renderUsageReport
     participant Emit as emitDiagnostics
+    participant Git as collectGitOutcomes
 
     User->>Entry: llm-usage monthly --source pi,codex
     Entry->>Update: checkForUpdatesAndMaybeRestart()
@@ -67,6 +80,19 @@ sequenceDiagram
     Render-->>Run: report string
     Run->>Emit: emitDiagnostics(data.diagnostics)
     Run-->>User: stderr diagnostics + stdout report
+
+    User->>Entry: llm-usage efficiency weekly --repo-dir /repo
+    Entry->>Run: runEfficiencyReport(...)
+    Run->>Build: buildUsageData(...)
+    Run->>Git: collectGitOutcomes(...)
+    Build-->>Run: usage events + rows + diagnostics
+    Git-->>Run: outcome totals
+    Run->>Run: attribute usage events to repo root
+    Run->>Run: aggregateEfficiency(...)
+    Run->>Render: renderEfficiencyReport(data, format)
+    Render-->>Run: report string
+    Run->>Emit: emitDiagnostics(data.diagnostics.usage)
+    Run-->>User: stderr diagnostics + stdout efficiency report
 ```
 
 ## Module map
@@ -77,6 +103,7 @@ sequenceDiagram
 - `src/pricing`: LiteLLM loader/cache + cost engine
 - `src/aggregate`: daily/weekly/monthly bucketing and totals
 - `src/render`: terminal/markdown/json formatting
+- `src/efficiency`: git-outcome collection and efficiency aggregation
 - `src/update`: startup update check
 
 ## Core invariants

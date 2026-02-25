@@ -14,6 +14,10 @@ describe('opencode row parser', () => {
             role: 'assistant',
             providerID: 'openai',
             modelID: 'gpt-5-codex',
+            path: {
+              root: '/tmp/opencode-repo',
+              cwd: '/tmp/opencode-repo/app',
+            },
             tokens: {
               input: 100,
               output: 40,
@@ -91,6 +95,7 @@ describe('opencode row parser', () => {
       source: 'opencode',
       sessionId: 'session-1',
       timestamp: new Date(1_737_000_000 * 1000).toISOString(),
+      repoRoot: '/tmp/opencode-repo',
       provider: 'openai',
       model: 'gpt-5-codex',
       inputTokens: 100,

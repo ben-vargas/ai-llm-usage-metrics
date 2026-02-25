@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { asRecord } from '../utils/as-record.js';
+import { compareByCodePoint } from '../utils/compare-by-code-point.js';
 import { getUserCacheRootDir } from '../utils/cache-root-dir.js';
 import litellmModelMapPayload from './litellm-model-map.json' with { type: 'json' };
 import type { ModelPricing, PricingSource } from './types.js';
@@ -528,7 +529,7 @@ export class LiteLLMPricingFetcher implements PricingSource {
         if (
           !bestMatch ||
           modelName.length < bestMatch.length ||
-          (modelName.length === bestMatch.length && modelName.localeCompare(bestMatch) < 0)
+          (modelName.length === bestMatch.length && compareByCodePoint(modelName, bestMatch) < 0)
         ) {
           bestMatch = modelName;
         }
@@ -556,7 +557,7 @@ export class LiteLLMPricingFetcher implements PricingSource {
         if (
           !bestMatch ||
           modelName.length > bestMatch.length ||
-          (modelName.length === bestMatch.length && modelName.localeCompare(bestMatch) < 0)
+          (modelName.length === bestMatch.length && compareByCodePoint(modelName, bestMatch) < 0)
         ) {
           bestMatch = modelName;
         }

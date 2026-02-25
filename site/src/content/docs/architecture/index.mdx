@@ -11,6 +11,15 @@ description: High-level runtime architecture and data flow.
 4. aggregate by period/source/model
 5. render (`terminal`, `json`, `markdown`)
 
+`efficiency` reporting reuses usage aggregation, attributes usage events to a repository root, then joins repo-scoped usage with local Git commit outcomes per period.
+
+Repo attribution details:
+
+- usage events are matched to the selected repository root through source metadata path hints (`repoRoot`/`cwd`-style hints)
+- paths are normalized before comparison (so equivalent paths can match)
+- events that cannot be resolved to a repository root are counted as unattributed and excluded from efficiency totals
+- when usage filters are active (`--source`, `--provider`, `--model`, source-path overrides), only commit days with matching repo-attributed usage are included in Git outcomes
+
 ## Runtime flow
 
 1. `CLI entrypoint` → `Update notifier`
@@ -23,6 +32,7 @@ description: High-level runtime architecture and data flow.
 8. `Aggregation` → `renderUsageReport`
 9. `renderUsageReport` → `stdout report`
 10. `buildUsageData` → `emitDiagnostics` → `stderr diagnostics`
+11. `efficiency` path: `buildUsageData` + `collectGitOutcomes` + repo attribution → `aggregateEfficiency` → `renderEfficiencyReport`
 
 ## Module boundaries
 
@@ -32,6 +42,7 @@ description: High-level runtime architecture and data flow.
 - `src/pricing`: pricing loader + cost engine
 - `src/aggregate`: period/source bucketing and totals
 - `src/render`: output formatters
+- `src/efficiency`: repo attribution + Git outcome collection + efficiency aggregation
 
 ## Design principles
 

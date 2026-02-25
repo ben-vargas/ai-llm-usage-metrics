@@ -81,7 +81,7 @@ export async function buildUsageData(
 
   const pricingOptions = withNormalizedPricingUrl(options, normalizedInputs.pricingUrl);
 
-  const { pricedEvents, pricingOrigin } = await resolveAndApplyPricingToEvents(
+  const { pricedEvents, pricingOrigin, pricingWarning } = await resolveAndApplyPricingToEvents(
     filteredEvents,
     pricingOptions,
     pricingRuntimeConfig,
@@ -99,9 +99,10 @@ export async function buildUsageData(
     successfulParseResults,
     sourceFailures,
     pricingOrigin,
+    pricingWarning,
     activeEnvOverrides: readEnvVarOverrides(),
     timezone: normalizedInputs.timezone,
   });
 
-  return assembleUsageDataResult(rows, diagnostics);
+  return assembleUsageDataResult(pricedEvents, rows, diagnostics);
 }

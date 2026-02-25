@@ -4,6 +4,7 @@ import type { UsageDataResult } from '../../src/cli/usage-data-contracts.js';
 import { renderUsageReport } from '../../src/render/render-usage-report.js';
 
 const sampleUsageData: UsageDataResult = {
+  events: [],
   rows: [
     {
       rowType: 'period_source',
@@ -121,25 +122,23 @@ const sampleUsageData: UsageDataResult = {
 };
 
 describe('renderUsageReport', () => {
-  it('renders terminal output with override section, header and table in order', () => {
+  it('renders terminal output with header and table only', () => {
     const rendered = renderUsageReport(sampleUsageData, 'terminal', {
       granularity: 'monthly',
       useColor: false,
     });
 
-    expect(rendered).toContain('Active environment overrides:');
-    expect(rendered).toContain('LLM_USAGE_PARSE_MAX_PARALLEL=8');
+    expect(rendered).not.toContain('Active environment overrides:');
+    expect(rendered).not.toContain('LLM_USAGE_PARSE_MAX_PARALLEL=8');
     expect(rendered).toContain('Monthly Token Usage Report');
     expect(rendered).not.toContain('Timezone');
     expect(rendered).toContain('│ Period');
     expect(rendered.startsWith('\n')).toBe(false);
     expect(rendered.includes(`${String.fromCharCode(27)}[`)).toBe(false);
 
-    const envSectionIndex = rendered.indexOf('Active environment overrides:');
     const headerIndex = rendered.indexOf('Monthly Token Usage Report');
     const tableIndex = rendered.indexOf('╭');
 
-    expect(headerIndex).toBeGreaterThan(envSectionIndex);
     expect(tableIndex).toBeGreaterThan(headerIndex);
   });
 

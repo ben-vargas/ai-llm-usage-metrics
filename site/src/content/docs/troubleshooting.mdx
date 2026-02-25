@@ -19,15 +19,21 @@ If OpenCode is expected, provide an explicit DB path:
 llm-usage daily --source opencode --opencode-db /path/to/opencode.db
 ```
 
+## Runtime requirements
+
+OpenCode parsing requires Node.js 24+ runtime with built-in `node:sqlite`.
+
 ## Path override errors
 
 - `--source-dir` supports only `pi` and `codex`.
+- `--pi-dir` and `--codex-dir` must point to valid directories.
 - For OpenCode, use `--opencode-db`.
 
 Correct examples:
 
 ```bash
 llm-usage daily --source-dir pi=/path/to/pi --source-dir codex=/path/to/codex
+llm-usage daily --pi-dir /path/to/pi --codex-dir /path/to/codex
 llm-usage daily --opencode-db /path/to/opencode.db
 ```
 

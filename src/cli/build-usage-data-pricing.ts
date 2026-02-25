@@ -80,7 +80,11 @@ export async function resolveAndApplyPricingToEvents(
   options: ReportCommandOptions,
   runtimeConfig: PricingFetcherRuntimeConfig = getPricingFetcherRuntimeConfig(),
   loadPricingSource: PricingSourceResolver = resolvePricingSource,
-): Promise<{ pricedEvents: UsageEvent[]; pricingOrigin: UsagePricingOrigin }> {
+): Promise<{
+  pricedEvents: UsageEvent[];
+  pricingOrigin: UsagePricingOrigin;
+  pricingWarning?: string;
+}> {
   let pricingOrigin: UsagePricingOrigin = 'none';
 
   if (!shouldLoadPricingSource(events)) {
@@ -90,7 +94,27 @@ export async function resolveAndApplyPricingToEvents(
     };
   }
 
-  const pricingResult = await loadPricingSource(options, runtimeConfig);
+  let pricingResult: PricingLoadResult;
+
+  try {
+    pricingResult = await loadPricingSource(options, runtimeConfig);
+  } catch (error) {
+    if (!options.ignorePricingFailures) {
+      throw error;
+    }
+
+    const reason = error instanceof Error ? error.message : String(error);
+    const pricingWarning = reason.trim().startsWith('Could not load')
+      ? reason
+      : `Could not load pricing; continuing without estimated costs: ${reason}`;
+
+    return {
+      pricedEvents: events,
+      pricingOrigin,
+      pricingWarning,
+    };
+  }
+
   pricingOrigin = pricingResult.origin;
 
   return {

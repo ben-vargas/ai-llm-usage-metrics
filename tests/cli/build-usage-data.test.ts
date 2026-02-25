@@ -10,7 +10,10 @@ import {
   normalizeSourceFilter,
   selectAdaptersForParsing,
 } from '../../src/cli/build-usage-data-inputs.js';
-import { filterUsageEvents } from '../../src/cli/build-usage-data-parsing.js';
+import {
+  filterParsedAdapterEvents,
+  filterUsageEvents,
+} from '../../src/cli/build-usage-data-parsing.js';
 import { shouldLoadPricingSource } from '../../src/cli/build-usage-data-pricing.js';
 import type { PricingLoadResult } from '../../src/cli/usage-data-contracts.js';
 import { createUsageEvent } from '../../src/domain/usage-event.js';
@@ -161,6 +164,64 @@ describe('build-usage-data helper modules', () => {
 
     expect(filteredEvents).toHaveLength(1);
     expect(filteredEvents[0]?.model).toBe('claude-sonnet-4.5-v2');
+  });
+
+  it('applies provider/date/model filtering directly from parsed adapter results', () => {
+    const filteredEvents = filterParsedAdapterEvents(
+      [
+        {
+          source: 'pi',
+          events: [
+            createEvent({
+              source: 'pi',
+              timestamp: '2026-02-13T10:00:00.000Z',
+              provider: 'openai',
+              model: 'gpt-4.1',
+              sessionId: 'session-pi-1',
+            }),
+          ],
+          filesFound: 1,
+          skippedRows: 0,
+          skippedRowReasons: [],
+        },
+        {
+          source: 'codex',
+          events: [
+            createEvent({
+              source: 'codex',
+              timestamp: '2026-02-14T10:00:00.000Z',
+              provider: 'openai',
+              model: 'gpt-4.1-mini',
+              sessionId: 'session-codex-1',
+            }),
+            createEvent({
+              source: 'codex',
+              timestamp: '2026-02-14T10:00:10.000Z',
+              provider: 'anthropic',
+              model: 'claude-sonnet-4.5',
+              sessionId: 'session-codex-2',
+            }),
+          ],
+          filesFound: 1,
+          skippedRows: 0,
+          skippedRowReasons: [],
+        },
+      ],
+      {
+        timezone: 'UTC',
+        since: '2026-02-14',
+        until: '2026-02-14',
+        providerFilter: 'openai',
+        modelFilter: ['gpt-4.1'],
+      },
+    );
+
+    expect(filteredEvents).toHaveLength(1);
+    expect(filteredEvents[0]).toMatchObject({
+      source: 'codex',
+      sessionId: 'session-codex-1',
+      model: 'gpt-4.1-mini',
+    });
   });
 
   it('decides pricing loading based on model presence, usage, and explicit cost state', () => {
@@ -1005,6 +1066,49 @@ describe('buildUsageData', () => {
     ).rejects.toThrow('Could not load LiteLLM pricing');
 
     expect(fetchSpy).toHaveBeenCalledTimes(3);
+  });
+
+  it('continues without estimated pricing when --ignore-pricing-failures is enabled', async () => {
+    const cacheRoot = await mkdtemp(path.join(os.tmpdir(), 'usage-pricing-ignore-failure-'));
+    tempDirs.push(cacheRoot);
+    process.env.XDG_CACHE_HOME = cacheRoot;
+
+    const fetchSpy = vi.fn(async () => {
+      throw new Error('network unavailable');
+    });
+    vi.stubGlobal('fetch', fetchSpy);
+
+    const result = await buildUsageData(
+      'daily',
+      {
+        timezone: 'UTC',
+        ignorePricingFailures: true,
+      },
+      {
+        ...withDeterministicRuntimeDeps(),
+        createAdapters: () => [
+          createAdapter('pi', {
+            '/tmp/pi-1.jsonl': [
+              createEvent({
+                source: 'pi',
+                costMode: 'estimated',
+                costUsd: undefined,
+                model: 'gpt-4.1',
+              }),
+            ],
+          }),
+        ],
+      },
+    );
+
+    expect(fetchSpy).toHaveBeenCalledTimes(3);
+    expect(result.diagnostics.pricingOrigin).toBe('none');
+    expect(result.diagnostics.pricingWarning).toContain('Could not load LiteLLM pricing');
+    expect(result.rows.at(-1)).toMatchObject({
+      rowType: 'grand_total',
+      source: 'combined',
+      totalTokens: 15,
+    });
   });
 
   it('fails pricing-offline mode when cache is unavailable', async () => {

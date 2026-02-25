@@ -4,6 +4,8 @@ import type {
   PricingFetcherRuntimeConfig,
 } from '../config/runtime-overrides.js';
 import type { UsageReportRow } from '../domain/usage-report-row.js';
+import type { UsageEvent } from '../domain/usage-event.js';
+import type { EfficiencyRow } from '../efficiency/efficiency-row.js';
 import type { PricingSource } from '../pricing/types.js';
 import type { SourceAdapter } from '../sources/source-adapter.js';
 
@@ -23,6 +25,12 @@ export type ReportCommandOptions = {
   perModelColumns?: boolean;
   pricingUrl?: string;
   pricingOffline?: boolean;
+  ignorePricingFailures?: boolean;
+};
+
+export type EfficiencyCommandOptions = Omit<ReportCommandOptions, 'perModelColumns'> & {
+  repoDir?: string;
+  includeMergeCommits?: boolean;
 };
 
 export type UsageSessionStats = {
@@ -54,13 +62,33 @@ export type UsageDiagnostics = {
   sourceFailures: UsageSourceFailure[];
   skippedRows: UsageSkippedRowsStat[];
   pricingOrigin: UsagePricingOrigin;
+  pricingWarning?: string;
   activeEnvOverrides: EnvVarOverride[];
   timezone: string;
 };
 
 export type UsageDataResult = {
+  events: UsageEvent[];
   rows: UsageReportRow[];
   diagnostics: UsageDiagnostics;
+};
+
+export type EfficiencyDiagnostics = {
+  usage: UsageDiagnostics;
+  repoDir: string;
+  includeMergeCommits: boolean;
+  gitCommitCount: number;
+  gitLinesAdded: number;
+  gitLinesDeleted: number;
+  repoMatchedUsageEvents: number;
+  repoExcludedUsageEvents: number;
+  repoUnattributedUsageEvents: number;
+  scopeNote?: string;
+};
+
+export type EfficiencyDataResult = {
+  rows: EfficiencyRow[];
+  diagnostics: EfficiencyDiagnostics;
 };
 
 export type PricingLoadResult = {

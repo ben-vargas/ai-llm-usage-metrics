@@ -21,7 +21,7 @@ npx --yes llm-usage-metrics daily
 - At least one supported source:
   - `.pi` sessions (`~/.pi/agent/sessions/**/*.jsonl`)
   - `.codex` sessions (`~/.codex/sessions/**/*.jsonl`)
-  - OpenCode SQLite DB (auto-discovered or explicit `--opencode-db`)
+  - OpenCode SQLite DB (auto-discovered or explicit `--opencode-db`, requires built-in `node:sqlite` support)
 
 ## First report
 
@@ -50,7 +50,17 @@ llm-usage monthly --model claude
 llm-usage daily --json
 llm-usage daily --markdown
 llm-usage monthly --per-model-columns
+llm-usage monthly --ignore-pricing-failures
 ```
+
+## Efficiency quick start
+
+```bash
+llm-usage efficiency monthly
+llm-usage efficiency monthly --repo-dir /path/to/repo --json
+```
+
+See [Efficiency](/efficiency/) for full metric semantics and interpretation rules.
 
 ## OpenCode explicit DB path
 

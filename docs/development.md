@@ -26,14 +26,32 @@ pnpm run format:check
 
 ## Reporting pipeline performance baseline
 
-Capture local timing snapshots for daily/weekly/monthly report generation on representative fixtures:
+Capture local timing snapshots for daily/weekly/monthly report generation and efficiency reporting on representative fixtures:
 
 ```bash
 pnpm run perf:report-baseline
 ```
 
 The command runs a warmup + sampled timings and prints min/avg/p95/max per scenario.
+It includes an ephemeral Git fixture repository for the `efficiency` scenario.
 Use it to track report runtime over time while iterating locally.
+
+## Production benchmark comparison
+
+Compare production runtime against `ccusage-codex` on your machine:
+
+```bash
+pnpm run perf:production-benchmark -- --runs 5
+```
+
+Optional artifact outputs:
+
+```bash
+pnpm run perf:production-benchmark -- \
+  --runs 5 \
+  --json-output ./tmp/production-benchmark.json \
+  --markdown-output ./tmp/production-benchmark.md
+```
 
 ## Runtime configuration in development
 

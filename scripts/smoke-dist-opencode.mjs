@@ -2,7 +2,34 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { DatabaseSync } from 'node:sqlite';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+
+function loadDatabaseSync() {
+  let sqliteModule;
+
+  try {
+    sqliteModule = require('node:sqlite');
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    console.warn(
+      `Skipping OpenCode dist smoke check: node:sqlite is unavailable in this runtime (${reason}).`,
+    );
+    return undefined;
+  }
+
+  const moduleRecord = sqliteModule;
+
+  if (typeof moduleRecord?.DatabaseSync !== 'function') {
+    console.warn(
+      'Skipping OpenCode dist smoke check: node:sqlite did not expose DatabaseSync in this runtime.',
+    );
+    return undefined;
+  }
+
+  return moduleRecord.DatabaseSync;
+}
 
 function formatExecError(error) {
   const message = error instanceof Error ? error.message : String(error);
@@ -23,6 +50,12 @@ function formatExecError(error) {
 }
 
 async function main() {
+  const DatabaseSync = loadDatabaseSync();
+
+  if (!DatabaseSync) {
+    return;
+  }
+
   const tempDir = await mkdtemp(path.join(os.tmpdir(), 'llm-usage-dist-opencode-'));
   const dbPath = path.join(tempDir, 'opencode.db');
 

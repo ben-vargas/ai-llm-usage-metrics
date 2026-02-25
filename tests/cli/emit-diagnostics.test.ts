@@ -86,6 +86,23 @@ describe('emitDiagnostics', () => {
     expect(diagnosticsLogger.info).toHaveBeenCalledWith(message);
   });
 
+  it('emits pricing warning when pricing is skipped after a pricing load failure', () => {
+    const diagnosticsLogger = createLoggerSpy();
+
+    emitDiagnostics(
+      createDiagnostics({
+        sessionStats: [{ source: 'pi', filesFound: 1, eventsParsed: 1 }],
+        pricingOrigin: 'none',
+        pricingWarning: 'Could not load pricing; continuing without estimated costs: network down',
+      }),
+      diagnosticsLogger,
+    );
+
+    expect(diagnosticsLogger.warn).toHaveBeenCalledWith(
+      'Could not load pricing; continuing without estimated costs: network down',
+    );
+  });
+
   it('emits source failure diagnostics when parsing failures are present', () => {
     const diagnosticsLogger = createLoggerSpy();
 

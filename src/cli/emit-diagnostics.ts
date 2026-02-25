@@ -64,14 +64,18 @@ export function emitDiagnostics(
   switch (diagnostics.pricingOrigin) {
     case 'offline-cache':
       diagnosticsLogger.info('Using cached pricing (offline mode)');
-      return;
+      break;
     case 'cache':
       diagnosticsLogger.info('Loaded pricing from cache');
-      return;
+      break;
     case 'network':
       diagnosticsLogger.info('Fetched pricing from LiteLLM');
-      return;
+      break;
     case 'none':
-      return;
+      break;
+  }
+
+  if (diagnostics.pricingWarning) {
+    diagnosticsLogger.warn(diagnostics.pricingWarning);
   }
 }

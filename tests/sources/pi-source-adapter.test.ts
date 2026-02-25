@@ -46,6 +46,7 @@ describe('PiSourceAdapter', () => {
     expect(events[0]).toMatchObject({
       source: 'pi',
       sessionId: 'session-pi-1',
+      repoRoot: '/tmp/pi-repo',
       provider: 'openai-codex',
       model: 'gpt-5.3-codex',
       inputTokens: 100,
@@ -72,6 +73,7 @@ describe('PiSourceAdapter', () => {
     expect(events[2]).toMatchObject({
       source: 'pi',
       sessionId: 'session-pi-1',
+      repoRoot: '/tmp/pi-repo',
       provider: 'openai',
       model: 'gpt-4.1',
       inputTokens: 2,
@@ -291,6 +293,82 @@ describe('PiSourceAdapter', () => {
     const events = await adapter.parseFile(filePath);
 
     expect(events).toEqual([]);
+  });
+
+  it('skips message entries that only carry zero usage and zero cost', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'pi-source-zero-usage-'));
+    tempDirs.push(root);
+
+    const filePath = path.join(root, 'session.jsonl');
+
+    await writeFile(
+      filePath,
+      [
+        JSON.stringify({
+          type: 'session',
+          id: 'pi-zero-usage',
+        }),
+        JSON.stringify({
+          type: 'message',
+          timestamp: '2026-02-12T20:01:00.000Z',
+          provider: 'openai',
+          usage: {
+            input: 0,
+            output: 0,
+            reasoning: 0,
+            cacheRead: 0,
+            cacheWrite: 0,
+            totalTokens: 0,
+            cost: { total: 0 },
+          },
+        }),
+      ].join('\n'),
+      'utf8',
+    );
+
+    const adapter = new PiSourceAdapter({ sessionsDir: root });
+    const events = await adapter.parseFile(filePath);
+
+    expect(events).toEqual([]);
+  });
+
+  it('keeps cost-only usage entries when explicit non-zero cost exists', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'pi-source-cost-only-'));
+    tempDirs.push(root);
+
+    const filePath = path.join(root, 'session.jsonl');
+
+    await writeFile(
+      filePath,
+      [
+        JSON.stringify({
+          type: 'session',
+          id: 'pi-cost-only',
+        }),
+        JSON.stringify({
+          type: 'message',
+          timestamp: '2026-02-12T20:01:00.000Z',
+          provider: 'openai',
+          usage: {
+            input: 0,
+            output: 0,
+            totalTokens: 0,
+            cost: { total: 0.42 },
+          },
+        }),
+      ].join('\n'),
+      'utf8',
+    );
+
+    const adapter = new PiSourceAdapter({ sessionsDir: root });
+    const events = await adapter.parseFile(filePath);
+
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      totalTokens: 0,
+      costUsd: 0.42,
+      costMode: 'explicit',
+    });
   });
 });
 

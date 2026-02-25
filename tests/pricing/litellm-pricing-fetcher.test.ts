@@ -106,6 +106,81 @@ describe('LiteLLMPricingFetcher', () => {
     expect(fetcher.getPricing('gpt-5.2-codex')).toBeDefined();
   });
 
+  it('accepts string-encoded numeric values from remote payload', async () => {
+    const rootDir = await mkdtemp(path.join(os.tmpdir(), 'litellm-pricing-string-remote-'));
+    tempDirs.push(rootDir);
+
+    const fetcher = createFetcher({
+      cacheFilePath: path.join(rootDir, 'cache.json'),
+      fetchImpl: vi.fn(async () => {
+        return new Response(
+          JSON.stringify({
+            'gpt-5.2-codex': {
+              input_cost_per_token: '0.0000015',
+              output_cost_per_token: '0.00001',
+              cache_read_input_token_cost: '0.00000015',
+              output_cost_per_reasoning_token: '0.00002',
+            },
+          }),
+          { status: 200 },
+        );
+      }),
+    });
+
+    const loadedFromCache = await fetcher.load();
+
+    expect(loadedFromCache).toBe(false);
+    const pricing = fetcher.getPricing('gpt-5.2-codex');
+    expect(pricing).toBeDefined();
+    expect(pricing?.inputPer1MUsd).toBeCloseTo(1.5, 10);
+    expect(pricing?.outputPer1MUsd).toBeCloseTo(10, 10);
+    expect(pricing?.cacheReadPer1MUsd).toBeCloseTo(0.15, 10);
+    expect(pricing?.reasoningPer1MUsd).toBeCloseTo(20, 10);
+    expect(pricing?.reasoningBilling).toBe('separate');
+  });
+
+  it('throws when LiteLLM payload is not a JSON object and no cache is available', async () => {
+    const rootDir = await mkdtemp(path.join(os.tmpdir(), 'litellm-pricing-invalid-payload-'));
+    tempDirs.push(rootDir);
+
+    const fetcher = createFetcher({
+      cacheFilePath: path.join(rootDir, 'cache.json'),
+      fetchImpl: vi.fn(
+        async () => new Response(JSON.stringify(['not-an-object']), { status: 200 }),
+      ),
+      fetchRetryCount: 0,
+    });
+
+    await expect(fetcher.load()).rejects.toThrow(
+      'Could not load LiteLLM pricing from network or cache',
+    );
+  });
+
+  it('throws when LiteLLM payload has no usable pricing entries and no cache is available', async () => {
+    const rootDir = await mkdtemp(path.join(os.tmpdir(), 'litellm-pricing-no-usable-entries-'));
+    tempDirs.push(rootDir);
+
+    const fetcher = createFetcher({
+      cacheFilePath: path.join(rootDir, 'cache.json'),
+      fetchImpl: vi.fn(async () => {
+        return new Response(
+          JSON.stringify({
+            'broken-model': {
+              input_cost_per_token: ' ',
+              output_cost_per_token: '',
+            },
+          }),
+          { status: 200 },
+        );
+      }),
+      fetchRetryCount: 0,
+    });
+
+    await expect(fetcher.load()).rejects.toThrow(
+      'Could not load LiteLLM pricing from network or cache',
+    );
+  });
+
   it('treats future cache timestamps as stale and refreshes from remote', async () => {
     const rootDir = await mkdtemp(path.join(os.tmpdir(), 'litellm-pricing-future-cache-'));
     tempDirs.push(rootDir);
@@ -337,6 +412,183 @@ describe('LiteLLMPricingFetcher', () => {
     expect(loadedFromCache).toBe(true);
     expect(fetchSpy).toHaveBeenCalledTimes(3);
     expect(fetcher.getPricing('gpt-5.2-codex')?.inputPer1MUsd).toBeCloseTo(1.5, 10);
+  });
+
+  it('ignores malformed cached pricing entries and keeps valid normalized entries', async () => {
+    const rootDir = await mkdtemp(path.join(os.tmpdir(), 'litellm-pricing-cache-normalize-'));
+    tempDirs.push(rootDir);
+
+    const cacheFilePath = path.join(rootDir, 'cache.json');
+    const nowValue = 1_000_000;
+
+    await writeFile(
+      cacheFilePath,
+      JSON.stringify({
+        fetchedAt: nowValue,
+        sourceUrl: 'https://example.test/litellm-pricing.json',
+        pricingByModel: {
+          'invalid-missing-input': {
+            outputPer1MUsd: 2,
+          },
+          'invalid-not-an-object': 'bad-value',
+          'valid-model': {
+            inputPer1MUsd: 1.5,
+            outputPer1MUsd: 10,
+            cacheReadPer1MUsd: 0.2,
+            cacheWritePer1MUsd: 0.4,
+            reasoningPer1MUsd: 20,
+          },
+        },
+      }),
+      'utf8',
+    );
+
+    const fetcher = createFetcher({
+      cacheFilePath,
+      now: () => nowValue,
+      offline: true,
+      fetchRetryCount: 0,
+    });
+
+    const loadedFromCache = await fetcher.load();
+
+    expect(loadedFromCache).toBe(true);
+    expect(fetcher.getPricing('invalid-missing-input')).toBeUndefined();
+    expect(fetcher.getPricing('invalid-not-an-object')).toBeUndefined();
+    const validPricing = fetcher.getPricing('valid-model');
+    expect(validPricing).toBeDefined();
+    expect(validPricing?.inputPer1MUsd).toBeCloseTo(1.5, 10);
+    expect(validPricing?.outputPer1MUsd).toBeCloseTo(10, 10);
+    expect(validPricing?.cacheReadPer1MUsd).toBeCloseTo(0.2, 10);
+    expect(validPricing?.cacheWritePer1MUsd).toBeCloseTo(0.4, 10);
+    expect(validPricing?.reasoningPer1MUsd).toBeCloseTo(20, 10);
+    expect(validPricing?.reasoningBilling).toBe('separate');
+  });
+
+  it('normalizes string-encoded cached pricing numbers and skips null entries', async () => {
+    const rootDir = await mkdtemp(path.join(os.tmpdir(), 'litellm-pricing-cache-string-values-'));
+    tempDirs.push(rootDir);
+
+    const cacheFilePath = path.join(rootDir, 'cache.json');
+    const nowValue = 1_000_000;
+
+    await writeFile(
+      cacheFilePath,
+      JSON.stringify({
+        fetchedAt: nowValue,
+        sourceUrl: 'https://example.test/litellm-pricing.json',
+        pricingByModel: {
+          'null-entry': null,
+          'valid-model': {
+            inputPer1MUsd: '1.5',
+            outputPer1MUsd: '10',
+            cacheReadPer1MUsd: '0.2',
+            cacheWritePer1MUsd: '0.4',
+            reasoningPer1MUsd: '20',
+          },
+        },
+      }),
+      'utf8',
+    );
+
+    const fetcher = createFetcher({
+      cacheFilePath,
+      now: () => nowValue,
+      offline: true,
+      fetchRetryCount: 0,
+    });
+
+    const loadedFromCache = await fetcher.load();
+
+    expect(loadedFromCache).toBe(true);
+    expect(fetcher.getPricing('null-entry')).toBeUndefined();
+    const validPricing = fetcher.getPricing('valid-model');
+    expect(validPricing).toBeDefined();
+    expect(validPricing?.inputPer1MUsd).toBeCloseTo(1.5, 10);
+    expect(validPricing?.outputPer1MUsd).toBeCloseTo(10, 10);
+    expect(validPricing?.cacheReadPer1MUsd).toBeCloseTo(0.2, 10);
+    expect(validPricing?.cacheWritePer1MUsd).toBeCloseTo(0.4, 10);
+    expect(validPricing?.reasoningPer1MUsd).toBeCloseTo(20, 10);
+    expect(validPricing?.reasoningBilling).toBe('separate');
+  });
+
+  it('ignores malformed cache payload shape and falls back to remote', async () => {
+    const rootDir = await mkdtemp(path.join(os.tmpdir(), 'litellm-pricing-cache-shape-'));
+    tempDirs.push(rootDir);
+
+    const cacheFilePath = path.join(rootDir, 'cache.json');
+    const nowValue = 1_000_000;
+
+    await writeFile(
+      cacheFilePath,
+      JSON.stringify({
+        fetchedAt: nowValue,
+        sourceUrl: 'https://example.test/litellm-pricing.json',
+        pricingByModel: 'not-an-object',
+      }),
+      'utf8',
+    );
+
+    const fetchSpy = vi.fn(async () => {
+      return new Response(
+        JSON.stringify({
+          'gpt-5.2-codex': {
+            input_cost_per_token: 0.000003,
+            output_cost_per_token: 0.00001,
+          },
+        }),
+        { status: 200 },
+      );
+    });
+
+    const fetcher = createFetcher({
+      cacheFilePath,
+      now: () => nowValue,
+      fetchImpl: fetchSpy,
+      fetchRetryCount: 0,
+    });
+
+    const loadedFromCache = await fetcher.load();
+
+    expect(loadedFromCache).toBe(false);
+    expect(fetchSpy).toHaveBeenCalledOnce();
+    expect(fetcher.getPricing('gpt-5.2-codex')?.inputPer1MUsd).toBeCloseTo(3, 10);
+  });
+
+  it('rejects offline cache when all cached pricing entries are malformed', async () => {
+    const rootDir = await mkdtemp(path.join(os.tmpdir(), 'litellm-pricing-cache-all-invalid-'));
+    tempDirs.push(rootDir);
+
+    const cacheFilePath = path.join(rootDir, 'cache.json');
+    const nowValue = 1_000_000;
+
+    await writeFile(
+      cacheFilePath,
+      JSON.stringify({
+        fetchedAt: nowValue,
+        sourceUrl: 'https://example.test/litellm-pricing.json',
+        pricingByModel: {
+          'invalid-1': {
+            inputPer1MUsd: 1.5,
+          },
+          'invalid-2': {
+            outputPer1MUsd: 10,
+          },
+        },
+      }),
+      'utf8',
+    );
+
+    const fetcher = createFetcher({
+      cacheFilePath,
+      now: () => nowValue,
+      offline: true,
+      fetchRetryCount: 0,
+    });
+
+    await expect(fetcher.load()).rejects.toThrow(
+      'Offline pricing mode enabled but no cached LiteLLM pricing is available',
+    );
   });
 
   it('resolves configured canonical aliases to preferred LiteLLM pricing keys', async () => {

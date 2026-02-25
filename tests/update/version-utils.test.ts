@@ -32,6 +32,8 @@ describe('version-utils', () => {
     expect(compareVersions('1.2.3-alpha.beta', '1.2.3-alpha.gamma')).toBeLessThan(0);
     expect(compareVersions('1.2.3-alpha', '1.2.3-alpha.1')).toBeLessThan(0);
     expect(compareVersions('1.2.3-alpha.1', '1.2.3-alpha')).toBeGreaterThan(0);
+    expect(compareVersions('1.2.3-A', '1.2.3-a')).toBeLessThan(0);
+    expect(compareVersions('1.2.3-a', '1.2.3-A')).toBeGreaterThan(0);
 
     expect(shouldOfferUpdate('1.2.3', '1.3.0-beta.1')).toBe(false);
     expect(shouldOfferUpdate('1.2.3-beta.1', '1.2.3')).toBe(true);
