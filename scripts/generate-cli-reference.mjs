@@ -35,16 +35,16 @@ function run(command, args, options = {}) {
 }
 
 function ensureDistBuild(options = {}) {
-  const forceRebuild = options.forceRebuild ?? false;
+  const skipRebuild = options.skipRebuild ?? false;
 
-  if (!forceRebuild && existsSync(distEntrypoint)) {
+  if (skipRebuild && existsSync(distEntrypoint)) {
     return;
   }
 
   console.log(
-    forceRebuild
-      ? 'Rebuilding CLI dist before docs generation...'
-      : 'dist/index.js not found. Building CLI...',
+    skipRebuild
+      ? 'dist/index.js not found. Building CLI...'
+      : 'Rebuilding CLI dist before docs generation...',
   );
   run('pnpm', ['run', 'build'], { stdio: 'inherit' });
 }
@@ -192,7 +192,9 @@ function generateMarkdown(version, options) {
     'llm-usage daily',
     'llm-usage weekly --timezone Europe/Paris',
     'llm-usage monthly --since 2026-01-01 --until 2026-01-31',
+    'llm-usage monthly --source gemini --gemini-dir /path/to/.gemini',
     'llm-usage monthly --source opencode --opencode-db /path/to/opencode.db',
+    'llm-usage daily --source-dir pi=/tmp/pi-sessions --source-dir gemini=/tmp/.gemini',
     'llm-usage daily --json',
     'llm-usage daily --markdown',
     'llm-usage efficiency weekly --repo-dir /path/to/repo --json',
@@ -203,8 +205,8 @@ function generateMarkdown(version, options) {
 }
 
 function main() {
-  const forceRebuild = process.argv.includes('--rebuild');
-  ensureDistBuild({ forceRebuild });
+  const skipRebuild = process.argv.includes('--no-rebuild');
+  ensureDistBuild({ skipRebuild });
 
   const version = run('node', ['dist/index.js', '--version']);
   const rootHelp = run('node', ['dist/index.js', '--help']);
