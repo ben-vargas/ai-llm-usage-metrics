@@ -21,6 +21,7 @@ npx --yes llm-usage-metrics daily
 - At least one supported source:
   - `.pi` sessions (`~/.pi/agent/sessions/**/*.jsonl`)
   - `.codex` sessions (`~/.codex/sessions/**/*.jsonl`)
+  - `.gemini` sessions (`~/.gemini/tmp/*/chats/*.json`)
   - OpenCode SQLite DB (auto-discovered or explicit `--opencode-db`, requires built-in `node:sqlite` support)
 
 ## First report
@@ -39,7 +40,7 @@ llm-usage monthly --since 2026-01-01 --until 2026-01-31
 ## Common filters
 
 ```bash
-llm-usage monthly --source pi,codex
+llm-usage monthly --source pi,codex,gemini
 llm-usage monthly --provider openai
 llm-usage monthly --model claude
 ```
@@ -61,6 +62,12 @@ llm-usage efficiency monthly --repo-dir /path/to/repo --json
 ```
 
 See [Efficiency](/efficiency/) for full metric semantics and interpretation rules.
+
+## Gemini explicit path
+
+```bash
+llm-usage monthly --source gemini --gemini-dir /path/to/.gemini
+```
 
 ## OpenCode explicit DB path
 

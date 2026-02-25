@@ -49,7 +49,7 @@ const sourcesPath = `${basePath}sources/`;
     </h1>
 
     <p class="hero-lead">
-      Parse token usage from <strong>pi</strong>, <strong>Codex</strong>, and <strong>OpenCode</strong> sessions.
+      Parse token usage from <strong>pi</strong>, <strong>Codex</strong>, <strong>Gemini CLI</strong>, and <strong>OpenCode</strong> sessions.
       Apply real pricing. Get efficiency metrics that tie spend to Git outcomes.
       All local. Sub-second reports.
     </p>
@@ -157,6 +157,7 @@ $ llm-usage <span class="kw">efficiency</span> monthly --repo-dir ./my-project
 <span class="cmt"># Compare sources head-to-head</span>
 $ llm-usage <span class="kw">efficiency</span> monthly --source pi
 $ llm-usage <span class="kw">efficiency</span> monthly --source codex
+$ llm-usage <span class="kw">efficiency</span> monthly --source gemini
 
 <span class="cmt"># Export to JSON for dashboards</span>
 $ llm-usage <span class="kw">efficiency</span> weekly --json > report.json</pre>
@@ -181,7 +182,7 @@ $ llm-usage <span class="kw">efficiency</span> weekly --json > report.json</pre>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
         </div>
         <h3>Zero-config discovery</h3>
-        <p>Finds <code>.pi</code>, <code>.codex</code>, and OpenCode databases automatically. No manifest files, no setup wizards.</p>
+        <p>Finds <code>.pi</code>, <code>.codex</code>, <code>.gemini</code>, and OpenCode databases automatically. No manifest files, no setup wizards.</p>
       </div>
 
       <div class="feature-card liquid-glass">
@@ -261,7 +262,7 @@ $ llm-usage <span class="kw">efficiency</span> monthly --source codex --json</pr
         </div>
         <div id="ex-filter" class="ex-panel" role="tabpanel" hidden>
           <pre class="ex-block"><span class="cmt"># By source</span>
-$ llm-usage <span class="kw">monthly</span> --source pi,codex
+$ llm-usage <span class="kw">monthly</span> --source pi,codex,gemini
 
 <span class="cmt"># By model</span>
 $ llm-usage <span class="kw">monthly</span> --model claude
@@ -301,7 +302,7 @@ $ llm-usage <span class="kw">daily</span></pre>
       </a>
       <a href={sourcesPath} class="doc-link">
         <span class="doc-link-label">Data Sources</span>
-        <span class="doc-link-desc">pi, Codex, OpenCode adapters</span>
+        <span class="doc-link-desc">pi, Codex, Gemini, OpenCode adapters</span>
       </a>
     </div>
   </section>
