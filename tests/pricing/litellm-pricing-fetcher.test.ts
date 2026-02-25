@@ -616,6 +616,14 @@ describe('LiteLLMPricingFetcher', () => {
               input_cost_per_token: 0.000002,
               output_cost_per_token: 0.000012,
             },
+            'openrouter/minimax/minimax-m2.1': {
+              input_cost_per_token: 0.00000027,
+              output_cost_per_token: 0.0000012,
+            },
+            'openrouter/minimax/minimax-m2.5': {
+              input_cost_per_token: 0.0000003,
+              output_cost_per_token: 0.0000011,
+            },
             'anthropic.claude-sonnet-4-6': {
               input_cost_per_token: 0.000003,
               output_cost_per_token: 0.000015,
@@ -631,6 +639,7 @@ describe('LiteLLMPricingFetcher', () => {
     expect(fetcher.resolveModelAlias('k2p5')).toBe('moonshot/kimi-k2.5');
     expect(fetcher.resolveModelAlias('moonshotai.kimi-k2.5')).toBe('moonshot/kimi-k2.5');
     expect(fetcher.resolveModelAlias('gpt-5.3-codex-spark')).toBe('gpt-5.3-codex');
+    expect(fetcher.resolveModelAlias('kimi-k2.5-free')).toBe('moonshot/kimi-k2.5');
     expect(fetcher.resolveModelAlias('gemini-3-pro')).toBe('gemini/gemini-3-pro-preview');
     expect(fetcher.resolveModelAlias('antigravity-gemini-3-flash')).toBe(
       'gemini/gemini-3-flash-preview',
@@ -638,13 +647,18 @@ describe('LiteLLMPricingFetcher', () => {
     expect(fetcher.resolveModelAlias('antigravity-gemini-3-pro-high')).toBe(
       'gemini/gemini-3-pro-preview',
     );
+    expect(fetcher.resolveModelAlias('minimax-m2.1-free')).toBe('openrouter/minimax/minimax-m2.1');
+    expect(fetcher.resolveModelAlias('minimax-m2.5-free')).toBe('openrouter/minimax/minimax-m2.5');
     expect(fetcher.resolveModelAlias('claude-sonnet-4.6')).toBe('anthropic.claude-sonnet-4-6');
 
     expect(fetcher.getPricing('k2p5')?.inputPer1MUsd).toBeCloseTo(0.6, 10);
     expect(fetcher.getPricing('kimi-k2.5')?.outputPer1MUsd).toBeCloseTo(3, 10);
     expect(fetcher.getPricing('gpt-5.3-codex-spark')?.inputPer1MUsd).toBeCloseTo(1.75, 10);
+    expect(fetcher.getPricing('kimi-k2.5-free')?.outputPer1MUsd).toBeCloseTo(3, 10);
     expect(fetcher.getPricing('gemini-3-pro')?.outputPer1MUsd).toBeCloseTo(12, 10);
     expect(fetcher.getPricing('antigravity-gemini-3-flash')?.inputPer1MUsd).toBeCloseTo(0.5, 10);
+    expect(fetcher.getPricing('minimax-m2.1-free')?.inputPer1MUsd).toBeCloseTo(0.27, 10);
+    expect(fetcher.getPricing('minimax-m2.5-free')?.outputPer1MUsd).toBeCloseTo(1.1, 10);
     expect(fetcher.getPricing('claude sonnet 4.6')?.outputPer1MUsd).toBeCloseTo(15, 10);
   });
 
