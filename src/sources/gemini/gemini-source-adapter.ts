@@ -5,6 +5,7 @@ import path from 'node:path';
 import { createUsageEvent } from '../../domain/usage-event.js';
 import type { UsageEvent } from '../../domain/usage-event.js';
 import { asRecord } from '../../utils/as-record.js';
+import { compareByCodePoint } from '../../utils/compare-by-code-point.js';
 import { discoverFiles } from '../../utils/discover-files.js';
 import { pathIsDirectory, pathReadable } from '../../utils/fs-helpers.js';
 import { asTrimmedText, isBlankText } from '../parsing-utils.js';
@@ -156,6 +157,14 @@ function incrementSkippedReason(reasons: Map<string, number>, reason: string): v
   reasons.set(reason, current + 1);
 }
 
+function toSkippedRowReasonStats(
+  reasons: Map<string, number>,
+): { reason: string; count: number }[] {
+  return [...reasons.entries()]
+    .map(([reason, count]) => ({ reason, count }))
+    .sort((left, right) => compareByCodePoint(left.reason, right.reason));
+}
+
 function normalizeTimestamp(candidate: unknown): string | undefined {
   if (typeof candidate !== 'string' || isBlankText(candidate)) {
     return undefined;
@@ -251,10 +260,7 @@ export class GeminiSourceAdapter implements SourceAdapter {
       return {
         events,
         skippedRows,
-        skippedRowReasons: Array.from(skippedRowReasons.entries()).map(([reason, count]) => ({
-          reason,
-          count,
-        })),
+        skippedRowReasons: toSkippedRowReasonStats(skippedRowReasons),
       };
     }
 
@@ -267,10 +273,7 @@ export class GeminiSourceAdapter implements SourceAdapter {
       return {
         events,
         skippedRows,
-        skippedRowReasons: Array.from(skippedRowReasons.entries()).map(([reason, count]) => ({
-          reason,
-          count,
-        })),
+        skippedRowReasons: toSkippedRowReasonStats(skippedRowReasons),
       };
     }
 
@@ -341,10 +344,7 @@ export class GeminiSourceAdapter implements SourceAdapter {
     return {
       events,
       skippedRows,
-      skippedRowReasons: Array.from(skippedRowReasons.entries()).map(([reason, count]) => ({
-        reason,
-        count,
-      })),
+      skippedRowReasons: toSkippedRowReasonStats(skippedRowReasons),
     };
   }
 }
