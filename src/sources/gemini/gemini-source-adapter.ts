@@ -96,15 +96,21 @@ function resolveRepoRoot(
 }
 
 function toFiniteNumber(value: unknown): number | undefined {
-  if (value === null || value === undefined) {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : undefined;
+  }
+
+  if (typeof value !== 'string') {
     return undefined;
   }
 
-  if (typeof value === 'string' && value.trim().length === 0) {
+  const trimmed = value.trim();
+
+  if (!trimmed) {
     return undefined;
   }
 
-  const parsed = typeof value === 'number' ? value : Number(value);
+  const parsed = Number(trimmed);
 
   if (!Number.isFinite(parsed)) {
     return undefined;

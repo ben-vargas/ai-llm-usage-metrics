@@ -127,6 +127,9 @@ describe('GeminiSourceAdapter', () => {
       await expect(
         adapter.parseFile(path.join(fixturesDir, 'session-no-tokens.json')),
       ).resolves.toHaveLength(0);
+      await expect(
+        adapter.parseFile(path.join(fixturesDir, 'session-invalid-token-types.json')),
+      ).resolves.toHaveLength(0);
     });
 
     it('falls back to filename when sessionId is missing', async () => {
@@ -179,6 +182,11 @@ describe('GeminiSourceAdapter', () => {
       expect(invalidMessages.skippedRowReasons).toEqual([
         { reason: 'invalid_messages_array', count: 1 },
       ]);
+
+      const invalidTokenTypes = await adapter.parseFileWithDiagnostics(
+        path.join(fixturesDir, 'session-invalid-token-types.json'),
+      );
+      expect(invalidTokenTypes.skippedRowReasons).toEqual([{ reason: 'no_token_usage', count: 1 }]);
     });
 
     it('reports invalid timestamp rows', async () => {
