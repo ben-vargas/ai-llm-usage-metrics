@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 
 import { execFileSync } from 'node:child_process';
-import { existsSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { tsImport } from 'tsx/esm/api';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -24,8 +26,7 @@ function appendScopeSuffix(description, suffix) {
 }
 
 function run(command, args, options = {}) {
-  const resolvedCommand = command === 'node' ? process.execPath : command;
-  const output = execFileSync(resolvedCommand, args, {
+  const output = execFileSync(command, args, {
     cwd: rootDir,
     encoding: 'utf8',
     ...options,
@@ -193,8 +194,9 @@ function generateMarkdown(version, options) {
     'llm-usage weekly --timezone Europe/Paris',
     'llm-usage monthly --since 2026-01-01 --until 2026-01-31',
     'llm-usage monthly --source gemini --gemini-dir /path/to/.gemini',
+    'llm-usage monthly --source droid --droid-dir /path/to/.factory/sessions',
     'llm-usage monthly --source opencode --opencode-db /path/to/opencode.db',
-    'llm-usage daily --source-dir pi=/tmp/pi-sessions --source-dir gemini=/tmp/.gemini',
+    'llm-usage daily --source-dir pi=/tmp/pi-sessions --source-dir gemini=/tmp/.gemini --source-dir droid=/tmp/droid-sessions',
     'llm-usage daily --json',
     'llm-usage daily --markdown',
     'llm-usage efficiency weekly --repo-dir /path/to/repo --json',
@@ -204,19 +206,48 @@ function generateMarkdown(version, options) {
   return `${lines.join('\n')}\n`;
 }
 
+function loadPackageVersion() {
+  const packageJsonPath = join(rootDir, 'package.json');
+  const parsed = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
+
+  if (!parsed || typeof parsed.version !== 'string' || parsed.version.trim().length === 0) {
+    throw new Error('package.json must contain a non-empty version');
+  }
+
+  return parsed.version.trim();
+}
+
+async function loadCliHelpTexts(version) {
+  const cliModulePath = join(rootDir, 'src', 'cli', 'create-cli.ts');
+  const cliModule = await tsImport(cliModulePath, { parentURL: import.meta.url });
+  const createCli = cliModule?.createCli;
+
+  if (typeof createCli !== 'function') {
+    throw new Error(`Failed to load createCli() from ${cliModulePath}`);
+  }
+
+  const cli = createCli({ version });
+  const rootHelp = cli.helpInformation();
+  const commandHelps = commandReferences.map((command) => {
+    const commandName = command.helpArgs[0];
+    const subCommand = cli.commands.find((candidate) => candidate.name() === commandName);
+    return subCommand?.helpInformation() ?? '';
+  });
+
+  return { rootHelp, commandHelps };
+}
+
 function main() {
   const skipRebuild = process.argv.includes('--no-rebuild');
   ensureDistBuild({ skipRebuild });
 
-  const version = run('node', ['dist/index.js', '--version']);
-  const rootHelp = run('node', ['dist/index.js', '--help']);
-  const commandHelps = commandReferences.map((command) =>
-    run('node', ['dist/index.js', ...command.helpArgs]),
-  );
-
+  const version = loadPackageVersion();
   const options = sortOptions(
     deduplicateOptions(
-      [parseOptions(rootHelp), ...commandHelps.map((helpText) => parseOptions(helpText))].flat(),
+      [
+        parseOptions(main.helpTexts.rootHelp),
+        ...main.helpTexts.commandHelps.map((helpText) => parseOptions(helpText)),
+      ].flat(),
     ),
   );
   const markdown = generateMarkdown(version, options);
@@ -225,4 +256,5 @@ function main() {
   console.log(`CLI reference generated at ${outputPath}`);
 }
 
+main.helpTexts = await loadCliHelpTexts(loadPackageVersion());
 main();
