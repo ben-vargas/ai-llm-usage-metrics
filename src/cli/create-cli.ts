@@ -147,7 +147,7 @@ function rootDescription(): string {
     '  $ llm-usage daily --source-dir pi=/tmp/pi-sessions --source-dir gemini=/tmp/.gemini',
     '  $ llm-usage daily --pi-dir /tmp/pi-sessions --gemini-dir /tmp/.gemini',
     '  $ llm-usage efficiency weekly --repo-dir /path/to/repo --json',
-    '  $ npx --yes llm-usage-metrics daily',
+    '  $ npx --yes llm-usage-metrics@latest daily',
   ].join('\n');
 }
 

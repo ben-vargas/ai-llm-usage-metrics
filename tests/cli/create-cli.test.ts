@@ -104,7 +104,7 @@ describe('createCli', () => {
     expect(help).toContain('--source opencode --opencode-db /path/to/opencode.db');
     expect(help).toContain('llm-usage daily --pi-dir /tmp/pi-sessions --gemini-dir /tmp/.gemini');
     expect(help).toContain('llm-usage efficiency weekly --repo-dir /path/to/repo --json');
-    expect(help).toContain('npx --yes llm-usage-metrics daily');
+    expect(help).toContain('npx --yes llm-usage-metrics@latest daily');
     expect(compactDailyCommandHelp).toContain('after source/provider/date filters');
   });
 

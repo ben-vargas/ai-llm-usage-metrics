@@ -39,7 +39,7 @@ Aggregate token usage and costs from your local coding agent sessions. Supports 
 npm install -g llm-usage-metrics
 
 # Or run without installing
-npx llm-usage-metrics daily
+npx llm-usage-metrics@latest daily
 
 # Generate your first report
 llm-usage daily
