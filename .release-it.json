@@ -28,6 +28,6 @@
       "pnpm run build",
       "pnpm run pack:check"
     ],
-    "after:bump": ["pnpm run site:docs:generate -- --rebuild"]
+    "after:bump": ["pnpm run site:docs:generate"]
   }
 }

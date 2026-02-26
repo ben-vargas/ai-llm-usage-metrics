@@ -390,7 +390,9 @@ describe('buildUsageReport', () => {
       buildUsageReport('daily', {
         source: 'claude',
       }),
-    ).rejects.toThrow('Unknown --source value(s): claude. Allowed values: codex, opencode, pi');
+    ).rejects.toThrow(
+      'Unknown --source value(s): claude. Allowed values: codex, gemini, opencode, pi',
+    );
 
     await expect(
       buildUsageReport('daily', {

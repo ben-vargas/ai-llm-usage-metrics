@@ -1,0 +1,18 @@
+{
+  "sessionId": "session-invalid-token-types",
+  "messages": [
+    {
+      "type": "gemini",
+      "model": "gemini-2.5-pro",
+      "timestamp": "2026-02-25T10:05:00Z",
+      "tokens": {
+        "input": true,
+        "tool": false,
+        "output": false,
+        "thoughts": false,
+        "cached": false,
+        "total": false
+      }
+    }
+  ]
+}

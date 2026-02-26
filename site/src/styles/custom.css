@@ -5,139 +5,113 @@
 /* ── Base Styles ─────────────────────────────────────────── */
 html {
   scroll-behavior: smooth;
+  background-color: var(--color-bg);
+  color: var(--color-text);
 }
 
-/* Smooth scroll but respect reduced motion */
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
   }
 }
 
-/* ── Selection ──────────────────────────────────────────── */
 ::selection {
-  background: var(--color-accent);
+  background: var(--color-text-dim);
   color: var(--color-bg);
 }
 
-/* ── Focus Visible ──────────────────────────────────────── */
 :focus-visible {
   outline: 2px solid var(--border-focus);
   outline-offset: 2px;
 }
 
-/* Remove focus outline for mouse users */
 :focus:not(:focus-visible) {
   outline: none;
 }
 
 /* ── Scrollbar ──────────────────────────────────────────── */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-bg-elevated);
+  background: var(--color-bg);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-text-dim);
+  background: var(--border-strong);
   border-radius: var(--radius-full);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-text-muted);
+  background: var(--color-text-dim);
 }
 
-/* Firefox scrollbar */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-text-dim) var(--color-bg-elevated);
+  scrollbar-color: var(--border-strong) var(--color-bg);
 }
 
-/* ── Liquid Glass Component ─────────────────────────────── */
-.liquid-glass {
-  background: var(--color-bg-card);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid var(--border-default);
-  box-shadow:
-    inset 0 1px 0 var(--border-subtle),
-    inset 0 0 20px var(--border-subtle),
-    0 20px 40px -15px var(--shadow-color);
-  border-radius: var(--radius-xl);
-  transition:
-    transform var(--transition-spring),
-    box-shadow var(--transition-spring);
+/* ── Typography Utilities ───────────────────────────────── */
+.text-balance {
+  text-wrap: balance;
 }
 
-/* ── Grain Overlay ───────────────────────────────────────── */
-.bg-grain {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-fixed);
-  pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-  opacity: 0.02;
-  mix-blend-mode: overlay;
+.text-dim {
+  color: var(--color-text-dim);
 }
 
-/* Disable grain on reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  .bg-grain {
-    display: none;
-  }
+.font-mono {
+  font-family: var(--font-mono);
 }
 
-/* Light mode grain adjustment */
-:root[data-theme='light'] .bg-grain {
-  opacity: 0.015;
-  mix-blend-mode: multiply;
+.tracking-tighter {
+  letter-spacing: var(--tracking-tighter);
 }
 
 /* ── Interactive States ─────────────────────────────────── */
-/* Button base styles */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  padding: var(--space-3) var(--space-5);
+  padding: 0 var(--space-4);
+  height: 2.5rem;
+  box-sizing: border-box;
   font-family: var(--font-sans);
   font-size: var(--text-sm);
   font-weight: 500;
-  border-radius: var(--radius-md);
-  transition: all var(--transition-base);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
   cursor: pointer;
+  text-decoration: none;
 }
 
 .btn:active {
-  transform: translateY(1px) scale(0.98);
+  transform: scale(0.98);
 }
 
-/* Primary button */
 .btn-primary {
-  background: var(--color-accent);
+  background: var(--color-text);
   color: var(--color-bg);
-  border: none;
+  border: 1px solid var(--color-text);
 }
 
 .btn-primary:hover {
-  background: var(--color-accent-hover);
-  box-shadow: 0 0 20px var(--color-accent-glow);
+  background: transparent;
+  color: var(--color-text);
 }
 
-/* Secondary button */
 .btn-secondary {
   background: transparent;
   color: var(--color-text);
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border-strong);
 }
 
 .btn-secondary:hover {
   background: var(--color-bg-elevated);
-  border-color: var(--border-strong);
+  border-color: var(--color-text-dim);
 }
 
 /* ── Code Blocks ─────────────────────────────────────────── */
@@ -145,29 +119,23 @@ code {
   font-family: var(--font-mono);
 }
 
-/* Inline code */
 :not(pre) > code {
-  padding: 0.2em 0.4em;
+  padding: 0.1em 0.3em;
   background: var(--color-bg-elevated);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: 0.2rem;
   font-size: 0.9em;
+  color: var(--color-text-secondary);
 }
 
-/* ── Utility Classes ────────────────────────────────────── */
-.text-gradient {
-  background: linear-gradient(135deg, var(--color-accent), var(--color-cyan));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.glow-accent {
-  box-shadow: 0 0 20px var(--color-accent-glow);
+/* ── Layout & Bento Containers ──────────────────────────── */
+.bento-card {
+  background: var(--color-bg);
+  border: 1px solid var(--border-default);
+  padding: var(--space-6);
 }
 
 /* ── Starlight Overrides ────────────────────────────────── */
-/* Ensure Starlight respects our color scheme */
 :root {
   --sl-color-white: var(--color-text);
   --sl-color-gray-1: var(--color-text-secondary);
@@ -177,45 +145,44 @@ code {
   --sl-color-gray-5: var(--border-subtle);
   --sl-color-gray-6: var(--color-bg-elevated);
   --sl-color-black: var(--color-bg);
-  --sl-color-accent: var(--color-accent);
-  --sl-color-accent-high: var(--color-accent-hover);
+  --sl-color-accent: var(--color-text);
+  --sl-color-accent-high: var(--color-text);
+  --sl-color-bg-nav: var(--color-bg);
 }
 
-/* Starlight header styling */
+/* Simplify the header to be incredibly flat */
 .starlight-header {
-  background: var(--color-bg-card) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: var(--color-bg) !important;
+  border-bottom: 1px solid var(--border-default) !important;
+  backdrop-filter: none;
 }
 
-/* Theme toggle button */
+/* Theme toggle button override */
 .theme-toggle {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: var(--radius-md);
-  background: var(--color-bg-elevated);
-  border: 1px solid var(--border-default);
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: 1px solid transparent;
   color: var(--color-text-muted);
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: all var(--transition-fast);
 }
 
 .theme-toggle:hover {
-  background: var(--color-bg-card);
-  border-color: var(--border-strong);
+  background: var(--color-bg-elevated);
   color: var(--color-text);
 }
 
-.theme-toggle:focus-visible {
-  outline: 2px solid var(--border-focus);
-  outline-offset: 2px;
-}
-
-/* ── Mobile Touch Improvements ──────────────────────────── */
 @media (pointer: coarse) {
+  .theme-toggle {
+    width: 44px;
+    height: 44px;
+  }
+
   .btn,
   a {
     min-height: 44px;
@@ -223,13 +190,7 @@ code {
   }
 }
 
-/* ── Print Styles ───────────────────────────────────────── */
 @media print {
-  .bg-grain,
-  .liquid-glass {
-    display: none;
-  }
-
   * {
     background: transparent !important;
     color: black !important;

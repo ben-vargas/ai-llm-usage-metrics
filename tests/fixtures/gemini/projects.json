@@ -1,0 +1,13 @@
+{
+  "projects": {
+    "abc123": {
+      "absolutePath": "/home/user/projects/my-app"
+    },
+    "def456": {
+      "absolutePath": "/home/user/projects/other-project"
+    },
+    "legacy-project": {
+      "absolutePath": "/home/user/projects/legacy"
+    }
+  }
+}

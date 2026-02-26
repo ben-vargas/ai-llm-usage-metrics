@@ -1,0 +1,15 @@
+{
+  "sessionId": "session-005",
+  "projectHash": "abc123",
+  "messages": [
+    {
+      "type": "gemini",
+      "timestamp": "not-a-valid-timestamp",
+      "model": "gemini-3-flash-preview",
+      "tokens": {
+        "input": 100,
+        "output": 50
+      }
+    }
+  ]
+}

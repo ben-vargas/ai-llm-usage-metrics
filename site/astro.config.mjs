@@ -9,7 +9,7 @@ export default defineConfig({
     starlight({
       title: 'llm-usage-metrics',
       description:
-        'CLI for aggregating local LLM usage metrics from pi, codex, and opencode sessions',
+        'CLI for aggregating local LLM usage metrics from pi, codex, gemini, and opencode sessions',
       favicon: '/favicon.svg',
       logo: {
         src: './src/assets/logo.svg',
@@ -17,6 +17,30 @@ export default defineConfig({
       },
       social: [
         { icon: 'github', label: 'GitHub', href: 'https://github.com/ayagmar/llm-usage-metrics' },
+      ],
+      head: [
+        {
+          tag: 'link',
+          attrs: {
+            rel: 'preconnect',
+            href: 'https://fonts.googleapis.com',
+          },
+        },
+        {
+          tag: 'link',
+          attrs: {
+            rel: 'preconnect',
+            href: 'https://fonts.gstatic.com',
+            crossorigin: true,
+          },
+        },
+        {
+          tag: 'link',
+          attrs: {
+            rel: 'stylesheet',
+            href: 'https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap',
+          },
+        },
       ],
       sidebar: [
         {
@@ -37,6 +61,7 @@ export default defineConfig({
             { label: 'Overview', link: '/sources/' },
             { label: 'pi', link: '/sources/pi/' },
             { label: 'codex', link: '/sources/codex/' },
+            { label: 'gemini', link: '/sources/gemini/' },
             { label: 'opencode', link: '/sources/opencode/' },
           ],
         },

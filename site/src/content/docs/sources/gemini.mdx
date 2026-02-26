@@ -1,0 +1,26 @@
+---
+title: gemini Source
+---
+
+## Default location
+
+- `~/.gemini/tmp/*/chats/*.json`
+
+## Override
+
+```bash
+llm-usage daily --gemini-dir /path/to/.gemini
+# or
+llm-usage daily --source-dir gemini=/path/to/.gemini
+```
+
+## Parsing notes
+
+- each file is a single JSON session object
+- only `message.type === "gemini"` rows with token usage are emitted
+- token mapping:
+  - `tokens.input + tokens.tool` → `inputTokens`
+  - `tokens.output` → `outputTokens`
+  - `tokens.thoughts` → `reasoningTokens`
+  - `tokens.cached` → `cacheReadTokens`
+- `repoRoot` is resolved from `~/.gemini/projects.json` when available

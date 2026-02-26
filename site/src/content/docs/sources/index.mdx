@@ -2,10 +2,11 @@
 title: Data Sources
 ---
 
-`llm-usage-metrics` supports three built-in sources:
+`llm-usage-metrics` supports four built-in sources:
 
 - `pi`
 - `codex`
+- `gemini`
 - `opencode`
 
 Each source is parsed by a dedicated adapter and normalized into the same `UsageEvent` schema before pricing/aggregation.
@@ -13,13 +14,15 @@ Each source is parsed by a dedicated adapter and normalized into the same `Usage
 ## Discovery model
 
 - `pi` and `codex`: recursive JSONL discovery in their session directories
+- `gemini`: JSON session discovery under `~/.gemini/tmp/*/chats/*.json` (or `--gemini-dir`)
 - `opencode`: single SQLite DB (auto-discovered or explicit `--opencode-db`)
 
 ## Source filtering
 
 ```bash
 llm-usage monthly --source pi
-llm-usage monthly --source pi,codex
+llm-usage monthly --source pi,codex,gemini
+llm-usage monthly --source gemini --gemini-dir /path/to/.gemini
 llm-usage monthly --source opencode --opencode-db /path/to/opencode.db
 ```
 

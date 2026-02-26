@@ -133,7 +133,7 @@ Release configuration lives in `.release-it.json`.
 
 For trusted publishing, `npm.skipChecks` is enabled because release-it's normal npm auth checks are not compatible with OIDC-only publishing.
 
-During release, `release-it` runs `pnpm run site:docs:generate -- --rebuild` in an `after:bump` hook, so the release commit automatically includes an updated `site/src/content/docs/cli-reference.mdx` (including the new version banner).
+During release, `release-it` runs `pnpm run site:docs:generate` in an `after:bump` hook, so the release commit automatically includes an updated `site/src/content/docs/cli-reference.mdx` (including the new version banner).
 
 ### GitHub workflow
 
@@ -181,7 +181,7 @@ Optional but recommended:
 4. Add fixture tests under `tests/sources`
 5. Register adapter in `src/sources/create-default-adapters.ts`
 6. Wire source-specific override semantics:
-   - directory-backed sources use `--source-dir <source-id=path>`
+   - directory-backed sources use `--source-dir <source-id=path>` (for example `pi`, `codex`, `gemini`)
    - file/DB-backed sources use dedicated flags (for example `--opencode-db`)
 7. Verify CLI filtering with `--source <name>`
 

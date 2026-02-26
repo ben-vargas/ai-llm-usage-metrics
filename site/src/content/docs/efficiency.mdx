@@ -67,7 +67,7 @@ Usage filters apply before efficiency aggregation:
 - `--source`
 - `--provider`
 - `--model`
-- source path overrides (`--pi-dir`, `--codex-dir`, `--opencode-db`, `--source-dir`)
+- source path overrides (`--pi-dir`, `--codex-dir`, `--gemini-dir`, `--opencode-db`, `--source-dir`)
 
 Important: these filters also affect commit attribution. Only commit days with matching repo-attributed usage events are counted in efficiency outcomes.
 
@@ -84,6 +84,7 @@ For source comparisons, run the same command per source:
 ```bash
 llm-usage efficiency monthly --repo-dir /path/to/repo --source pi
 llm-usage efficiency monthly --repo-dir /path/to/repo --source codex
+llm-usage efficiency monthly --repo-dir /path/to/repo --source gemini
 llm-usage efficiency monthly --repo-dir /path/to/repo --source opencode
 ```
 
