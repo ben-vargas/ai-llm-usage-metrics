@@ -172,6 +172,13 @@ describe('GeminiSourceAdapter', () => {
         path.join(fixturesDir, 'session-invalid-root.json'),
       );
       expect(invalidRoot.skippedRowReasons).toEqual([{ reason: 'invalid_session_data', count: 1 }]);
+
+      const invalidMessages = await adapter.parseFileWithDiagnostics(
+        path.join(fixturesDir, 'session-invalid-messages.json'),
+      );
+      expect(invalidMessages.skippedRowReasons).toEqual([
+        { reason: 'invalid_messages_array', count: 1 },
+      ]);
     });
 
     it('reports invalid timestamp rows', async () => {

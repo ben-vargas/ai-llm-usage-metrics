@@ -165,6 +165,18 @@ function toSkippedRowReasonStats(
     .sort((left, right) => compareByCodePoint(left.reason, right.reason));
 }
 
+function toParseDiagnostics(
+  events: UsageEvent[],
+  skippedRows: number,
+  skippedRowReasons: Map<string, number>,
+): SourceParseFileDiagnostics {
+  return {
+    events,
+    skippedRows,
+    skippedRowReasons: toSkippedRowReasonStats(skippedRowReasons),
+  };
+}
+
 function normalizeTimestamp(candidate: unknown): string | undefined {
   if (typeof candidate !== 'string' || isBlankText(candidate)) {
     return undefined;
@@ -257,11 +269,7 @@ export class GeminiSourceAdapter implements SourceAdapter {
       skippedRows++;
       incrementSkippedReason(skippedRowReasons, 'json_parse_error');
 
-      return {
-        events,
-        skippedRows,
-        skippedRowReasons: toSkippedRowReasonStats(skippedRowReasons),
-      };
+      return toParseDiagnostics(events, skippedRows, skippedRowReasons);
     }
 
     const sessionDataRecord = asRecord(sessionData);
@@ -270,11 +278,7 @@ export class GeminiSourceAdapter implements SourceAdapter {
       skippedRows++;
       incrementSkippedReason(skippedRowReasons, 'invalid_session_data');
 
-      return {
-        events,
-        skippedRows,
-        skippedRowReasons: toSkippedRowReasonStats(skippedRowReasons),
-      };
+      return toParseDiagnostics(events, skippedRows, skippedRowReasons);
     }
 
     const sessionId =
@@ -283,7 +287,13 @@ export class GeminiSourceAdapter implements SourceAdapter {
     const projectMapping = await this.getProjectMappingForParse();
     const repoRoot = resolveRepoRoot(filePath, sessionDataRecord, projectMapping);
 
-    const messages = Array.isArray(sessionDataRecord.messages) ? sessionDataRecord.messages : [];
+    if (!Array.isArray(sessionDataRecord.messages)) {
+      skippedRows++;
+      incrementSkippedReason(skippedRowReasons, 'invalid_messages_array');
+      return toParseDiagnostics(events, skippedRows, skippedRowReasons);
+    }
+
+    const messages = sessionDataRecord.messages;
 
     for (const rawMessage of messages) {
       const message = asRecord(rawMessage);
@@ -341,11 +351,7 @@ export class GeminiSourceAdapter implements SourceAdapter {
       }
     }
 
-    return {
-      events,
-      skippedRows,
-      skippedRowReasons: toSkippedRowReasonStats(skippedRowReasons),
-    };
+    return toParseDiagnostics(events, skippedRows, skippedRowReasons);
   }
 }
 

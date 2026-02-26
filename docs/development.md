@@ -133,7 +133,7 @@ Release configuration lives in `.release-it.json`.
 
 For trusted publishing, `npm.skipChecks` is enabled because release-it's normal npm auth checks are not compatible with OIDC-only publishing.
 
-During release, `release-it` runs `pnpm run site:docs:generate -- --rebuild` in an `after:bump` hook, so the release commit automatically includes an updated `site/src/content/docs/cli-reference.mdx` (including the new version banner).
+During release, `release-it` runs `pnpm run site:docs:generate` in an `after:bump` hook, so the release commit automatically includes an updated `site/src/content/docs/cli-reference.mdx` (including the new version banner).
 
 ### GitHub workflow
 

@@ -178,6 +178,11 @@ code {
 }
 
 @media (pointer: coarse) {
+  .theme-toggle {
+    width: 44px;
+    height: 44px;
+  }
+
   .btn,
   a {
     min-height: 44px;

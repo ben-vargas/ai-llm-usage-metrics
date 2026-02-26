@@ -1,0 +1,7 @@
+{
+  "sessionId": "session-invalid-messages",
+  "projectHash": "test-project",
+  "messages": {
+    "type": "gemini"
+  }
+}

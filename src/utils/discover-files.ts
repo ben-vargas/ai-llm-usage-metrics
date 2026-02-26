@@ -56,6 +56,10 @@ async function walkDirectory(
   try {
     entries = await readdir(rootDir, { withFileTypes: true, encoding: 'utf8' });
   } catch (error) {
+    if (getNodeErrorCode(error) === 'ENOENT') {
+      return;
+    }
+
     if (options.allowPermissionSkip && isSkippableDirectoryReadError(error)) {
       return;
     }
@@ -98,15 +102,7 @@ export async function discoverFiles(
     sort: options.sort ?? true,
   };
 
-  try {
-    await walkDirectory(rootDir, files, resolvedOptions);
-  } catch (error) {
-    if (getNodeErrorCode(error) === 'ENOENT') {
-      return [];
-    }
-
-    throw error;
-  }
+  await walkDirectory(rootDir, files, resolvedOptions);
 
   return files;
 }
