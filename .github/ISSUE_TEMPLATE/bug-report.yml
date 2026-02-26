@@ -1,6 +1,6 @@
 name: Bug report
 description: Report incorrect behavior, crashes, parsing problems, or wrong totals/costs.
-title: "bug: "
+title: 'bug: '
 labels:
   - bug
 body:
