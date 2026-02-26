@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.3.4](https://github.com/ayagmar/llm-usage-metrics/compare/v0.3.3...v0.3.4) (2026-02-26)
+
+### Features
+
+* **pricing:** add direct pricing for gpt-5.3-codex and gemini models ([312700f](https://github.com/ayagmar/llm-usage-metrics/commit/312700fe42229178da3e5f4f319981cf5191cda6))
+* **pricing:** add minimax model aliases and pricing details ([e55584c](https://github.com/ayagmar/llm-usage-metrics/commit/e55584c46279bb2065780804a164e0d4adcd4a2b))
+* **sources:** add gemini adapter and CLI support ([b463914](https://github.com/ayagmar/llm-usage-metrics/commit/b4639140075bf16312e4deb0948ae175ae231716))
+* **utils:** add generic recursive file discovery ([eb870e8](https://github.com/ayagmar/llm-usage-metrics/commit/eb870e873832ff90c212b84ca93b5e45087571c2))
+
+### Bug Fixes
+
+* **gemini:** ignore non-numeric token payload types ([8f04423](https://github.com/ayagmar/llm-usage-metrics/commit/8f044230f6d831f9bb2f98a08d37a55efc783d01))
+* **review:** address PR [#25](https://github.com/ayagmar/llm-usage-metrics/issues/25) review feedback ([1d164c9](https://github.com/ayagmar/llm-usage-metrics/commit/1d164c90c5bb3277c98d9fcc8b41dd8174334a6b))
+
 ## [0.3.3](https://github.com/ayagmar/llm-usage-metrics/compare/v0.3.2...v0.3.3) (2026-02-25)
 
 ### Features
