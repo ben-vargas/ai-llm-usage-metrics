@@ -198,5 +198,14 @@ describe('GeminiSourceAdapter', () => {
       expect(result.events).toHaveLength(0);
       expect(result.skippedRowReasons).toEqual([{ reason: 'invalid_timestamp', count: 1 }]);
     });
+
+    it('reports event creation failures when fallback sessionId is invalid', async () => {
+      const adapter = new GeminiSourceAdapter({ geminiDir: fixturesDir });
+      const result = await adapter.parseFileWithDiagnostics(path.join(fixturesDir, '   .json'));
+
+      expect(result.events).toHaveLength(0);
+      expect(result.skippedRows).toBe(1);
+      expect(result.skippedRowReasons).toEqual([{ reason: 'event_creation_failed', count: 1 }]);
+    });
   });
 });

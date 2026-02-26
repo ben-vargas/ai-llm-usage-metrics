@@ -1,0 +1,15 @@
+{
+  "projectHash": "test-project",
+  "messages": [
+    {
+      "type": "gemini",
+      "timestamp": "2024-01-01T00:00:00.000Z",
+      "model": "gemini-2.0-flash",
+      "tokens": {
+        "input": 10,
+        "output": 20,
+        "total": 30
+      }
+    }
+  ]
+}
