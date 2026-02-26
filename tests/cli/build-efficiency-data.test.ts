@@ -280,6 +280,39 @@ describe('buildEfficiencyData', () => {
     expect(result.diagnostics.scopeNote).toContain('--source-dir');
   });
 
+  it('includes --gemini-dir and --droid-dir in scope note when configured', async () => {
+    const result = await buildEfficiencyData(
+      'monthly',
+      {
+        geminiDir: '/tmp/.gemini',
+        droidDir: '/tmp/droid-sessions',
+      },
+      {
+        buildUsageData: async () => createUsageDataResult(),
+        collectGitOutcomes: async () => ({
+          periodOutcomes: new Map(),
+          totalOutcomes: {
+            commitCount: 0,
+            linesAdded: 0,
+            linesDeleted: 0,
+            linesChanged: 0,
+          },
+          diagnostics: {
+            repoDir: '/tmp/repo',
+            includeMergeCommits: false,
+            commitsCollected: 0,
+            linesAdded: 0,
+            linesDeleted: 0,
+          },
+        }),
+        resolveRepoRoot: async () => '/tmp/repo',
+      },
+    );
+
+    expect(result.diagnostics.scopeNote).toContain('--gemini-dir');
+    expect(result.diagnostics.scopeNote).toContain('--droid-dir');
+  });
+
   it('includes --opencode-db in scope note when configured', async () => {
     const result = await buildEfficiencyData(
       'monthly',

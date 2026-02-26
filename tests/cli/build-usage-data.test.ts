@@ -610,6 +610,38 @@ describe('buildUsageData', () => {
     ).rejects.toThrow('Failed to parse explicitly requested source(s): codex: permission denied');
   });
 
+  it('fails when --gemini-dir is set and gemini parsing fails', async () => {
+    await expect(
+      buildUsageData(
+        'daily',
+        {
+          timezone: 'UTC',
+          geminiDir: '/tmp/explicit-gemini',
+        },
+        {
+          ...withDeterministicRuntimeDeps(),
+          createAdapters: () => [createFailingAdapter('gemini', 'permission denied')],
+        },
+      ),
+    ).rejects.toThrow('Failed to parse explicitly requested source(s): gemini: permission denied');
+  });
+
+  it('fails when --droid-dir is set and droid parsing fails', async () => {
+    await expect(
+      buildUsageData(
+        'daily',
+        {
+          timezone: 'UTC',
+          droidDir: '/tmp/explicit-droid',
+        },
+        {
+          ...withDeterministicRuntimeDeps(),
+          createAdapters: () => [createFailingAdapter('droid', 'permission denied')],
+        },
+      ),
+    ).rejects.toThrow('Failed to parse explicitly requested source(s): droid: permission denied');
+  });
+
   it('guards against non-positive parsing concurrency from injected deps', async () => {
     const result = await buildUsageData(
       'daily',

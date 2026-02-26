@@ -17,7 +17,13 @@ describe('createDefaultAdapters', () => {
   it('builds default adapters in stable order', () => {
     const adapters = createDefaultAdapters({});
 
-    expect(adapters.map((adapter) => adapter.id)).toEqual(['pi', 'codex', 'gemini', 'opencode']);
+    expect(adapters.map((adapter) => adapter.id)).toEqual([
+      'pi',
+      'codex',
+      'gemini',
+      'droid',
+      'opencode',
+    ]);
   });
 
   it('supports generic source directory overrides', async () => {
@@ -26,25 +32,34 @@ describe('createDefaultAdapters', () => {
     const geminiTempDir = await mkdtemp(
       path.join(os.tmpdir(), 'usage-adapters-gemini-source-dir-'),
     );
-    tempDirs.push(piTempDir, codexTempDir, geminiTempDir);
+    const droidTempDir = await mkdtemp(path.join(os.tmpdir(), 'usage-adapters-droid-source-dir-'));
+    tempDirs.push(piTempDir, codexTempDir, geminiTempDir, droidTempDir);
 
     const piFile = path.join(piTempDir, 'pi-session.jsonl');
     const codexFile = path.join(codexTempDir, 'codex-session.jsonl');
     const geminiChatsDir = path.join(geminiTempDir, 'tmp', 'test-project', 'chats');
     await mkdir(geminiChatsDir, { recursive: true });
     const geminiFile = path.join(geminiChatsDir, 'session.json');
+    const droidFile = path.join(droidTempDir, 'droid-session.settings.json');
 
     await writeFile(piFile, '{}\n', 'utf8');
     await writeFile(codexFile, '{}\n', 'utf8');
     await writeFile(geminiFile, '{}', 'utf8');
+    await writeFile(droidFile, '{}', 'utf8');
 
     const adapters = createDefaultAdapters({
-      sourceDir: [`pi=${piTempDir}`, `codex=${codexTempDir}`, `gemini=${geminiTempDir}`],
+      sourceDir: [
+        `pi=${piTempDir}`,
+        `codex=${codexTempDir}`,
+        `gemini=${geminiTempDir}`,
+        `droid=${droidTempDir}`,
+      ],
     });
 
     await expect(adapters[0].discoverFiles()).resolves.toEqual([piFile]);
     await expect(adapters[1].discoverFiles()).resolves.toEqual([codexFile]);
     await expect(adapters[2].discoverFiles()).resolves.toEqual([geminiFile]);
+    await expect(adapters[3].discoverFiles()).resolves.toEqual([droidFile]);
   });
 
   it('throws on invalid source directory override entries', () => {
@@ -101,6 +116,12 @@ describe('createDefaultAdapters', () => {
     );
   });
 
+  it('throws when --droid-dir is blank', () => {
+    expect(() => createDefaultAdapters({ droidDir: '   ' })).toThrow(
+      '--droid-dir must be a non-empty path',
+    );
+  });
+
   it('fails gemini discovery when an explicitly configured directory is missing', async () => {
     const adapters = createDefaultAdapters({
       geminiDir: path.join(os.tmpdir(), `missing-gemini-${Date.now()}`),
@@ -125,6 +146,33 @@ describe('createDefaultAdapters', () => {
 
     await expect(geminiAdapter?.discoverFiles()).rejects.toThrow(
       `Gemini directory is not a directory: ${geminiFilePath}`,
+    );
+  });
+
+  it('fails droid discovery when an explicitly configured directory is missing', async () => {
+    const adapters = createDefaultAdapters({
+      droidDir: path.join(os.tmpdir(), `missing-droid-${Date.now()}`),
+    });
+    const droidAdapter = adapters.find((adapter) => adapter.id === 'droid');
+
+    await expect(droidAdapter?.discoverFiles()).rejects.toThrow(
+      'Droid sessions directory is missing or unreadable',
+    );
+  });
+
+  it('fails droid discovery when an explicitly configured path is a file', async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), 'usage-adapters-droid-file-path-'));
+    tempDirs.push(tempDir);
+    const droidFilePath = path.join(tempDir, 'droid.settings.json');
+    await writeFile(droidFilePath, '{}', 'utf8');
+
+    const adapters = createDefaultAdapters({
+      droidDir: droidFilePath,
+    });
+    const droidAdapter = adapters.find((adapter) => adapter.id === 'droid');
+
+    await expect(droidAdapter?.discoverFiles()).rejects.toThrow(
+      `Droid sessions directory is not a directory: ${droidFilePath}`,
     );
   });
 

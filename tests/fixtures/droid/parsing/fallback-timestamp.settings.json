@@ -1,0 +1,11 @@
+{
+  "providerLock": "openai",
+  "model": "gpt-4.1",
+  "tokenUsage": {
+    "inputTokens": 1,
+    "outputTokens": 1,
+    "thinkingTokens": 0,
+    "cacheReadTokens": 0,
+    "cacheCreationTokens": 0
+  }
+}

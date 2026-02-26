@@ -40,6 +40,7 @@ describe('createCli', () => {
       );
       expect(command.options.some((option) => option.long === '--opencode-db')).toBe(true);
       expect(command.options.some((option) => option.long === '--gemini-dir')).toBe(true);
+      expect(command.options.some((option) => option.long === '--droid-dir')).toBe(true);
       expect(command.options.some((option) => option.long === '--source')).toBe(true);
       expect(command.options.some((option) => option.long === '--source-dir')).toBe(true);
       expect(command.options.some((option) => option.long === '--model')).toBe(true);
@@ -93,18 +94,21 @@ describe('createCli', () => {
   it('renders help output with command and npx examples', () => {
     const cli = createCli();
     const help = cli.helpInformation();
+    const compactHelp = help.replace(/\s+/gu, ' ');
     const dailyCommandHelp = cli.commands
       .find((command) => command.name() === 'daily')
       ?.helpInformation();
     const compactDailyCommandHelp = dailyCommandHelp?.replace(/\s+/gu, ' ');
 
-    expect(help).toContain('Supported sources (4): pi, codex, gemini, opencode');
-    expect(help).toContain('Show daily usage report');
-    expect(help).toContain('llm-usage <command> --help');
-    expect(help).toContain('--source opencode --opencode-db /path/to/opencode.db');
-    expect(help).toContain('llm-usage daily --pi-dir /tmp/pi-sessions --gemini-dir /tmp/.gemini');
-    expect(help).toContain('llm-usage efficiency weekly --repo-dir /path/to/repo --json');
-    expect(help).toContain('npx --yes llm-usage-metrics@latest daily');
+    expect(compactHelp).toContain('Supported sources (5): pi, codex, gemini, droid, opencode');
+    expect(compactHelp).toContain('Show daily usage report');
+    expect(compactHelp).toContain('llm-usage <command> --help');
+    expect(compactHelp).toContain('--source opencode --opencode-db /path/to/opencode.db');
+    expect(compactHelp).toContain(
+      'llm-usage daily --pi-dir /tmp/pi-sessions --gemini-dir /tmp/.gemini --droid-dir /tmp/droid-sessions',
+    );
+    expect(compactHelp).toContain('llm-usage efficiency weekly --repo-dir /path/to/repo --json');
+    expect(compactHelp).toContain('npx --yes llm-usage-metrics@latest daily');
     expect(compactDailyCommandHelp).toContain('after source/provider/date filters');
   });
 
