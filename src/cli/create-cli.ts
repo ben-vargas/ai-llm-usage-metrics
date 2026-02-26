@@ -37,6 +37,7 @@ function addSharedOptions(
     .option('--pi-dir <path>', 'Path to .pi sessions directory')
     .option('--codex-dir <path>', 'Path to .codex sessions directory')
     .option('--gemini-dir <path>', 'Path to .gemini directory')
+    .option('--droid-dir <path>', 'Path to Droid sessions directory')
     .option('--opencode-db <path>', 'Path to OpenCode SQLite DB')
     .option(
       '--source-dir <source-id=path>',
@@ -144,8 +145,8 @@ function rootDescription(): string {
     '  $ llm-usage monthly --since 2026-01-01 --until 2026-01-31 --source pi,codex --json',
     '  $ llm-usage monthly --source opencode --opencode-db /path/to/opencode.db --json',
     '  $ llm-usage monthly --model claude --per-model-columns',
-    '  $ llm-usage daily --source-dir pi=/tmp/pi-sessions --source-dir gemini=/tmp/.gemini',
-    '  $ llm-usage daily --pi-dir /tmp/pi-sessions --gemini-dir /tmp/.gemini',
+    '  $ llm-usage daily --source-dir pi=/tmp/pi-sessions --source-dir gemini=/tmp/.gemini --source-dir droid=/tmp/droid-sessions',
+    '  $ llm-usage daily --pi-dir /tmp/pi-sessions --gemini-dir /tmp/.gemini --droid-dir /tmp/droid-sessions',
     '  $ llm-usage efficiency weekly --repo-dir /path/to/repo --json',
     '  $ npx --yes llm-usage-metrics@latest daily',
   ].join('\n');

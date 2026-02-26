@@ -1,4 +1,5 @@
 import { CodexSourceAdapter } from './codex/codex-source-adapter.js';
+import { DroidSourceAdapter } from './droid/droid-source-adapter.js';
 import { GeminiSourceAdapter } from './gemini/gemini-source-adapter.js';
 import { OpenCodeSourceAdapter } from './opencode/opencode-source-adapter.js';
 import { PiSourceAdapter } from './pi/pi-source-adapter.js';
@@ -18,6 +19,7 @@ export type CreateDefaultAdaptersOptions = {
   piDir?: string;
   codexDir?: string;
   geminiDir?: string;
+  droidDir?: string;
   opencodeDb?: string;
   sourceDir?: string[];
 };
@@ -99,6 +101,22 @@ const sourceRegistrations: readonly SourceRegistration[] = [
     },
   },
   {
+    id: 'droid',
+    sourceDirOverride: { kind: 'directory' },
+    create: (options, sourceDirectoryOverrides) => {
+      const directoryConfig = resolveDirectoryConfig(
+        'droid',
+        options.droidDir,
+        sourceDirectoryOverrides,
+      );
+
+      return new DroidSourceAdapter({
+        sessionsDir: directoryConfig.path,
+        requireSessionsDir: directoryConfig.requireExistingPath,
+      });
+    },
+  },
+  {
     id: 'opencode',
     sourceDirOverride: { kind: 'unsupported', flag: '--opencode-db' },
     create: (options) =>
@@ -169,7 +187,7 @@ function validateOpencodeOverride(opencodeDb: string | undefined): void {
 }
 
 function validateDirectoryOverride(
-  optionName: '--pi-dir' | '--codex-dir' | '--gemini-dir',
+  optionName: '--pi-dir' | '--codex-dir' | '--gemini-dir' | '--droid-dir',
   value: string | undefined,
 ): void {
   if (value === undefined) {
@@ -220,6 +238,7 @@ export function createDefaultAdapters(options: CreateDefaultAdaptersOptions): So
   validateDirectoryOverride('--pi-dir', options.piDir);
   validateDirectoryOverride('--codex-dir', options.codexDir);
   validateDirectoryOverride('--gemini-dir', options.geminiDir);
+  validateDirectoryOverride('--droid-dir', options.droidDir);
 
   const sourceDirectoryOverrides = parseSourceDirectoryOverrides(options.sourceDir);
   validateSourceDirectoryOverrideIds(sourceDirectoryOverrides);

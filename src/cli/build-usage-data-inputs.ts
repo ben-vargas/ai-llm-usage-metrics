@@ -194,6 +194,14 @@ export function resolveExplicitSourceIds(
     explicitSourceIds.add('codex');
   }
 
+  if (options.geminiDir) {
+    explicitSourceIds.add('gemini');
+  }
+
+  if (options.droidDir) {
+    explicitSourceIds.add('droid');
+  }
+
   if (options.opencodeDb) {
     explicitSourceIds.add('opencode');
   }

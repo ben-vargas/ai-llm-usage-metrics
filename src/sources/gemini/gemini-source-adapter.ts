@@ -5,10 +5,10 @@ import path from 'node:path';
 import { createUsageEvent } from '../../domain/usage-event.js';
 import type { UsageEvent } from '../../domain/usage-event.js';
 import { asRecord } from '../../utils/as-record.js';
-import { compareByCodePoint } from '../../utils/compare-by-code-point.js';
 import { discoverFiles } from '../../utils/discover-files.js';
 import { pathIsDirectory, pathReadable } from '../../utils/fs-helpers.js';
 import { asTrimmedText, isBlankText } from '../parsing-utils.js';
+import { incrementSkippedReason, toParseDiagnostics } from '../parse-diagnostics.js';
 import type { SourceAdapter, SourceParseFileDiagnostics } from '../source-adapter.js';
 
 const defaultGeminiDir = path.join(os.homedir(), '.gemini');
@@ -158,30 +158,7 @@ function extractTokenUsage(tokens: Record<string, unknown> | undefined): {
   };
 }
 
-function incrementSkippedReason(reasons: Map<string, number>, reason: string): void {
-  const current = reasons.get(reason) ?? 0;
-  reasons.set(reason, current + 1);
-}
-
-function toSkippedRowReasonStats(
-  reasons: Map<string, number>,
-): { reason: string; count: number }[] {
-  return [...reasons.entries()]
-    .map(([reason, count]) => ({ reason, count }))
-    .sort((left, right) => compareByCodePoint(left.reason, right.reason));
-}
-
-function toParseDiagnostics(
-  events: UsageEvent[],
-  skippedRows: number,
-  skippedRowReasons: Map<string, number>,
-): SourceParseFileDiagnostics {
-  return {
-    events,
-    skippedRows,
-    skippedRowReasons: toSkippedRowReasonStats(skippedRowReasons),
-  };
-}
+// diagnostics helpers live in ../parse-diagnostics.ts
 
 function normalizeTimestamp(candidate: unknown): string | undefined {
   if (typeof candidate !== 'string' || isBlankText(candidate)) {
