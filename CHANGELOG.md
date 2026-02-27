@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.3.5](https://github.com/ayagmar/llm-usage-metrics/compare/v0.3.4...v0.3.5) (2026-02-27)
+
+### Features
+
+* add 'droid' as a selectable data source in bug report template ([e094c6d](https://github.com/ayagmar/llm-usage-metrics/commit/e094c6d33d5224e20a211688807c82f3ad363acf))
+* **benchmark:** add source-scoped openai comparisons ([7c714b4](https://github.com/ayagmar/llm-usage-metrics/commit/7c714b4822011b48cbf5b41cf8bf56db36b851a6))
+* **sources:** add droid adapter and cli integration ([7d9ad47](https://github.com/ayagmar/llm-usage-metrics/commit/7d9ad470f7596cc3a3ff5b20f08283c97cf01e8b))
+* update CLI usage instructions to use latest version in documentation and templates ([232db27](https://github.com/ayagmar/llm-usage-metrics/commit/232db277485a3f5aaa5ebfb1bf3a472f12adb275))
+* update metrics and descriptions to include Droid support ([06b4706](https://github.com/ayagmar/llm-usage-metrics/commit/06b47062b343630a5e4378d9bc91af02c2e52b70))
+
 ## [0.3.4](https://github.com/ayagmar/llm-usage-metrics/compare/v0.3.3...v0.3.4) (2026-02-26)
 
 ### Features
