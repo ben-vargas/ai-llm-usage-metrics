@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.3.6](https://github.com/ayagmar/llm-usage-metrics/compare/v0.3.5...v0.3.6) (2026-02-27)
+
+### Bug Fixes
+
+* **droid:** use billable totals and resilient fallback timestamps ([d6ececf](https://github.com/ayagmar/llm-usage-metrics/commit/d6ececf97713b13dc321f2f403c5e02781d06063))
+* **pricing:** support cache-write priority fallback ([3edfecc](https://github.com/ayagmar/llm-usage-metrics/commit/3edfecc6868e9a18339090b68cc13ceb59cc4de2))
+* **render:** address PR feedback on fitting loop and test cleanup ([6d85c23](https://github.com/ayagmar/llm-usage-metrics/commit/6d85c23f95191134623a88613a7f070af9dff60a))
+* **render:** allow efficiency table fitting on 80-col tty ([37b204f](https://github.com/ayagmar/llm-usage-metrics/commit/37b204f952c591b8573da6f3477832d92d2eb825))
+* **render:** fit efficiency table to terminal width ([1881937](https://github.com/ayagmar/llm-usage-metrics/commit/188193710016ec6d921bf1c085a7be5865f0666a))
+* **render:** harden wrapping guard and simplify test teardown ([52cbee5](https://github.com/ayagmar/llm-usage-metrics/commit/52cbee5428f2fe5c571d391e1e1bcf6293e02398))
+
+### Performance Improvements
+
+* **cli:** shard and harden parse file cache ([417e3c3](https://github.com/ayagmar/llm-usage-metrics/commit/417e3c3fd85fc00e1d36d368984b7a8034f934bd))
+
 ## [0.3.5](https://github.com/ayagmar/llm-usage-metrics/compare/v0.3.4...v0.3.5) (2026-02-27)
 
 ### Features
