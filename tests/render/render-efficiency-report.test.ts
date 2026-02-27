@@ -197,6 +197,27 @@ describe('renderEfficiencyReport', () => {
     }
   });
 
+  it('fits terminal table within a standard 80-column tty', () => {
+    const restoreStdout = overrideStdoutTty(80);
+
+    try {
+      const output = renderEfficiencyReport(createEfficiencyDataResult(), 'terminal', {
+        granularity: 'monthly',
+        useColor: false,
+      });
+
+      const tableLines = output.split('\n').filter((line) => /[│╭╮╰╯├┼┬┴]/u.test(line));
+      const maxWidth = tableLines.reduce(
+        (maximumLineWidth, line) => Math.max(maximumLineWidth, visibleWidth(line)),
+        0,
+      );
+
+      expect(maxWidth).toBeLessThanOrEqual(80);
+    } finally {
+      restoreStdout();
+    }
+  });
+
   it('renders json without undefined derived metrics', () => {
     const output = renderEfficiencyReport(createEfficiencyDataResult(), 'json', {
       granularity: 'monthly',

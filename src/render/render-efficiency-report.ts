@@ -23,7 +23,7 @@ export type RenderEfficiencyReportOptions = {
 };
 
 const periodColumnIndex = 0;
-const minimumEfficiencyColumnWidth = 3;
+const minimumEfficiencyColumnWidth = 1;
 
 type FittedEfficiencyTableCells = {
   headerCells: string[];
