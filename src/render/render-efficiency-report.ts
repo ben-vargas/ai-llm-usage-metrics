@@ -123,14 +123,20 @@ function resolveWrappedCells(
   let wrappedBodyRows = bodyRows.map((row) => [...row]);
 
   for (let columnIndex = 0; columnIndex < widths.length; columnIndex += 1) {
+    const columnWidth = widths[columnIndex] ?? 0;
+
+    if (columnWidth <= 0) {
+      continue;
+    }
+
     wrappedHeaderCells =
       wrapTableColumn([wrappedHeaderCells], {
         columnIndex,
-        width: widths[columnIndex],
+        width: columnWidth,
       })[0] ?? [];
     wrappedBodyRows = wrapTableColumn(wrappedBodyRows, {
       columnIndex,
-      width: widths[columnIndex],
+      width: columnWidth,
     });
   }
 

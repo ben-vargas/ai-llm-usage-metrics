@@ -4,7 +4,7 @@ import { renderEfficiencyReport } from '../../src/render/render-efficiency-repor
 import type { EfficiencyDataResult } from '../../src/cli/usage-data-contracts.js';
 import { visibleWidth } from '../../src/render/table-text-layout.js';
 
-let pendingStdoutRestores = new Set<() => void>();
+const pendingStdoutRestores = new Set<() => void>();
 
 function overrideStdoutProperty<Key extends 'isTTY' | 'columns'>(
   property: Key,
@@ -124,7 +124,7 @@ describe('renderEfficiencyReport', () => {
     for (const restore of pendingStdoutRestores) {
       restore();
     }
-    pendingStdoutRestores = new Set<() => void>();
+    pendingStdoutRestores.clear();
   });
 
   it('renders markdown output with efficiency columns', () => {
