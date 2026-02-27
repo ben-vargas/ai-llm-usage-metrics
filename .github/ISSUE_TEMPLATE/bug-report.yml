@@ -54,6 +54,7 @@ body:
         - pi
         - codex
         - gemini
+        - droid
         - opencode
         - unknown
     validations:
