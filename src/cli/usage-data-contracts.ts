@@ -13,6 +13,7 @@ export type ReportCommandOptions = {
   piDir?: string;
   codexDir?: string;
   geminiDir?: string;
+  droidDir?: string;
   opencodeDb?: string;
   sourceDir?: string[];
   source?: string | string[];

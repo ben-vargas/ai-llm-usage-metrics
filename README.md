@@ -21,11 +21,11 @@
 
 ---
 
-Aggregate token usage and costs from your local coding agent sessions. Supports **pi**, **codex**, **Gemini CLI**, and **OpenCode** with zero configuration required.
+Aggregate token usage and costs from your local coding agent sessions. Supports **pi**, **codex**, **Gemini CLI**, **Droid CLI**, and **OpenCode** with zero configuration required.
 
 ## ✨ Features
 
-- **Zero-Config Discovery** — Automatically finds `.pi`, `.codex`, `.gemini`, and OpenCode session data
+- **Zero-Config Discovery** — Automatically finds `.pi`, `.codex`, `.gemini`, `.factory`, and OpenCode session data
 - **LiteLLM Pricing** — Real-time pricing sync with offline caching support
 - **Flexible Reports** — Daily, weekly, and monthly aggregations
 - **Efficiency Reports** — Correlate cost/tokens with repository commit outcomes
@@ -53,12 +53,13 @@ llm-usage daily
 
 ## 📋 Supported Sources
 
-| Source         | Pattern                           | Discovery                        |
-| -------------- | --------------------------------- | -------------------------------- |
-| **pi**         | `~/.pi/agent/sessions/**/*.jsonl` | Automatic                        |
-| **codex**      | `~/.codex/sessions/**/*.jsonl`    | Automatic                        |
-| **Gemini CLI** | `~/.gemini/tmp/*/chats/*.json`    | Automatic                        |
-| **OpenCode**   | `~/.opencode/opencode.db`         | Auto or explicit `--opencode-db` |
+| Source         | Pattern                                  | Discovery                        |
+| -------------- | ---------------------------------------- | -------------------------------- |
+| **pi**         | `~/.pi/agent/sessions/**/*.jsonl`        | Automatic                        |
+| **codex**      | `~/.codex/sessions/**/*.jsonl`           | Automatic                        |
+| **Gemini CLI** | `~/.gemini/tmp/*/chats/*.json`           | Automatic                        |
+| **Droid CLI**  | `~/.factory/sessions/**/*.settings.json` | Automatic                        |
+| **OpenCode**   | `~/.opencode/opencode.db`                | Auto or explicit `--opencode-db` |
 
 OpenCode source support requires Node.js 24+ runtime with built-in `node:sqlite`.
 
@@ -125,16 +126,17 @@ For source-by-source comparisons, run the same report per source:
 llm-usage efficiency monthly --repo-dir /path/to/repo --source pi
 llm-usage efficiency monthly --repo-dir /path/to/repo --source codex
 llm-usage efficiency monthly --repo-dir /path/to/repo --source gemini
+llm-usage efficiency monthly --repo-dir /path/to/repo --source droid
 llm-usage efficiency monthly --repo-dir /path/to/repo --source opencode
 ```
 
-Note: usage filters (`--source`, `--provider`, `--model`, `--pi-dir`, `--codex-dir`, `--gemini-dir`, `--opencode-db`, `--source-dir`) also constrain commit attribution: only commit days with matching repo-attributed usage events are counted.
+Note: usage filters (`--source`, `--provider`, `--model`, `--pi-dir`, `--codex-dir`, `--gemini-dir`, `--droid-dir`, `--opencode-db`, `--source-dir`) also constrain commit attribution: only commit days with matching repo-attributed usage events are counted.
 
 ### Filtering
 
 ```bash
 # By source
-llm-usage monthly --source pi,codex,gemini
+llm-usage monthly --source pi,codex,gemini,droid
 
 # By provider
 llm-usage monthly --provider openai
@@ -150,10 +152,11 @@ llm-usage monthly --source opencode --provider openai --model gpt-4.1
 
 ```bash
 # Custom directories
-llm-usage daily --source-dir pi=/path/to/pi --source-dir codex=/path/to/codex --source-dir gemini=/path/to/.gemini
+llm-usage daily --source-dir pi=/path/to/pi --source-dir codex=/path/to/codex --source-dir gemini=/path/to/.gemini --source-dir droid=/path/to/.factory/sessions
 
-# Explicit Gemini/OpenCode paths
+# Explicit Gemini/Droid/OpenCode paths
 llm-usage daily --gemini-dir /path/to/.gemini
+llm-usage daily --droid-dir /path/to/.factory/sessions
 llm-usage daily --opencode-db /path/to/opencode.db
 ```
 

@@ -51,6 +51,14 @@ function resolveScopeNote(options: EfficiencyCommandOptions): string | undefined
     activeFilters.push('--codex-dir');
   }
 
+  if (hasActiveTextOption(options.geminiDir)) {
+    activeFilters.push('--gemini-dir');
+  }
+
+  if (hasActiveTextOption(options.droidDir)) {
+    activeFilters.push('--droid-dir');
+  }
+
   if (hasActiveTextOption(options.opencodeDb)) {
     activeFilters.push('--opencode-db');
   }

@@ -22,6 +22,7 @@ npx --yes llm-usage-metrics@latest daily
   - `.pi` sessions (`~/.pi/agent/sessions/**/*.jsonl`)
   - `.codex` sessions (`~/.codex/sessions/**/*.jsonl`)
   - `.gemini` sessions (`~/.gemini/tmp/*/chats/*.json`)
+  - Droid sessions (`~/.factory/sessions/**/*.settings.json`)
   - OpenCode SQLite DB (auto-discovered or explicit `--opencode-db`, requires built-in `node:sqlite` support)
 
 ## First report
@@ -40,7 +41,7 @@ llm-usage monthly --since 2026-01-01 --until 2026-01-31
 ## Common filters
 
 ```bash
-llm-usage monthly --source pi,codex,gemini
+llm-usage monthly --source pi,codex,gemini,droid
 llm-usage monthly --provider openai
 llm-usage monthly --model claude
 ```
@@ -76,3 +77,9 @@ llm-usage monthly --source opencode --opencode-db /path/to/opencode.db
 ```
 
 If no default OpenCode DB is found and no explicit path is given, OpenCode is treated as unavailable for that run.
+
+## Droid explicit path
+
+```bash
+llm-usage monthly --source droid --droid-dir /path/to/.factory/sessions
+```

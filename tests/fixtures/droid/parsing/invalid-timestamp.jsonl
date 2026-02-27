@@ -1,0 +1,3 @@
+{"type":"session_start","session_start":{"cwd":"/home/user/projects/invalid-timestamp"}}
+{"type":"message","timestamp":"also-not-a-date"}
+

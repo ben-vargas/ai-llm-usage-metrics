@@ -1,0 +1,31 @@
+---
+title: droid Source
+---
+
+## Default location
+
+- `~/.factory/sessions/**/*.settings.json`
+
+## Override
+
+```bash
+llm-usage daily --droid-dir /path/to/.factory/sessions
+# or
+llm-usage daily --source-dir droid=/path/to/.factory/sessions
+```
+
+## Parsing notes
+
+- each `*.settings.json` file is treated as a session summary
+- token mapping (from `tokenUsage`):
+  - `inputTokens` → `inputTokens`
+  - `outputTokens` → `outputTokens`
+  - `thinkingTokens` → `reasoningTokens`
+  - `cacheReadTokens` → `cacheReadTokens`
+  - `cacheCreationTokens` → `cacheWriteTokens`
+- `totalTokens = input + output + reasoning + cacheRead + cacheWrite`
+- `costMode` is always `estimated`
+- `sessionId` is derived from the filename basename (without `.settings.json`)
+- optional sibling JSONL (`same-basename.jsonl`) is used only for metadata enrichment:
+  - `session_start.cwd` → `repoRoot`
+  - fallback timestamp from the first `message.timestamp` only when `providerLockTimestamp` is missing/invalid

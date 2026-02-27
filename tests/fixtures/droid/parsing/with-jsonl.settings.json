@@ -1,0 +1,12 @@
+{
+  "providerLock": "openai",
+  "model": "gpt-4.1-mini",
+  "providerLockTimestamp": "2026-02-24T10:00:02.000Z",
+  "tokenUsage": {
+    "inputTokens": 2,
+    "outputTokens": 1,
+    "thinkingTokens": 0,
+    "cacheReadTokens": 0,
+    "cacheCreationTokens": 0
+  }
+}

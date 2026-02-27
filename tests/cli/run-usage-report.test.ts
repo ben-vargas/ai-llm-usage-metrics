@@ -64,6 +64,55 @@ afterEach(async () => {
 });
 
 describe('buildUsageReport', () => {
+  it('aggregates droid sessions end-to-end when --source droid is provided', async () => {
+    const fetchSpy = vi.fn(async () => {
+      throw new Error('fetch should not be required for droid integration test');
+    });
+
+    vi.stubGlobal('fetch', fetchSpy);
+
+    try {
+      const report = await buildUsageReport('daily', {
+        droidDir: path.resolve('tests/fixtures/droid/report'),
+        source: 'droid',
+        timezone: 'UTC',
+        json: true,
+        ignorePricingFailures: true,
+      });
+
+      const parsed = JSON.parse(report) as {
+        rowType: string;
+        periodKey: string;
+        source: string;
+        totalTokens: number;
+        inputTokens: number;
+        outputTokens: number;
+        reasoningTokens: number;
+        cacheReadTokens: number;
+        cacheWriteTokens: number;
+      }[];
+
+      const periodRow = parsed.find(
+        (row) => row.rowType === 'period_source' && row.source === 'droid',
+      );
+
+      expect(periodRow).toMatchObject({
+        rowType: 'period_source',
+        periodKey: '2026-02-25',
+        source: 'droid',
+        inputTokens: 10,
+        outputTokens: 5,
+        reasoningTokens: 3,
+        cacheReadTokens: 1,
+        cacheWriteTokens: 2,
+        totalTokens: 21,
+      });
+      expect(parsed.at(-1)).toMatchObject({ rowType: 'grand_total', periodKey: 'ALL' });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('builds markdown report with source-separated rows', async () => {
     const report = await buildUsageReport('daily', {
       piDir: path.resolve('tests/fixtures/pi'),
@@ -391,7 +440,7 @@ describe('buildUsageReport', () => {
         source: 'claude',
       }),
     ).rejects.toThrow(
-      'Unknown --source value(s): claude. Allowed values: codex, gemini, opencode, pi',
+      'Unknown --source value(s): claude. Allowed values: codex, droid, gemini, opencode, pi',
     );
 
     await expect(
