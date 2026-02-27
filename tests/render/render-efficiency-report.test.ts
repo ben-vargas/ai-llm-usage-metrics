@@ -4,6 +4,8 @@ import { renderEfficiencyReport } from '../../src/render/render-efficiency-repor
 import type { EfficiencyDataResult } from '../../src/cli/usage-data-contracts.js';
 import { visibleWidth } from '../../src/render/table-text-layout.js';
 
+let pendingStdoutRestores = new Set<() => void>();
+
 function overrideStdoutProperty<Key extends 'isTTY' | 'columns'>(
   property: Key,
   value: NodeJS.WriteStream[Key],
@@ -29,11 +31,22 @@ function overrideStdoutProperty<Key extends 'isTTY' | 'columns'>(
 function overrideStdoutTty(columns: number): () => void {
   const restoreIsTTY = overrideStdoutProperty('isTTY', true);
   const restoreColumns = overrideStdoutProperty('columns', columns);
+  let restored = false;
 
-  return () => {
+  const restore = () => {
+    if (restored) {
+      return;
+    }
+
+    restored = true;
     restoreColumns();
     restoreIsTTY();
+    pendingStdoutRestores.delete(restore);
   };
+
+  pendingStdoutRestores.add(restore);
+
+  return restore;
 }
 
 function createEfficiencyDataResult(
@@ -108,6 +121,10 @@ function createEfficiencyDataResult(
 describe('renderEfficiencyReport', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    for (const restore of pendingStdoutRestores) {
+      restore();
+    }
+    pendingStdoutRestores = new Set<() => void>();
   });
 
   it('renders markdown output with efficiency columns', () => {

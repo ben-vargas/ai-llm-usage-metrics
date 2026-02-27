@@ -156,9 +156,10 @@ function fitTableCellsToTerminal(
   }
 
   const constrainedWidths = [...naturalWidths];
+  let renderedTableWidth = measureRenderedTableWidth(constrainedWidths);
 
   while (
-    measureRenderedTableWidth(constrainedWidths) > terminalWidth &&
+    renderedTableWidth > terminalWidth &&
     constrainedWidths.some((width) => width > minimumEfficiencyColumnWidth)
   ) {
     let widestIndex = -1;
@@ -179,7 +180,16 @@ function fitTableCellsToTerminal(
       break;
     }
 
-    constrainedWidths[widestIndex] -= 1;
+    const overflowColumns = renderedTableWidth - terminalWidth;
+    const maxReducibleWidth = widestWidth - minimumEfficiencyColumnWidth;
+    const reduction = Math.min(overflowColumns, maxReducibleWidth);
+
+    if (reduction <= 0) {
+      break;
+    }
+
+    constrainedWidths[widestIndex] -= reduction;
+    renderedTableWidth -= reduction;
   }
 
   const { wrappedHeaderCells, wrappedBodyRows } = resolveWrappedCells(
