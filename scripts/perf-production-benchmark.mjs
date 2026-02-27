@@ -10,6 +10,7 @@ Benchmark ccusage-codex monthly vs llm-usage monthly --provider openai.
 
 Options:
   --runs <count>             Number of timed runs per scenario (default: 5)
+  --llm-source <value>       Optional llm-usage source filter (single or comma-separated)
   --json-output <path>       Write detailed benchmark payload as JSON
   --markdown-output <path>   Write markdown benchmark summary
   --keep-temp-cache          Keep temporary cache directory for inspection
@@ -20,6 +21,7 @@ Options:
 function parseCliArgs(argv) {
   const args = {
     runs: 5,
+    llmSource: undefined,
     jsonOutputPath: undefined,
     markdownOutputPath: undefined,
     keepTempCache: false,
@@ -58,6 +60,17 @@ function parseCliArgs(argv) {
         }
 
         args.jsonOutputPath = value;
+        index += 1;
+        break;
+      }
+      case '--llm-source': {
+        const value = argv[index + 1];
+
+        if (!value) {
+          throw new Error('--llm-source requires a value');
+        }
+
+        args.llmSource = value;
         index += 1;
         break;
       }
@@ -158,18 +171,47 @@ function toFixed(value, digits = 2) {
   return Number(value.toFixed(digits));
 }
 
-function toTableRows(summaryByScenario) {
+function buildLlmUsageArgs(llmSource, includePricingOffline = false) {
+  const args = ['monthly', '--provider', 'openai'];
+
+  if (llmSource) {
+    args.push('--source', llmSource);
+  }
+
+  if (includePricingOffline) {
+    args.push('--pricing-offline');
+  }
+
+  args.push('--json');
+  return args;
+}
+
+function buildLlmUsageToolName(llmSource, includePricingOffline = false) {
+  const parts = ['llm-usage monthly --provider openai'];
+
+  if (llmSource) {
+    parts.push(`--source ${llmSource}`);
+  }
+
+  if (includePricingOffline) {
+    parts.push('--pricing-offline');
+  }
+
+  return parts.join(' ');
+}
+
+function toTableRows(summaryByScenario, config) {
   const definitions = [
     { key: 'ccusage_no_cache', tool: 'ccusage-codex monthly', cacheMode: 'no cache' },
     { key: 'ccusage_with_cache', tool: 'ccusage-codex monthly --offline', cacheMode: 'with cache' },
     {
       key: 'llm_usage_no_cache',
-      tool: 'llm-usage monthly --provider openai',
+      tool: buildLlmUsageToolName(config.llmSource, false),
       cacheMode: 'no cache',
     },
     {
       key: 'llm_usage_with_cache',
-      tool: 'llm-usage monthly --provider openai --pricing-offline',
+      tool: buildLlmUsageToolName(config.llmSource, true),
       cacheMode: 'with cache',
     },
   ];
@@ -189,7 +231,7 @@ function toTableRows(summaryByScenario) {
 }
 
 function buildMarkdownSummary(report) {
-  const runtimeRows = toTableRows(report.summaryByScenario);
+  const runtimeRows = toTableRows(report.summaryByScenario, report.config);
   const speedups = report.derivedSpeedups;
   const specs = report.machine;
   const generatedAt = report.generatedAt;
@@ -272,6 +314,8 @@ async function main() {
     llm_usage_no_cache: [],
     llm_usage_with_cache: [],
   };
+  const llmUsageNoCacheArgs = buildLlmUsageArgs(cliArgs.llmSource, false);
+  const llmUsageWithCacheArgs = buildLlmUsageArgs(cliArgs.llmSource, true);
 
   try {
     // Warm cache directories before sampled runs.
@@ -281,14 +325,14 @@ async function main() {
       },
     });
 
-    runCommand('llm-usage', ['monthly', '--provider', 'openai', '--json'], {
+    runCommand('llm-usage', llmUsageNoCacheArgs, {
       env: {
         XDG_CACHE_HOME: llmUsageWarmCacheRoot,
         LLM_USAGE_SKIP_UPDATE_CHECK: '1',
       },
     });
 
-    runCommand('llm-usage', ['monthly', '--provider', 'openai', '--pricing-offline', '--json'], {
+    runCommand('llm-usage', llmUsageWithCacheArgs, {
       env: {
         XDG_CACHE_HOME: llmUsageWarmCacheRoot,
         LLM_USAGE_SKIP_UPDATE_CHECK: '1',
@@ -320,7 +364,7 @@ async function main() {
       );
 
       scenarioTimings.llm_usage_no_cache.push(
-        measureCommand('llm-usage', ['monthly', '--provider', 'openai', '--json'], {
+        measureCommand('llm-usage', llmUsageNoCacheArgs, {
           env: {
             XDG_CACHE_HOME: llmUsageNoCacheRoot,
             LLM_USAGE_PARSE_CACHE_ENABLED: '0',
@@ -330,16 +374,12 @@ async function main() {
       );
 
       scenarioTimings.llm_usage_with_cache.push(
-        measureCommand(
-          'llm-usage',
-          ['monthly', '--provider', 'openai', '--pricing-offline', '--json'],
-          {
-            env: {
-              XDG_CACHE_HOME: llmUsageWarmCacheRoot,
-              LLM_USAGE_SKIP_UPDATE_CHECK: '1',
-            },
+        measureCommand('llm-usage', llmUsageWithCacheArgs, {
+          env: {
+            XDG_CACHE_HOME: llmUsageWarmCacheRoot,
+            LLM_USAGE_SKIP_UPDATE_CHECK: '1',
           },
-        ),
+        }),
       );
     }
   } finally {
@@ -376,6 +416,7 @@ async function main() {
     generatedAt: new Date().toISOString().slice(0, 10),
     config: {
       runs: cliArgs.runs,
+      llmSource: cliArgs.llmSource,
     },
     machine: resolveMachineSpecs(),
     scenarios: scenarioTimings,
@@ -384,7 +425,7 @@ async function main() {
   };
 
   console.log('Production benchmark summary');
-  console.table(toTableRows(summaryByScenario));
+  console.table(toTableRows(summaryByScenario, report.config));
   console.log('Derived speedups (median):');
   console.log(
     `- llm-usage vs ccusage-codex (no cache): ${derivedSpeedups.llmVsCcusageNoCache.toFixed(2)}x`,

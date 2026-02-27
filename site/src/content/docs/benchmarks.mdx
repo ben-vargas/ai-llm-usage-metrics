@@ -7,23 +7,34 @@ description: Production benchmark comparison of llm-usage-metrics and ccusage-co
 
 ## Performance Summary
 
-- **Up to ~20x faster** than `ccusage-codex` in cached environments.
-- **3.4x faster** raw cold-start parsing.
-- **Sub-second reporting** (0.79s vs 14.04s) for standard monthly audits.
+- **Codex-only parity run:** `4.60x` faster cold and `22.78x` faster cached.
+- **Multi-source OpenAI run:** `3.63x` faster cold and `17.75x` faster cached.
+- **Sub-second cached reporting** in both scenarios (`0.746s` codex-only, `0.941s` multi-source).
 
-## Production benchmark (February 24, 2026)
+## Production benchmark (February 27, 2026)
 
 This benchmark compares:
 
-- `ccusage-codex monthly`
-- `llm-usage monthly --provider openai` (the installed binary for `llm-usage-metrics`)
+- `ccusage-codex monthly` (Codex-only baseline)
+- `llm-usage monthly --provider openai --source codex` (direct source-to-source parity)
+- `llm-usage monthly --provider openai --source pi,codex,gemini,opencode` (multi-source OpenAI scope)
 
 Both commands were executed on the same machine, against real local production data, with repeated timed runs.
 
-You can reproduce this benchmark with the built-in script:
+You can reproduce the **direct source-to-source** benchmark with:
 
 ```bash
-pnpm run perf:production-benchmark -- --runs 5
+pnpm run perf:production-benchmark -- \
+  --runs 5 \
+  --llm-source codex
+```
+
+You can reproduce the **multi-source OpenAI** benchmark with:
+
+```bash
+pnpm run perf:production-benchmark -- \
+  --runs 5 \
+  --llm-source pi,codex,gemini,opencode
 ```
 
 To export reusable artifacts:
@@ -31,8 +42,15 @@ To export reusable artifacts:
 ```bash
 pnpm run perf:production-benchmark -- \
   --runs 5 \
-  --json-output ./tmp/production-benchmark.json \
-  --markdown-output ./tmp/production-benchmark.md
+  --llm-source codex \
+  --json-output ./tmp/production-benchmark-openai-codex.json \
+  --markdown-output ./tmp/production-benchmark-openai-codex.md
+
+pnpm run perf:production-benchmark -- \
+  --runs 5 \
+  --llm-source pi,codex,gemini,opencode \
+  --json-output ./tmp/production-benchmark-openai-multi-source.json \
+  --markdown-output ./tmp/production-benchmark-openai-multi-source.md
 ```
 
 ## Baseline machine
@@ -45,8 +63,8 @@ pnpm run perf:production-benchmark -- \
 | Storage | NVMe SSD (KXG8AZNV1T02 LA KIOXIA, 953.9 GiB) |
 | Node.js | v24.12.0 |
 | pnpm | 10.17.1 |
-| `ccusage-codex` | 18.0.5 |
-| `llm-usage` (`llm-usage-metrics`) | 0.3.2 |
+| `ccusage-codex` | 18.0.8 |
+| `llm-usage` (`llm-usage-metrics`) | 0.3.4 |
 
 ## Cache modes used
 
@@ -68,26 +86,46 @@ For repeatability, `LLM_USAGE_SKIP_UPDATE_CHECK=1` was set for `llm-usage` bench
 ccusage-codex monthly --json
 ccusage-codex monthly --offline --json
 
-# llm-usage-metrics (installed as llm-usage)
-llm-usage monthly --provider openai --json
-llm-usage monthly --provider openai --pricing-offline --json
+# llm-usage-metrics direct parity (codex only)
+llm-usage monthly --provider openai --source codex --json
+llm-usage monthly --provider openai --source codex --pricing-offline --json
+
+# llm-usage-metrics multi-source (openai provider)
+llm-usage monthly --provider openai --source pi,codex,gemini,opencode --json
+llm-usage monthly --provider openai --source pi,codex,gemini,opencode --pricing-offline --json
 ```
 
-## Runtime results (5 runs each)
+## Runtime results (5 runs each): direct source-to-source (`--source codex`)
 
 | Tool | Cache mode | Median (s) | Mean (s) | Min (s) | Max (s) |
 | --- | --- | ---: | ---: | ---: | ---: |
-| `ccusage-codex monthly` | no cache | 14.247 | 14.456 | 14.189 | 15.166 |
-| `ccusage-codex monthly --offline` | with cache | 14.043 | 14.268 | 13.917 | 14.923 |
-| `llm-usage monthly --provider openai` | no cache | 4.192 | 4.196 | 4.101 | 4.270 |
-| `llm-usage monthly --provider openai --pricing-offline` | with cache | 0.793 | 0.784 | 0.729 | 0.840 |
+| `ccusage-codex monthly` | no cache | 16.785 | 17.288 | 16.35 | 19.363 |
+| `ccusage-codex monthly --offline` | with cache | 16.995 | 17.594 | 16.462 | 19.909 |
+| `llm-usage monthly --provider openai --source codex` | no cache | 3.651 | 3.76 | 3.526 | 4.411 |
+| `llm-usage monthly --provider openai --source codex --pricing-offline` | with cache | 0.746 | 0.724 | 0.618 | 0.81 |
 
 Derived from median runtime:
 
-- `llm-usage` vs `ccusage-codex` (no cache): `3.40x` faster
-- `llm-usage` vs `ccusage-codex` (with cache): `17.71x` faster
-- `llm-usage` cache effect: `5.29x` faster with cache
-- `ccusage-codex` cache effect: `1.01x` faster with cache
+- `llm-usage` vs `ccusage-codex` (no cache): `4.60x` faster
+- `llm-usage` vs `ccusage-codex` (with cache): `22.78x` faster
+- `llm-usage` cache effect: `4.89x` faster with cache
+- `ccusage-codex` cache effect: `0.99x` faster with cache
+
+## Runtime results (5 runs each): multi-source OpenAI (`--source pi,codex,gemini,opencode`)
+
+| Tool | Cache mode | Median (s) | Mean (s) | Min (s) | Max (s) |
+| --- | --- | ---: | ---: | ---: | ---: |
+| `ccusage-codex monthly` | no cache | 17.297 | 17.463 | 16.76 | 18.634 |
+| `ccusage-codex monthly --offline` | with cache | 16.698 | 16.745 | 16.204 | 17.17 |
+| `llm-usage monthly --provider openai --source pi,codex,gemini,opencode` | no cache | 4.767 | 4.864 | 4.544 | 5.229 |
+| `llm-usage monthly --provider openai --source pi,codex,gemini,opencode --pricing-offline` | with cache | 0.941 | 0.951 | 0.912 | 1.004 |
+
+Derived from median runtime:
+
+- `llm-usage` vs `ccusage-codex` (no cache): `3.63x` faster
+- `llm-usage` vs `ccusage-codex` (with cache): `17.75x` faster
+- `llm-usage` cache effect: `5.07x` faster with cache
+- `ccusage-codex` cache effect: `1.04x` faster with cache
 
 ## Dataset scope observed during benchmark
 
@@ -95,11 +133,13 @@ These commands do not cover identical scope, so compare runtime with that contex
 
 | Tool | Scope snapshot from benchmark run |
 | --- | --- |
-| `llm-usage monthly --provider openai` | 559 session files, 81,275 parsed events (`pi`: 174 files / 18,627 events, `codex`: 384 / 58,366, `opencode`: 1 / 4,282) |
-| `ccusage-codex monthly` | Codex-only report (`monthly` array: 3 periods, plus `totals`) |
+| `llm-usage monthly --provider openai --source codex` | Direct codex-only scope parity with `ccusage-codex monthly` |
+| `llm-usage monthly --provider openai --source pi,codex,gemini,opencode` | Multi-source OpenAI scope across four adapters |
+| `ccusage-codex monthly` | Codex-only report (`monthly` array plus `totals`) |
 
 ## Interpretation
 
+- `llm-usage` remains substantially faster in both parity and multi-source comparisons.
 - `llm-usage` benefits strongly from parse + pricing cache in repeated runs.
-- `ccusage-codex` runtime is similar in both modes on this machine and dataset.
+- `ccusage-codex` runtime remains similar between `--no-offline` and `--offline` on this dataset.
 - Results are production-real for this machine and data, not universal constants. Re-run on your own workload before making broad conclusions.

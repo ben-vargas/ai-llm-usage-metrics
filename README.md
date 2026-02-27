@@ -172,41 +172,61 @@ llm-usage monthly --ignore-pricing-failures
 
 ## 🧪 Production Benchmarks
 
-Benchmarked on **February 24, 2026** on a local production machine:
+Benchmarked on **February 27, 2026** on a local production machine:
 
 - OS: CachyOS (Linux 6.19.2-2-cachyos)
 - CPU: Intel Core Ultra 9 185H (22 logical CPUs)
 - RAM: 62 GiB
 - Storage: NVMe SSD
 
-Compared commands:
+Compared scenarios:
 
 ```bash
+# direct source-to-source parity (openai provider)
 ccusage-codex monthly
-llm-usage monthly --provider openai
+llm-usage monthly --provider openai --source codex
+
+# multi-source comparison for one provider (openai)
+ccusage-codex monthly
+llm-usage monthly --provider openai --source pi,codex,gemini,opencode
 ```
 
-Timed benchmark summary (5 runs per scenario):
+Timed benchmark summary (5 runs per scenario).
 
-| Tool                                                    | Cache mode | Median (s) | Mean (s) |
-| ------------------------------------------------------- | ---------- | ---------: | -------: |
-| `ccusage-codex monthly`                                 | no cache   |     14.247 |   14.456 |
-| `ccusage-codex monthly --offline`                       | with cache |     14.043 |   14.268 |
-| `llm-usage monthly --provider openai`                   | no cache   |      4.192 |    4.196 |
-| `llm-usage monthly --provider openai --pricing-offline` | with cache |      0.793 |    0.784 |
+Direct source-to-source parity (`--source codex`):
 
-On this dataset and machine:
+| Tool                                                                   | Cache mode | Median (s) | Mean (s) |
+| ---------------------------------------------------------------------- | ---------- | ---------: | -------: |
+| `ccusage-codex monthly`                                                | no cache   |     16.785 |   17.288 |
+| `ccusage-codex monthly --offline`                                      | with cache |     16.995 |   17.594 |
+| `llm-usage monthly --provider openai --source codex`                   | no cache   |      3.651 |    3.760 |
+| `llm-usage monthly --provider openai --source codex --pricing-offline` | with cache |      0.746 |    0.724 |
 
-- `llm-usage` is `3.40x` faster than `ccusage-codex` in no-cache mode.
-- `llm-usage` is `17.71x` faster than `ccusage-codex` in cached mode.
-- `llm-usage` improves `5.29x` with cache; `ccusage-codex` improves `1.01x`.
+Speedups (median): `4.60x` faster cold, `22.78x` faster cached.
+
+Multi-source OpenAI (`--source pi,codex,gemini,opencode`):
+
+| Tool                                                                                      | Cache mode | Median (s) | Mean (s) |
+| ----------------------------------------------------------------------------------------- | ---------- | ---------: | -------: |
+| `ccusage-codex monthly`                                                                   | no cache   |     17.297 |   17.463 |
+| `ccusage-codex monthly --offline`                                                         | with cache |     16.698 |   16.745 |
+| `llm-usage monthly --provider openai --source pi,codex,gemini,opencode`                   | no cache   |      4.767 |    4.864 |
+| `llm-usage monthly --provider openai --source pi,codex,gemini,opencode --pricing-offline` | with cache |      0.941 |    0.951 |
+
+Speedups (median): `3.63x` faster cold, `17.75x` faster cached.
 
 Full methodology, cache-mode definition, and scope caveats are documented in the Astro docs: [Benchmarks](https://ayagmar.github.io/llm-usage-metrics/benchmarks/).
 
-Re-run benchmark locally:
+Re-run direct parity benchmark locally:
 
 ```bash
-pnpm run perf:production-benchmark -- --runs 5
+pnpm run perf:production-benchmark -- --runs 5 --llm-source codex
+```
+
+Re-run multi-source OpenAI benchmark locally:
+
+```bash
+pnpm run perf:production-benchmark -- --runs 5 --llm-source pi,codex,gemini,opencode
 ```
 
 Generate machine-readable artifacts:
@@ -214,8 +234,15 @@ Generate machine-readable artifacts:
 ```bash
 pnpm run perf:production-benchmark -- \
   --runs 5 \
-  --json-output ./tmp/production-benchmark.json \
-  --markdown-output ./tmp/production-benchmark.md
+  --llm-source codex \
+  --json-output ./tmp/production-benchmark-openai-codex.json \
+  --markdown-output ./tmp/production-benchmark-openai-codex.md
+
+pnpm run perf:production-benchmark -- \
+  --runs 5 \
+  --llm-source pi,codex,gemini,opencode \
+  --json-output ./tmp/production-benchmark-openai-multi-source.json \
+  --markdown-output ./tmp/production-benchmark-openai-multi-source.md
 ```
 
 ## ⚙️ Configuration

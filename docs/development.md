@@ -41,7 +41,11 @@ Use it to track report runtime over time while iterating locally.
 Compare production runtime against `ccusage-codex` on your machine:
 
 ```bash
-pnpm run perf:production-benchmark -- --runs 5
+# direct source-to-source parity
+pnpm run perf:production-benchmark -- --runs 5 --llm-source codex
+
+# multi-source for one provider
+pnpm run perf:production-benchmark -- --runs 5 --llm-source pi,codex,gemini,opencode
 ```
 
 Optional artifact outputs:
@@ -49,8 +53,15 @@ Optional artifact outputs:
 ```bash
 pnpm run perf:production-benchmark -- \
   --runs 5 \
-  --json-output ./tmp/production-benchmark.json \
-  --markdown-output ./tmp/production-benchmark.md
+  --llm-source codex \
+  --json-output ./tmp/production-benchmark-openai-codex.json \
+  --markdown-output ./tmp/production-benchmark-openai-codex.md
+
+pnpm run perf:production-benchmark -- \
+  --runs 5 \
+  --llm-source pi,codex,gemini,opencode \
+  --json-output ./tmp/production-benchmark-openai-multi-source.json \
+  --markdown-output ./tmp/production-benchmark-openai-multi-source.md
 ```
 
 ## Runtime configuration in development
