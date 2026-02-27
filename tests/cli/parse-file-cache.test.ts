@@ -1,10 +1,13 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { ParseFileCache } from '../../src/cli/parse-file-cache.js';
+import {
+  getSourceShardedParseFileCachePath,
+  ParseFileCache,
+} from '../../src/cli/parse-file-cache.js';
 import { createUsageEvent } from '../../src/domain/usage-event.js';
 
 const tempDirs: string[] = [];
@@ -31,6 +34,26 @@ function createEvent(overrides: Partial<Parameters<typeof createUsageEvent>[0]> 
 }
 
 describe('ParseFileCache', () => {
+  describe('getSourceShardedParseFileCachePath', () => {
+    it('adds source shard before file extension', () => {
+      expect(getSourceShardedParseFileCachePath('/tmp/parse-file-cache.json', 'Droid')).toBe(
+        '/tmp/parse-file-cache.droid.json',
+      );
+    });
+
+    it('handles cache file paths without extension', () => {
+      expect(getSourceShardedParseFileCachePath('/tmp/parse-file-cache', 'pi')).toBe(
+        '/tmp/parse-file-cache.pi',
+      );
+    });
+
+    it('normalizes unsupported source characters', () => {
+      expect(getSourceShardedParseFileCachePath('/tmp/parse-file-cache.json', 'my/source id')).toBe(
+        '/tmp/parse-file-cache.my_source_id.json',
+      );
+    });
+  });
+
   it('persists and reloads diagnostics while preserving nested skipped row reasons', async () => {
     const tempDir = await mkdtemp(path.join(os.tmpdir(), 'parse-file-cache-roundtrip-'));
     tempDirs.push(tempDir);
@@ -363,5 +386,64 @@ describe('ParseFileCache', () => {
 
     await cache.persist();
     await expect(readFile(cacheFilePath, 'utf8')).rejects.toThrow();
+  });
+
+  it('skips oversized cache payloads before loading entries', async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), 'parse-file-cache-oversized-load-'));
+    tempDirs.push(tempDir);
+    const cacheFilePath = path.join(tempDir, 'parse-file-cache.json');
+
+    const oversizedEvent = createEvent({ sessionId: 'oversized-session-id'.repeat(100) });
+    await writeFile(
+      cacheFilePath,
+      JSON.stringify({
+        version: 2,
+        entries: [
+          {
+            source: 'codex',
+            filePath: '/tmp/oversized.jsonl',
+            fingerprint: { size: 12, mtimeMs: 34 },
+            cachedAt: 1,
+            diagnostics: { events: [oversizedEvent], skippedRows: 0, skippedRowReasons: [] },
+          },
+        ],
+      }),
+      'utf8',
+    );
+
+    const cache = await ParseFileCache.load({
+      cacheFilePath,
+      limits: { ttlMs: 60_000, maxEntries: 100, maxBytes: 300 },
+      now: () => 100,
+    });
+
+    expect(cache.get('codex', '/tmp/oversized.jsonl', { size: 12, mtimeMs: 34 })).toBeUndefined();
+
+    await cache.persist();
+    const persisted = JSON.parse(await readFile(cacheFilePath, 'utf8')) as { entries: unknown[] };
+    expect(persisted.entries).toHaveLength(0);
+  });
+
+  it('does not leave temporary files after atomic persist', async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), 'parse-file-cache-atomic-persist-'));
+    tempDirs.push(tempDir);
+    const cacheFilePath = path.join(tempDir, 'parse-file-cache.json');
+
+    const cache = await ParseFileCache.load({
+      cacheFilePath,
+      limits: { ttlMs: 60_000, maxEntries: 100, maxBytes: 1024 * 1024 },
+      now: () => 1_000,
+    });
+    cache.set(
+      'codex',
+      '/tmp/atomic.jsonl',
+      { size: 1, mtimeMs: 1 },
+      { events: [createEvent()], skippedRows: 0 },
+    );
+
+    await cache.persist();
+
+    const files = await readdir(tempDir);
+    expect(files).toEqual(['parse-file-cache.json']);
   });
 });

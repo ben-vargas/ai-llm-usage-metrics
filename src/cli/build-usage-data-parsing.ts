@@ -9,7 +9,11 @@ import type {
 } from '../sources/source-adapter.js';
 import { normalizeSkippedRowReasons } from './normalize-skipped-row-reasons.js';
 import { getPeriodKey } from '../utils/time-buckets.js';
-import { ParseFileCache } from './parse-file-cache.js';
+import {
+  getDefaultParseFileCachePath,
+  getSourceShardedParseFileCachePath,
+  ParseFileCache,
+} from './parse-file-cache.js';
 
 import type { UsageSourceFailure } from './usage-data-contracts.js';
 
@@ -151,30 +155,50 @@ export async function parseSelectedAdapters(
   maxParallelFileParsing: number,
   options: ParseSelectedAdaptersOptions = {},
 ): Promise<ParsedAdaptersResult> {
-  const parseCache = options.parseCache?.enabled
-    ? await ParseFileCache.load({
-        cacheFilePath: options.parseCacheFilePath,
-        limits: {
-          ttlMs: options.parseCache.ttlMs,
-          maxEntries: options.parseCache.maxEntries,
-          maxBytes: options.parseCache.maxBytes,
-        },
-        now: options.now,
-      })
-    : undefined;
+  const parseCacheBySource = new Map<string, ParseFileCache>();
+
+  if (options.parseCache?.enabled) {
+    const parseCacheLimits = {
+      ttlMs: options.parseCache.ttlMs,
+      maxEntries: options.parseCache.maxEntries,
+      maxBytes: options.parseCache.maxBytes,
+    };
+    const cacheFilePath = options.parseCacheFilePath ?? getDefaultParseFileCachePath();
+
+    await Promise.all(
+      adaptersToParse.map(async (adapter) => {
+        const sourceId = adapter.id.toLowerCase();
+
+        if (parseCacheBySource.has(sourceId)) {
+          return;
+        }
+
+        parseCacheBySource.set(
+          sourceId,
+          await ParseFileCache.load({
+            cacheFilePath: getSourceShardedParseFileCachePath(cacheFilePath, sourceId),
+            limits: parseCacheLimits,
+            now: options.now,
+          }),
+        );
+      }),
+    );
+  }
 
   const parseResults = await Promise.allSettled(
     adaptersToParse.map((adapter) =>
-      parseAdapterEvents(adapter, maxParallelFileParsing, parseCache),
+      parseAdapterEvents(
+        adapter,
+        maxParallelFileParsing,
+        parseCacheBySource.get(adapter.id.toLowerCase()),
+      ),
     ),
   );
 
-  if (parseCache) {
-    try {
-      await parseCache.persist();
-    } catch {
-      // Parse cache persistence is best-effort.
-    }
+  if (parseCacheBySource.size > 0) {
+    await Promise.allSettled(
+      [...parseCacheBySource.values()].map(async (parseCache) => parseCache.persist()),
+    );
   }
 
   const sourceFailures: UsageSourceFailure[] = [];

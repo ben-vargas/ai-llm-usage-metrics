@@ -105,7 +105,7 @@ describe('buildUsageReport', () => {
         reasoningTokens: 3,
         cacheReadTokens: 1,
         cacheWriteTokens: 2,
-        totalTokens: 21,
+        totalTokens: 18,
       });
       expect(parsed.at(-1)).toMatchObject({ rowType: 'grand_total', periodKey: 'ALL' });
     } finally {

@@ -139,6 +139,32 @@ describe('LiteLLMPricingFetcher', () => {
     expect(pricing?.reasoningBilling).toBe('separate');
   });
 
+  it('uses cache-write priority pricing field when standard field is absent', async () => {
+    const rootDir = await mkdtemp(path.join(os.tmpdir(), 'litellm-pricing-cache-write-priority-'));
+    tempDirs.push(rootDir);
+
+    const fetcher = createFetcher({
+      cacheFilePath: path.join(rootDir, 'cache.json'),
+      fetchImpl: vi.fn(async () => {
+        return new Response(
+          JSON.stringify({
+            'gpt-5.2-codex': {
+              input_cost_per_token: 0.0000015,
+              output_cost_per_token: 0.00001,
+              cache_creation_input_token_cost_priority: 0.0000004,
+            },
+          }),
+          { status: 200 },
+        );
+      }),
+    });
+
+    const loadedFromCache = await fetcher.load();
+
+    expect(loadedFromCache).toBe(false);
+    expect(fetcher.getPricing('gpt-5.2-codex')?.cacheWritePer1MUsd).toBeCloseTo(0.4, 10);
+  });
+
   it('throws when LiteLLM payload is not a JSON object and no cache is available', async () => {
     const rootDir = await mkdtemp(path.join(os.tmpdir(), 'litellm-pricing-invalid-payload-'));
     tempDirs.push(rootDir);

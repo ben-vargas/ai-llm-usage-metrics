@@ -63,6 +63,8 @@ llm-usage daily
 
 OpenCode source support requires Node.js 24+ runtime with built-in `node:sqlite`.
 
+For `droid`, `Input`, `Output`, `Reasoning`, `Cache Read`, and `Cache Write` come directly from session files, and `totalTokens` is billable raw tokens (`Input + Output + Cache Read + Cache Write`, excluding `Reasoning`). Factory dashboard totals may differ because Factory applies standard-token normalization/multipliers.
+
 ## 🎯 Usage
 
 ### Basic Reports
@@ -255,6 +257,8 @@ pnpm run perf:production-benchmark -- \
 | `LLM_USAGE_PRICING_CACHE_TTL_MS` | Pricing cache duration            |
 | `LLM_USAGE_PARSE_MAX_PARALLEL`   | Max parallel file parses (`1-64`) |
 | `LLM_USAGE_PARSE_CACHE_ENABLED`  | Enable parse cache (`1/0`)        |
+
+Parse cache is source-sharded on disk (`parse-file-cache.<source>.json`) so source-scoped runs avoid loading unrelated cache blobs.
 
 See full environment variable reference in the [documentation](https://ayagmar.github.io/llm-usage-metrics/configuration/).
 

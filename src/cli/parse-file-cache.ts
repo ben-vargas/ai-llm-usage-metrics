@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { normalizeSourceId, type UsageEvent } from '../domain/usage-event.js';
@@ -230,6 +230,27 @@ export function getDefaultParseFileCachePath(): string {
   return path.join(getUserCacheRootDir(), 'llm-usage-metrics', 'parse-file-cache.json');
 }
 
+function normalizeCacheShardSource(source: string): string {
+  const normalizedSource = normalizeCacheSource(source);
+
+  if (!normalizedSource) {
+    return 'unknown';
+  }
+
+  return normalizedSource.replace(/[^a-z0-9._-]/gu, '_');
+}
+
+export function getSourceShardedParseFileCachePath(cacheFilePath: string, source: string): string {
+  const parsedPath = path.parse(cacheFilePath);
+  const sourceShard = normalizeCacheShardSource(source);
+
+  if (parsedPath.ext.length > 0) {
+    return path.join(parsedPath.dir, `${parsedPath.name}.${sourceShard}${parsedPath.ext}`);
+  }
+
+  return path.join(parsedPath.dir, `${parsedPath.base}.${sourceShard}`);
+}
+
 export class ParseFileCache {
   private readonly entriesByKey = new Map<string, ParseFileCacheEntry>();
   private dirty = false;
@@ -350,8 +371,16 @@ export class ParseFileCache {
     }
 
     await mkdir(path.dirname(this.cacheFilePath), { recursive: true });
-    await writeFile(this.cacheFilePath, payloadText, 'utf8');
-    this.dirty = false;
+    const temporaryPath = `${this.cacheFilePath}.${process.pid}.${this.now()}.tmp`;
+
+    try {
+      await writeFile(temporaryPath, payloadText, 'utf8');
+      await rename(temporaryPath, this.cacheFilePath);
+      this.dirty = false;
+    } catch (error) {
+      await rm(temporaryPath, { force: true }).catch(() => undefined);
+      throw error;
+    }
   }
 
   private toPayload(entries: ParseFileCacheEntry[]): ParseFileCachePayload {
@@ -372,6 +401,20 @@ export class ParseFileCache {
   }
 
   private async loadFromDisk(): Promise<void> {
+    let cacheFileSizeBytes: number;
+
+    try {
+      const cacheStat = await stat(this.cacheFilePath);
+      cacheFileSizeBytes = cacheStat.size;
+    } catch {
+      return;
+    }
+
+    if (cacheFileSizeBytes > this.limits.maxBytes) {
+      this.dirty = true;
+      return;
+    }
+
     let content: string;
 
     try {
@@ -405,6 +448,7 @@ export class ParseFileCache {
 
     if (Buffer.byteLength(content, 'utf8') > this.limits.maxBytes) {
       this.dirty = true;
+      return;
     }
 
     const entries = Array.isArray(payloadRecord.entries) ? payloadRecord.entries : [];

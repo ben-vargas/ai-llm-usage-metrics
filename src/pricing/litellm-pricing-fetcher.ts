@@ -176,7 +176,9 @@ function normalizeModelPricing(rawModelPricing: Record<string, unknown>): ModelP
   const cacheReadPerToken =
     toNonNegativeNumber(rawModelPricing.cache_read_input_token_cost) ??
     toNonNegativeNumber(rawModelPricing.cache_read_input_token_cost_priority);
-  const cacheWritePerToken = toNonNegativeNumber(rawModelPricing.cache_creation_input_token_cost);
+  const cacheWritePerToken =
+    toNonNegativeNumber(rawModelPricing.cache_creation_input_token_cost) ??
+    toNonNegativeNumber(rawModelPricing.cache_creation_input_token_cost_priority);
   const reasoningPerToken = toNonNegativeNumber(rawModelPricing.output_cost_per_reasoning_token);
 
   const modelPricing: ModelPricing = {

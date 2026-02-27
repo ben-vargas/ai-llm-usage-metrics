@@ -23,7 +23,8 @@ llm-usage daily --source-dir droid=/path/to/.factory/sessions
   - `thinkingTokens` → `reasoningTokens`
   - `cacheReadTokens` → `cacheReadTokens`
   - `cacheCreationTokens` → `cacheWriteTokens`
-- `totalTokens = input + output + reasoning + cacheRead + cacheWrite`
+- `totalTokens = input + output + cacheRead + cacheWrite` (billable raw tokens; reasoning excluded)
+- Factory dashboard usage can differ because it applies additional standard-token normalization/multipliers
 - `costMode` is always `estimated`
 - `sessionId` is derived from the filename basename (without `.settings.json`)
 - optional sibling JSONL (`same-basename.jsonl`) is used only for metadata enrichment:
