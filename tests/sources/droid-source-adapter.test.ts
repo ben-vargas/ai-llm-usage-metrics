@@ -74,7 +74,7 @@ describe('DroidSourceAdapter', () => {
   });
 
   describe('parseFile', () => {
-    it('parses settings-only sessions and includes reasoning tokens in totalTokens', async () => {
+    it('parses settings-only sessions and computes billable totalTokens', async () => {
       const adapter = new DroidSourceAdapter({ sessionsDir: fixturesDir });
       const filePath = path.join(fixturesDir, 'parsing', 'settings-only.settings.json');
       const events = await adapter.parseFile(filePath);
@@ -91,7 +91,7 @@ describe('DroidSourceAdapter', () => {
         reasoningTokens: 7,
         cacheReadTokens: 3,
         cacheWriteTokens: 2,
-        totalTokens: 27,
+        totalTokens: 20,
         costMode: 'estimated',
       });
     });
@@ -113,6 +113,44 @@ describe('DroidSourceAdapter', () => {
       expect(events).toHaveLength(1);
       expect(events[0]?.timestamp).toBe('2026-02-24T10:00:11.000Z');
       expect(events[0]?.repoRoot).toBe('/home/user/projects/fallback-repo');
+    });
+
+    it('skips invalid fallback message timestamps and keeps scanning for a valid one', async () => {
+      const adapter = new DroidSourceAdapter({ sessionsDir: fixturesDir });
+      const tempDir = await mkdtemp(path.join(os.tmpdir(), 'droid-fallback-scan-'));
+      tempDirs.push(tempDir);
+      const settingsPath = path.join(tempDir, 'fallback-scan.settings.json');
+      const jsonlPath = path.join(tempDir, 'fallback-scan.jsonl');
+
+      await writeFile(
+        settingsPath,
+        JSON.stringify({
+          providerLock: 'openai',
+          model: 'gpt-4.1',
+          tokenUsage: {
+            inputTokens: 1,
+            outputTokens: 1,
+            thinkingTokens: 0,
+            cacheReadTokens: 0,
+            cacheCreationTokens: 0,
+          },
+        }),
+        'utf8',
+      );
+      await writeFile(
+        jsonlPath,
+        [
+          JSON.stringify({ type: 'session_start', session_start: { cwd: '/tmp/repo' } }),
+          JSON.stringify({ type: 'message', timestamp: 'not-a-timestamp' }),
+          JSON.stringify({ type: 'message', timestamp: '2026-02-24T10:00:22.000Z' }),
+        ].join('\n'),
+        'utf8',
+      );
+
+      const events = await adapter.parseFile(settingsPath);
+      expect(events).toHaveLength(1);
+      expect(events[0]?.timestamp).toBe('2026-02-24T10:00:22.000Z');
+      expect(events[0]?.repoRoot).toBe('/tmp/repo');
     });
 
     it('fails open when sibling JSONL is missing, unreadable, or malformed', async () => {

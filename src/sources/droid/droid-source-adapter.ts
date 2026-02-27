@@ -154,7 +154,6 @@ export class DroidSourceAdapter implements SourceAdapter {
       toNumberLike(tokenUsage.cacheCreationTokens),
     );
     const billableTokens = inputTokens + outputTokens + cacheReadTokens + cacheWriteTokens;
-    const totalTokens = billableTokens + reasoningTokens;
 
     if (billableTokens === 0) {
       skippedRows++;
@@ -164,6 +163,7 @@ export class DroidSourceAdapter implements SourceAdapter {
 
     const provider = asTrimmedText(settings.providerLock);
     const model = asTrimmedText(settings.model);
+    const totalTokens = billableTokens;
 
     const primaryTimestamp = normalizeTimestampCandidate(settings.providerLockTimestamp);
     const hasValidPrimaryTimestamp = Boolean(primaryTimestamp);
@@ -189,7 +189,10 @@ export class DroidSourceAdapter implements SourceAdapter {
 
         if (!hasValidPrimaryTimestamp && isMessageRecord(line)) {
           fallbackMessageTimestamp = normalizeTimestampCandidate(line.timestamp);
-          break;
+
+          if (fallbackMessageTimestamp) {
+            break;
+          }
         }
       }
     } catch {
