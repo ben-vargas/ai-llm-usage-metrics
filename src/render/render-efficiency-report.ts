@@ -6,6 +6,12 @@ import type { EfficiencyRow } from '../efficiency/efficiency-row.js';
 import type { ReportGranularity } from '../utils/time-buckets.js';
 import { renderReportHeader } from './report-header.js';
 import { efficiencyTableHeaders, toEfficiencyTableCells } from './efficiency-row-cells.js';
+import {
+  resolveTtyColumns,
+  splitCellLines,
+  visibleWidth,
+  wrapTableColumn,
+} from './table-text-layout.js';
 import { shouldUseColorByDefault } from './terminal-table.js';
 import { renderUnicodeTable } from './unicode-table.js';
 
@@ -14,6 +20,15 @@ export type EfficiencyReportFormat = 'terminal' | 'markdown' | 'json';
 export type RenderEfficiencyReportOptions = {
   granularity: ReportGranularity;
   useColor?: boolean;
+};
+
+const periodColumnIndex = 0;
+const minimumEfficiencyColumnWidth = 3;
+
+type FittedEfficiencyTableCells = {
+  headerCells: string[];
+  bodyRows: string[][];
+  widths: number[];
 };
 
 function getReportTitle(granularity: ReportGranularity): string {
@@ -63,23 +78,139 @@ function toTableSortRow(row: EfficiencyRow): UsageReportRow {
   };
 }
 
-function renderTerminalEfficiencyTable(rows: EfficiencyRow[]): string {
-  const bodyRows = toEfficiencyTableCells(rows);
-  const tableSortRows = rows.map((row) => toTableSortRow(row));
-  const periodColumnWidth = Math.max(
-    efficiencyTableHeaders[0].length,
-    ...rows.map((row) => row.periodKey.length),
+function measureRenderedTableWidth(columnWidths: number[]): number {
+  if (columnWidths.length === 0) {
+    return 0;
+  }
+
+  return columnWidths.reduce((sum, width) => sum + width, 0) + columnWidths.length * 3 + 1;
+}
+
+function computeColumnWidths(
+  headerCells: readonly string[],
+  bodyRows: readonly string[][],
+): number[] {
+  const columnCount = Math.max(
+    headerCells.length,
+    ...bodyRows.map((row) => row.length),
+    efficiencyTableHeaders.length,
+  );
+  const widths = Array.from({ length: columnCount }, () => 0);
+
+  const measureRow = (row: readonly string[]) => {
+    for (let columnIndex = 0; columnIndex < columnCount; columnIndex += 1) {
+      for (const line of splitCellLines(row[columnIndex] ?? '')) {
+        widths[columnIndex] = Math.max(widths[columnIndex], visibleWidth(line));
+      }
+    }
+  };
+
+  measureRow(headerCells);
+
+  for (const row of bodyRows) {
+    measureRow(row);
+  }
+
+  return widths;
+}
+
+function resolveWrappedCells(
+  headerCells: readonly string[],
+  bodyRows: readonly string[][],
+  widths: readonly number[],
+): { wrappedHeaderCells: string[]; wrappedBodyRows: string[][] } {
+  let wrappedHeaderCells = [...headerCells];
+  let wrappedBodyRows = bodyRows.map((row) => [...row]);
+
+  for (let columnIndex = 0; columnIndex < widths.length; columnIndex += 1) {
+    wrappedHeaderCells =
+      wrapTableColumn([wrappedHeaderCells], {
+        columnIndex,
+        width: widths[columnIndex],
+      })[0] ?? [];
+    wrappedBodyRows = wrapTableColumn(wrappedBodyRows, {
+      columnIndex,
+      width: widths[columnIndex],
+    });
+  }
+
+  return {
+    wrappedHeaderCells,
+    wrappedBodyRows,
+  };
+}
+
+function fitTableCellsToTerminal(
+  headerCells: readonly string[],
+  bodyRows: readonly string[][],
+): FittedEfficiencyTableCells {
+  const naturalWidths = computeColumnWidths(headerCells, bodyRows);
+  const terminalWidth = resolveTtyColumns(process.stdout as { isTTY?: unknown; columns?: unknown });
+
+  if (terminalWidth === undefined || measureRenderedTableWidth(naturalWidths) <= terminalWidth) {
+    return {
+      headerCells: [...headerCells],
+      bodyRows: bodyRows.map((row) => [...row]),
+      widths: naturalWidths,
+    };
+  }
+
+  const constrainedWidths = [...naturalWidths];
+
+  while (
+    measureRenderedTableWidth(constrainedWidths) > terminalWidth &&
+    constrainedWidths.some((width) => width > minimumEfficiencyColumnWidth)
+  ) {
+    let widestIndex = -1;
+    let widestWidth = -1;
+
+    for (let columnIndex = 0; columnIndex < constrainedWidths.length; columnIndex += 1) {
+      const columnWidth = constrainedWidths[columnIndex];
+
+      if (columnWidth <= minimumEfficiencyColumnWidth || columnWidth <= widestWidth) {
+        continue;
+      }
+
+      widestIndex = columnIndex;
+      widestWidth = columnWidth;
+    }
+
+    if (widestIndex === -1) {
+      break;
+    }
+
+    constrainedWidths[widestIndex] -= 1;
+  }
+
+  const { wrappedHeaderCells, wrappedBodyRows } = resolveWrappedCells(
+    headerCells,
+    bodyRows,
+    constrainedWidths,
   );
 
+  return {
+    headerCells: wrappedHeaderCells,
+    bodyRows: wrappedBodyRows,
+    widths: constrainedWidths,
+  };
+}
+
+function renderTerminalEfficiencyTable(rows: EfficiencyRow[]): string {
+  const headerCells = Array.from(efficiencyTableHeaders);
+  const bodyRows = toEfficiencyTableCells(rows);
+  const tableSortRows = rows.map((row) => toTableSortRow(row));
+  const fittedCells = fitTableCellsToTerminal(headerCells, bodyRows);
+
   return renderUnicodeTable({
-    headerCells: efficiencyTableHeaders,
-    bodyRows,
-    measureHeaderCells: efficiencyTableHeaders,
-    measureBodyRows: bodyRows,
+    headerCells: fittedCells.headerCells,
+    bodyRows: fittedCells.bodyRows,
+    measureHeaderCells: fittedCells.headerCells,
+    measureBodyRows: fittedCells.bodyRows,
     usageRows: tableSortRows,
     tableLayout: 'compact',
-    modelsColumnIndex: 0,
-    modelsColumnWidth: periodColumnWidth,
+    modelsColumnIndex: periodColumnIndex,
+    modelsColumnWidth:
+      fittedCells.widths[periodColumnIndex] ?? efficiencyTableHeaders[periodColumnIndex].length,
   });
 }
 

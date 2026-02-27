@@ -1,7 +1,40 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { renderEfficiencyReport } from '../../src/render/render-efficiency-report.js';
 import type { EfficiencyDataResult } from '../../src/cli/usage-data-contracts.js';
+import { visibleWidth } from '../../src/render/table-text-layout.js';
+
+function overrideStdoutProperty<Key extends 'isTTY' | 'columns'>(
+  property: Key,
+  value: NodeJS.WriteStream[Key],
+): () => void {
+  const stdout = process.stdout as NodeJS.WriteStream;
+  const previousDescriptor = Object.getOwnPropertyDescriptor(stdout, property);
+
+  Object.defineProperty(stdout, property, {
+    configurable: true,
+    value,
+  });
+
+  return () => {
+    if (previousDescriptor) {
+      Object.defineProperty(stdout, property, previousDescriptor);
+      return;
+    }
+
+    Reflect.deleteProperty(stdout, property);
+  };
+}
+
+function overrideStdoutTty(columns: number): () => void {
+  const restoreIsTTY = overrideStdoutProperty('isTTY', true);
+  const restoreColumns = overrideStdoutProperty('columns', columns);
+
+  return () => {
+    restoreColumns();
+    restoreIsTTY();
+  };
+}
 
 function createEfficiencyDataResult(
   overrides: Partial<EfficiencyDataResult['diagnostics']['usage']> = {},
@@ -73,6 +106,10 @@ function createEfficiencyDataResult(
 }
 
 describe('renderEfficiencyReport', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('renders markdown output with efficiency columns', () => {
     const output = renderEfficiencyReport(createEfficiencyDataResult(), 'markdown', {
       granularity: 'daily',
@@ -120,6 +157,27 @@ describe('renderEfficiencyReport', () => {
     expect(output).not.toContain('Active environment overrides:');
     expect(output).not.toContain('LLM_USAGE_PARSE_MAX_PARALLEL=8');
     expect(output).toContain('Monthly Efficiency Report');
+  });
+
+  it('wraps terminal table columns to fit available tty width', () => {
+    const restoreStdout = overrideStdoutTty(120);
+
+    try {
+      const output = renderEfficiencyReport(createEfficiencyDataResult(), 'terminal', {
+        granularity: 'monthly',
+        useColor: false,
+      });
+
+      const tableLines = output.split('\n').filter((line) => /[│╭╮╰╯├┼┬┴]/u.test(line));
+      const maxWidth = tableLines.reduce(
+        (maximumLineWidth, line) => Math.max(maximumLineWidth, visibleWidth(line)),
+        0,
+      );
+
+      expect(maxWidth).toBeLessThanOrEqual(120);
+    } finally {
+      restoreStdout();
+    }
   });
 
   it('renders json without undefined derived metrics', () => {
