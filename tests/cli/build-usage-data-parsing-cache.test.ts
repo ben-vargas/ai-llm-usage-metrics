@@ -5,6 +5,7 @@ import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { parseSelectedAdapters } from '../../src/cli/build-usage-data-parsing.js';
+import { getSourceShardedParseFileCachePath } from '../../src/cli/parse-file-cache.js';
 import { createUsageEvent } from '../../src/domain/usage-event.js';
 import type { SourceAdapter } from '../../src/sources/source-adapter.js';
 
@@ -16,9 +17,8 @@ afterEach(async () => {
 });
 
 class CountingJsonlAdapter implements SourceAdapter {
-  public readonly id = 'counting' as const;
-
   public constructor(
+    public readonly id: string,
     private readonly files: string[],
     private readonly parseCallCounter: { count: number },
   ) {}
@@ -56,6 +56,10 @@ const parseCacheOptions = {
   },
 };
 
+function getCacheShardPath(cacheFilePath: string, source: string): string {
+  return getSourceShardedParseFileCachePath(cacheFilePath, source);
+}
+
 describe('parseSelectedAdapters file cache', () => {
   it('reuses cached file parses on subsequent runs', async () => {
     const tempDir = await mkdtemp(path.join(os.tmpdir(), 'parse-cache-hit-'));
@@ -68,7 +72,7 @@ describe('parseSelectedAdapters file cache', () => {
     await writeFile(fileB, '{"line":1}\n', 'utf8');
 
     const parseCalls = { count: 0 };
-    const adapter = new CountingJsonlAdapter([fileA, fileB], parseCalls);
+    const adapter = new CountingJsonlAdapter('counting', [fileA, fileB], parseCalls);
 
     const firstRun = await parseSelectedAdapters([adapter], 8, {
       ...parseCacheOptions,
@@ -100,17 +104,21 @@ describe('parseSelectedAdapters file cache', () => {
     await writeFile(fileB, '{"line":1}\n', 'utf8');
 
     const firstPassCalls = { count: 0 };
-    await parseSelectedAdapters([new CountingJsonlAdapter([fileA, fileB], firstPassCalls)], 8, {
-      ...parseCacheOptions,
-      parseCacheFilePath: cacheFilePath,
-    });
+    await parseSelectedAdapters(
+      [new CountingJsonlAdapter('counting', [fileA, fileB], firstPassCalls)],
+      8,
+      {
+        ...parseCacheOptions,
+        parseCacheFilePath: cacheFilePath,
+      },
+    );
     expect(firstPassCalls.count).toBe(2);
 
     await writeFile(fileB, '{"line":1}\n{"line":2}\n', 'utf8');
 
     const secondPassCalls = { count: 0 };
     const secondRun = await parseSelectedAdapters(
-      [new CountingJsonlAdapter([fileA, fileB], secondPassCalls)],
+      [new CountingJsonlAdapter('counting', [fileA, fileB], secondPassCalls)],
       8,
       {
         ...parseCacheOptions,
@@ -136,10 +144,14 @@ describe('parseSelectedAdapters file cache', () => {
     const firstMtimeMs = (await stat(fileA)).mtimeMs;
 
     const firstPassCalls = { count: 0 };
-    await parseSelectedAdapters([new CountingJsonlAdapter([fileA], firstPassCalls)], 8, {
-      ...parseCacheOptions,
-      parseCacheFilePath: cacheFilePath,
-    });
+    await parseSelectedAdapters(
+      [new CountingJsonlAdapter('counting', [fileA], firstPassCalls)],
+      8,
+      {
+        ...parseCacheOptions,
+        parseCacheFilePath: cacheFilePath,
+      },
+    );
     expect(firstPassCalls.count).toBe(1);
 
     await writeFile(fileA, '{"line":2}\n', 'utf8');
@@ -154,10 +166,14 @@ describe('parseSelectedAdapters file cache', () => {
     }
 
     const secondPassCalls = { count: 0 };
-    await parseSelectedAdapters([new CountingJsonlAdapter([fileA], secondPassCalls)], 8, {
-      ...parseCacheOptions,
-      parseCacheFilePath: cacheFilePath,
-    });
+    await parseSelectedAdapters(
+      [new CountingJsonlAdapter('counting', [fileA], secondPassCalls)],
+      8,
+      {
+        ...parseCacheOptions,
+        parseCacheFilePath: cacheFilePath,
+      },
+    );
 
     expect(secondPassCalls.count).toBe(1);
   });
@@ -171,30 +187,38 @@ describe('parseSelectedAdapters file cache', () => {
     await writeFile(filePath, '{"line":1}\n', 'utf8');
 
     const firstPassCalls = { count: 0 };
-    await parseSelectedAdapters([new CountingJsonlAdapter([filePath], firstPassCalls)], 8, {
-      parseCache: {
-        enabled: true,
-        ttlMs: 7 * 24 * 60 * 60 * 1000,
-        maxEntries: 100,
-        maxBytes: 300,
+    await parseSelectedAdapters(
+      [new CountingJsonlAdapter('counting', [filePath], firstPassCalls)],
+      8,
+      {
+        parseCache: {
+          enabled: true,
+          ttlMs: 7 * 24 * 60 * 60 * 1000,
+          maxEntries: 100,
+          maxBytes: 300,
+        },
+        parseCacheFilePath: cacheFilePath,
       },
-      parseCacheFilePath: cacheFilePath,
-    });
+    );
     expect(firstPassCalls.count).toBe(1);
 
     const secondPassCalls = { count: 0 };
-    await parseSelectedAdapters([new CountingJsonlAdapter([filePath], secondPassCalls)], 8, {
-      parseCache: {
-        enabled: true,
-        ttlMs: 7 * 24 * 60 * 60 * 1000,
-        maxEntries: 100,
-        maxBytes: 300,
+    await parseSelectedAdapters(
+      [new CountingJsonlAdapter('counting', [filePath], secondPassCalls)],
+      8,
+      {
+        parseCache: {
+          enabled: true,
+          ttlMs: 7 * 24 * 60 * 60 * 1000,
+          maxEntries: 100,
+          maxBytes: 300,
+        },
+        parseCacheFilePath: cacheFilePath,
       },
-      parseCacheFilePath: cacheFilePath,
-    });
+    );
     expect(secondPassCalls.count).toBe(1);
 
-    const cacheFileContent = await readFile(cacheFilePath, 'utf8');
+    const cacheFileContent = await readFile(getCacheShardPath(cacheFilePath, 'counting'), 'utf8');
     expect(Buffer.byteLength(cacheFileContent, 'utf8')).toBeLessThanOrEqual(300);
   });
 
@@ -232,5 +256,34 @@ describe('parseSelectedAdapters file cache', () => {
     expect(firstRun.sourceFailures).toEqual([]);
     expect(secondRun.sourceFailures).toEqual([]);
     expect(parseCalls.count).toBe(2);
+  });
+
+  it('writes independent cache shards for each source', async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), 'parse-cache-sharded-by-source-'));
+    tempDirs.push(tempDir);
+
+    const cacheFilePath = path.join(tempDir, 'parse-cache.json');
+    const codexFile = path.join(tempDir, 'codex.jsonl');
+    const droidFile = path.join(tempDir, 'droid.settings.json');
+
+    await writeFile(codexFile, '{"line":1}\n', 'utf8');
+    await writeFile(droidFile, '{"line":1}\n', 'utf8');
+
+    const codexCalls = { count: 0 };
+    const droidCalls = { count: 0 };
+    const codexAdapter = new CountingJsonlAdapter('codex', [codexFile], codexCalls);
+    const droidAdapter = new CountingJsonlAdapter('droid', [droidFile], droidCalls);
+
+    await parseSelectedAdapters([codexAdapter, droidAdapter], 8, {
+      ...parseCacheOptions,
+      parseCacheFilePath: cacheFilePath,
+    });
+
+    const codexShard = getCacheShardPath(cacheFilePath, 'codex');
+    const droidShard = getCacheShardPath(cacheFilePath, 'droid');
+
+    await expect(readFile(codexShard, 'utf8')).resolves.toContain('"source":"codex"');
+    await expect(readFile(droidShard, 'utf8')).resolves.toContain('"source":"droid"');
+    await expect(readFile(cacheFilePath, 'utf8')).rejects.toThrow();
   });
 });

@@ -17,7 +17,7 @@ description: Why caching exists, how each cache works, and how to tune it.
 | --- | --- | --- | --- |
 | update-check cache | avoids querying npm on every startup | 1 hour | `<platform-cache-root>/llm-usage-metrics/update-check.json` |
 | pricing cache | stores normalized LiteLLM pricing data | 24 hours | `<platform-cache-root>/llm-usage-metrics/litellm-pricing-cache.json` |
-| parse-file cache | stores parsed file diagnostics/events keyed by file fingerprint | 7 days | `<platform-cache-root>/llm-usage-metrics/parse-file-cache.json` |
+| parse-file cache | stores parsed file diagnostics/events keyed by file fingerprint | 7 days | `<platform-cache-root>/llm-usage-metrics/parse-file-cache.<source>.json` |
 
 On Linux with no `XDG_CACHE_HOME`, `<platform-cache-root>` defaults to `~/.cache`.
 
@@ -57,6 +57,7 @@ Relevant options/env:
 - key is `(source, file path)`
 - cache validity requires matching file fingerprint (`size`, `mtimeMs`) and TTL
 - stores parse diagnostics and normalized events
+- cache files are sharded by source id, so source-scoped runs load only relevant shards
 - persisted as best-effort JSON, bounded by max entries and max byte size
 
 Relevant env vars:
