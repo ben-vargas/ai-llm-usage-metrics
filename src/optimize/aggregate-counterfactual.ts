@@ -351,20 +351,20 @@ export function buildCounterfactualRows(
     rows.push(toBaselineRow(period, input.provider));
 
     for (const candidateModel of selectedCandidates) {
-      const evaluation =
+      const resolvedEvaluation =
         period.periodKey === 'ALL'
           ? allEvaluationByCandidate.get(candidateModel)
           : evaluateCandidateForPeriod(period, input.provider, candidateModel, input.pricingSource);
 
-      if (!evaluation) {
+      if (!resolvedEvaluation) {
         continue;
       }
 
-      if (evaluation.hasBaselineTokenMismatch) {
+      if (resolvedEvaluation.hasBaselineTokenMismatch) {
         warningPeriods.push(period.periodKey);
       }
 
-      rows.push(evaluation.candidateRow);
+      rows.push(resolvedEvaluation.candidateRow);
     }
   }
 

@@ -110,24 +110,6 @@ function toMarkdownSafeCell(value: string): string {
 
 function toSortingUsageRows(optimizeData: OptimizeDataResult): UsageReportRow[] {
   return optimizeData.rows.map((row) => {
-    if (row.rowType === 'baseline') {
-      return {
-        rowType: 'period_source',
-        periodKey: row.periodKey,
-        source: 'combined',
-        models: [],
-        modelBreakdown: [],
-        inputTokens: row.inputTokens,
-        outputTokens: row.outputTokens,
-        reasoningTokens: row.reasoningTokens,
-        cacheReadTokens: row.cacheReadTokens,
-        cacheWriteTokens: row.cacheWriteTokens,
-        totalTokens: row.totalTokens,
-        costUsd: row.baselineCostUsd,
-        costIncomplete: row.baselineCostIncomplete,
-      };
-    }
-
     return {
       rowType: 'period_source',
       periodKey: row.periodKey,
@@ -140,8 +122,9 @@ function toSortingUsageRows(optimizeData: OptimizeDataResult): UsageReportRow[] 
       cacheReadTokens: row.cacheReadTokens,
       cacheWriteTokens: row.cacheWriteTokens,
       totalTokens: row.totalTokens,
-      costUsd: row.hypotheticalCostUsd,
-      costIncomplete: row.hypotheticalCostIncomplete,
+      costUsd: row.rowType === 'baseline' ? row.baselineCostUsd : row.hypotheticalCostUsd,
+      costIncomplete:
+        row.rowType === 'baseline' ? row.baselineCostIncomplete : row.hypotheticalCostIncomplete,
     };
   });
 }

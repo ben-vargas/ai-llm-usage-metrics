@@ -41,7 +41,7 @@ function resolveOptimizeProvider(
   }
 
   if (distinctProviders.length === 1) {
-    return distinctProviders[0] ?? 'unknown';
+    return distinctProviders[0];
   }
 
   return normalizeProviderValue(providerFilter) ?? 'unknown';

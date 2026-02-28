@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../src/cli/build-optimize-data.js', () => ({
   buildOptimizeData: vi.fn(async () => ({
@@ -68,9 +68,14 @@ vi.mock('../../src/cli/build-optimize-data.js', () => ({
   })),
 }));
 
+import { buildOptimizeData } from '../../src/cli/build-optimize-data.js';
 import { buildOptimizeReport, runOptimizeReport } from '../../src/cli/run-optimize-report.js';
 
 describe('run-optimize-report', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('rejects mutually exclusive output flags', async () => {
     await expect(
       buildOptimizeReport('daily', {
@@ -104,6 +109,16 @@ describe('run-optimize-report', () => {
     expect(parsed[2]?.candidateModel).toBe('missing-model');
   });
 
+  it('renders markdown output when --markdown is set', async () => {
+    const report = await buildOptimizeReport('daily', {
+      candidateModel: ['gpt-4.1'],
+      markdown: true,
+    });
+
+    expect(report).toContain('| Candidate');
+    expect(report).toContain('| BASELINE');
+  });
+
   it('keeps diagnostics on stderr for JSON output', async () => {
     const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
@@ -124,5 +139,74 @@ describe('run-optimize-report', () => {
     expect(
       stderrLines.some((line) => line.includes('Missing pricing for candidate model(s)')),
     ).toBe(true);
+  });
+
+  it('emits optimize warning diagnostics when provided by data builder', async () => {
+    const buildOptimizeDataMock = vi.mocked(buildOptimizeData);
+    buildOptimizeDataMock.mockResolvedValueOnce({
+      rows: [],
+      diagnostics: {
+        usage: {
+          sessionStats: [],
+          sourceFailures: [],
+          skippedRows: [],
+          pricingOrigin: 'none',
+          activeEnvOverrides: [],
+          timezone: 'UTC',
+        },
+        provider: 'openai',
+        baselineCostIncomplete: false,
+        candidatesWithMissingPricing: [],
+        warning: 'token mismatch warning',
+      },
+    });
+
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+
+    await runOptimizeReport('daily', {
+      candidateModel: ['gpt-4.1'],
+      json: true,
+    });
+
+    expect(consoleLogSpy).toHaveBeenCalledTimes(1);
+    const stderrLines = consoleErrorSpy.mock.calls.map((call) => String(call[0]));
+    expect(stderrLines.some((line) => line.includes('token mismatch warning'))).toBe(true);
+  });
+
+  it('warns when terminal output overflows tty width', async () => {
+    const stdout = process.stdout as NodeJS.WriteStream;
+    const isTTYDescriptor = Object.getOwnPropertyDescriptor(stdout, 'isTTY');
+    const columnsDescriptor = Object.getOwnPropertyDescriptor(stdout, 'columns');
+
+    Object.defineProperty(stdout, 'isTTY', { configurable: true, value: true });
+    Object.defineProperty(stdout, 'columns', { configurable: true, value: 30 });
+
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+
+    try {
+      await runOptimizeReport('daily', {
+        candidateModel: ['gpt-4.1'],
+      });
+    } finally {
+      if (isTTYDescriptor) {
+        Object.defineProperty(stdout, 'isTTY', isTTYDescriptor);
+      } else {
+        Reflect.deleteProperty(stdout, 'isTTY');
+      }
+
+      if (columnsDescriptor) {
+        Object.defineProperty(stdout, 'columns', columnsDescriptor);
+      } else {
+        Reflect.deleteProperty(stdout, 'columns');
+      }
+    }
+
+    expect(consoleLogSpy).toHaveBeenCalledTimes(1);
+    const stderrLines = consoleErrorSpy.mock.calls.map((call) => String(call[0]));
+    expect(stderrLines.some((line) => line.includes('Report table is wider than terminal'))).toBe(
+      true,
+    );
   });
 });

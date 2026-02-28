@@ -203,4 +203,23 @@ describe('buildOptimizeData', () => {
     });
     expect(result.diagnostics.warning).toContain('Baseline cost exists for zero-token periods');
   });
+
+  it('falls back to normalized provider filter label when events have no provider', async () => {
+    const result = await buildOptimizeData(
+      'daily',
+      {
+        candidateModel: ['gpt-4.1'],
+        provider: ' OpenAI ',
+      },
+      runtimeDeps({
+        adapters: [
+          createAdapter('pi', {
+            '/tmp/no-provider.jsonl': [createBaseEvent({ provider: undefined })],
+          }),
+        ],
+      }),
+    );
+
+    expect(result.diagnostics.provider).toBe('openai');
+  });
 });
