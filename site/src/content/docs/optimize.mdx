@@ -1,0 +1,49 @@
+---
+title: Optimize
+description: Counterfactual pricing report for candidate models.
+---
+
+`optimize` replays your observed token mix against one or more candidate model prices.
+
+```bash
+llm-usage optimize <daily|weekly|monthly> --candidate-model <model> [options]
+```
+
+## Examples
+
+```bash
+# Compare two OpenAI candidates for monthly usage
+llm-usage optimize monthly \
+  --provider openai \
+  --candidate-model gpt-4.1 \
+  --candidate-model gpt-5-codex
+
+# Keep only the cheapest candidate in output
+llm-usage optimize weekly \
+  --provider openai \
+  --candidate-model gpt-4.1,gpt-5-codex \
+  --top 1 \
+  --json
+```
+
+## Command behavior
+
+- Uses the same source discovery and filtering pipeline as usage reports.
+- Requires at least one `--candidate-model`.
+- Enforces a single provider context after filtering.
+- If multiple providers remain, narrow with `--provider`.
+- `--provider` matching stays substring-based, consistent with existing usage commands.
+- Candidate ranking is deterministic and based on `ALL` period hypothetical cost.
+
+## Missing pricing and incomplete baselines
+
+- Missing candidate pricing on non-zero token periods marks candidate cost as incomplete.
+- If baseline cost is incomplete, savings fields are omitted.
+- If all billable token buckets are zero but baseline has cost, savings are omitted and a warning is emitted to `stderr`.
+
+## Output formats
+
+- `--json` emits optimize rows only.
+- `--markdown` emits a Markdown table.
+- Default terminal output renders a titled table.
+- Diagnostics and warnings always go to `stderr`.

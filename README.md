@@ -29,6 +29,7 @@ Aggregate token usage and costs from your local coding agent sessions. Supports 
 - **LiteLLM Pricing** — Real-time pricing sync with offline caching support
 - **Flexible Reports** — Daily, weekly, and monthly aggregations
 - **Efficiency Reports** — Correlate cost/tokens with repository commit outcomes
+- **Optimize Reports** — Counterfactual candidate-model pricing against observed token mix
 - **Multiple Outputs** — Terminal tables, JSON, or Markdown
 - **Smart Filtering** — By source, provider, model, and date ranges
 
@@ -133,6 +134,16 @@ llm-usage efficiency monthly --repo-dir /path/to/repo --source opencode
 ```
 
 Note: usage filters (`--source`, `--provider`, `--model`, `--pi-dir`, `--codex-dir`, `--gemini-dir`, `--droid-dir`, `--opencode-db`, `--source-dir`) also constrain commit attribution: only commit days with matching repo-attributed usage events are counted.
+
+### Optimize Reports
+
+```bash
+# Counterfactual pricing across candidate models
+llm-usage optimize monthly --provider openai --candidate-model gpt-4.1 --candidate-model gpt-5-codex
+
+# Keep only the cheapest candidate in JSON output
+llm-usage optimize weekly --provider openai --candidate-model gpt-4.1,gpt-5-codex --top 1 --json
+```
 
 ### Filtering
 
@@ -300,6 +311,7 @@ pnpm cli daily
 - **[Getting Started](https://ayagmar.github.io/llm-usage-metrics/getting-started/)** — Installation and first steps
 - **[CLI Reference](https://ayagmar.github.io/llm-usage-metrics/cli-reference/)** — Complete command reference
 - **[Efficiency](https://ayagmar.github.io/llm-usage-metrics/efficiency/)** — Efficiency report semantics and interpretation
+- **[Optimize](https://ayagmar.github.io/llm-usage-metrics/optimize/)** — Counterfactual candidate-model pricing semantics
 - **[Data Sources](https://ayagmar.github.io/llm-usage-metrics/sources/)** — Source configuration
 - **[Configuration](https://ayagmar.github.io/llm-usage-metrics/configuration/)** — Environment variables
 - **[Benchmarks](https://ayagmar.github.io/llm-usage-metrics/benchmarks/)** — Production benchmark methodology and results

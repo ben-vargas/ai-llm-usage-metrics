@@ -17,9 +17,11 @@ const commandReferences = [
   { label: 'weekly', helpArgs: ['weekly', '--help'] },
   { label: 'monthly', helpArgs: ['monthly', '--help'] },
   { label: 'efficiency <daily|weekly|monthly>', helpArgs: ['efficiency', '--help'] },
+  { label: 'optimize <daily|weekly|monthly>', helpArgs: ['optimize', '--help'] },
 ];
 const efficiencyOnlyOptions = new Set(['--include-merge-commits', '--repo-dir']);
 const usageOnlyOptions = new Set(['--per-model-columns']);
+const optimizeOnlyOptions = new Set(['--candidate-model', '--top']);
 
 function appendScopeSuffix(description, suffix) {
   return description.endsWith(suffix) ? description : `${description} ${suffix}`;
@@ -60,6 +62,7 @@ function normalizeDescription(text, optionLong) {
     .replace(/\bmarkdown\b/giu, 'Markdown')
     .replace(/\s+\(efficiency only\)/gu, '')
     .replace(/\s+\(usage reports only\)/gu, '')
+    .replace(/\s+\(optimize only\)/gu, '')
     .replace(/\s+/g, ' ')
     .trim();
 
@@ -69,6 +72,10 @@ function normalizeDescription(text, optionLong) {
 
   if (usageOnlyOptions.has(optionLong)) {
     return appendScopeSuffix(normalizedDescription, '(usage reports only)');
+  }
+
+  if (optimizeOnlyOptions.has(optionLong)) {
+    return appendScopeSuffix(normalizedDescription, '(optimize only)');
   }
 
   return normalizedDescription;
@@ -200,6 +207,7 @@ function generateMarkdown(version, options) {
     'llm-usage daily --json',
     'llm-usage daily --markdown',
     'llm-usage efficiency weekly --repo-dir /path/to/repo --json',
+    'llm-usage optimize monthly --provider openai --candidate-model gpt-4.1 --candidate-model gpt-5-codex --json',
     '```',
   );
 
