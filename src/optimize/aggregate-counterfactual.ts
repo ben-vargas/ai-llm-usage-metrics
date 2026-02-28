@@ -338,7 +338,7 @@ export function buildCounterfactualRows(
   const allEvaluationByCandidate = new Map(
     allPeriodEvaluations.map((evaluation) => [evaluation.candidateRow.candidateModel, evaluation]),
   );
-  const candidatesWithMissingPricing = selectedCandidates
+  const candidatesWithMissingPricing = input.candidateModels
     .filter(
       (candidateModel) => allEvaluationByCandidate.get(candidateModel)?.missingPricing === true,
     )

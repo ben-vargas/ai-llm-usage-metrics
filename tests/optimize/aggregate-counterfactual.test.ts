@@ -211,4 +211,33 @@ describe('aggregate-counterfactual', () => {
       new Set(['gpt-5-codex']),
     );
   });
+
+  it('reports missing pricing diagnostics for all requested candidates, not only top-N', () => {
+    const pricing = new StaticPricingSource({
+      pricingByModel: {
+        'gpt-4.1': {
+          inputPer1MUsd: 2,
+          outputPer1MUsd: 8,
+        },
+      },
+    });
+
+    const result = buildCounterfactualRows({
+      usageRows: createUsageRows(),
+      provider: 'openai',
+      candidateModels: ['gpt-4.1', 'missing-model-a', 'missing-model-b'],
+      pricingSource: pricing,
+      top: 1,
+    });
+
+    const allRowsCandidates = result.rows
+      .filter((row) => row.rowType === 'candidate' && row.periodKey === 'ALL')
+      .map((row) => row.candidateModel);
+
+    expect(allRowsCandidates).toEqual(['gpt-4.1']);
+    expect(result.candidatesWithMissingPricing).toEqual([
+      'missing-model-a',
+      'missing-model-b',
+    ]);
+  });
 });
