@@ -93,6 +93,26 @@ describe('buildOptimizeData', () => {
     expect(pricingLoaderSpy).not.toHaveBeenCalled();
   });
 
+  it('accepts provider variants under a matching provider filter label', async () => {
+    const result = await buildOptimizeData(
+      'daily',
+      {
+        candidateModel: ['gpt-4.1'],
+        provider: 'openai',
+      },
+      runtimeDeps({
+        adapters: [
+          createAdapter('pi', {
+            '/tmp/a.jsonl': [createBaseEvent({ provider: 'openai' })],
+            '/tmp/b.jsonl': [createBaseEvent({ provider: 'openai-codex' })],
+          }),
+        ],
+      }),
+    );
+
+    expect(result.diagnostics.provider).toBe('openai');
+  });
+
   it('returns zero baseline and candidate costs for empty usage sets without pricing load', async () => {
     const pricingLoaderSpy = vi.fn(async () => ({
       source: createDefaultOpenAiPricingSource(),

@@ -231,13 +231,13 @@ describe('aggregate-counterfactual', () => {
     });
 
     const allRowsCandidates = result.rows
-      .filter((row) => row.rowType === 'candidate' && row.periodKey === 'ALL')
+      .filter(
+        (row): row is Extract<(typeof result.rows)[number], { rowType: 'candidate' }> =>
+          row.rowType === 'candidate' && row.periodKey === 'ALL',
+      )
       .map((row) => row.candidateModel);
 
     expect(allRowsCandidates).toEqual(['gpt-4.1']);
-    expect(result.candidatesWithMissingPricing).toEqual([
-      'missing-model-a',
-      'missing-model-b',
-    ]);
+    expect(result.candidatesWithMissingPricing).toEqual(['missing-model-a', 'missing-model-b']);
   });
 });

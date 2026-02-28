@@ -1,4 +1,5 @@
 import { markdownTable } from 'markdown-table';
+import pc from 'picocolors';
 
 import type { OptimizeDataResult } from '../cli/usage-data-contracts.js';
 import type { UsageReportRow } from '../domain/usage-report-row.js';
@@ -68,7 +69,58 @@ function formatNotes(notes: string[] | undefined): string {
   return notes.join(', ');
 }
 
-function toTableCells(optimizeData: OptimizeDataResult): string[][] {
+function styleCandidateCell(
+  candidateValue: string,
+  rowType: 'baseline' | 'candidate',
+  useColor: boolean,
+): string {
+  if (!useColor) {
+    return candidateValue;
+  }
+
+  if (rowType === 'baseline') {
+    return pc.bold(pc.cyan(candidateValue));
+  }
+
+  return pc.bold(candidateValue);
+}
+
+function styleDeltaCell(
+  value: number | undefined,
+  formattedValue: string,
+  useColor: boolean,
+): string {
+  if (!useColor || value === undefined) {
+    return formattedValue;
+  }
+
+  if (value > 0) {
+    return pc.green(formattedValue);
+  }
+
+  if (value < 0) {
+    return pc.red(formattedValue);
+  }
+
+  return pc.dim(formattedValue);
+}
+
+function styleNotesCell(
+  notes: string[] | undefined,
+  formattedNotes: string,
+  useColor: boolean,
+): string {
+  if (!useColor || !notes || notes.length === 0) {
+    return formattedNotes;
+  }
+
+  return pc.yellow(formattedNotes);
+}
+
+function toTableCells(
+  optimizeData: OptimizeDataResult,
+  options: { useColor: boolean },
+): string[][] {
   const baselineByPeriod = new Map(
     optimizeData.rows
       .filter((row) => row.rowType === 'baseline')
@@ -77,11 +129,13 @@ function toTableCells(optimizeData: OptimizeDataResult): string[][] {
 
   return optimizeData.rows.map((row) => {
     const baselineRow = baselineByPeriod.get(row.periodKey);
+    const periodCell =
+      options.useColor && row.periodKey === 'ALL' ? pc.bold(row.periodKey) : row.periodKey;
 
     if (row.rowType === 'baseline') {
       return [
-        row.periodKey,
-        'BASELINE',
+        periodCell,
+        styleCandidateCell('BASELINE', 'baseline', options.useColor),
         '-',
         formatUsd(row.baselineCostUsd, { approximate: row.baselineCostIncomplete }),
         '-',
@@ -90,16 +144,20 @@ function toTableCells(optimizeData: OptimizeDataResult): string[][] {
       ];
     }
 
+    const savingsCell = formatUsd(row.savingsUsd);
+    const savingsPctCell = formatPercent(row.savingsPct);
+    const notesCell = formatNotes(row.notes);
+
     return [
-      row.periodKey,
-      row.candidateModel,
+      periodCell,
+      styleCandidateCell(row.candidateModel, 'candidate', options.useColor),
       formatUsd(row.hypotheticalCostUsd, { approximate: row.hypotheticalCostIncomplete }),
       formatUsd(baselineRow?.baselineCostUsd, {
         approximate: baselineRow?.baselineCostIncomplete === true,
       }),
-      formatUsd(row.savingsUsd),
-      formatPercent(row.savingsPct),
-      formatNotes(row.notes),
+      styleDeltaCell(row.savingsUsd, savingsCell, options.useColor),
+      styleDeltaCell(row.savingsPct, savingsPctCell, options.useColor),
+      styleNotesCell(row.notes, notesCell, options.useColor),
     ];
   });
 }
@@ -141,7 +199,7 @@ function renderTerminalOptimizeReport(
   options: RenderOptimizeReportOptions,
 ): string {
   const useColor = options.useColor ?? shouldUseColorByDefault();
-  const tableCells = toTableCells(optimizeData);
+  const tableCells = toTableCells(optimizeData, { useColor });
   const candidateColumnWidth = resolveCandidateColumnWidth(tableCells);
   const outputLines: string[] = [];
 
@@ -169,7 +227,7 @@ function renderTerminalOptimizeReport(
 }
 
 function renderMarkdownOptimizeReport(optimizeData: OptimizeDataResult): string {
-  const bodyRows = toTableCells(optimizeData).map((row) =>
+  const bodyRows = toTableCells(optimizeData, { useColor: false }).map((row) =>
     row.map((cell) => toMarkdownSafeCell(cell)),
   );
   const tableRows = [[...optimizeTableHeaders], ...bodyRows];

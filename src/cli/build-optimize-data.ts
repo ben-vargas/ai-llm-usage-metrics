@@ -33,8 +33,16 @@ function resolveOptimizeProvider(
   providerFilter: string | undefined,
 ): string {
   const distinctProviders = [...providers].sort(compareByCodePoint);
+  const normalizedProviderFilter = normalizeProviderValue(providerFilter);
 
   if (distinctProviders.length > 1) {
+    if (
+      normalizedProviderFilter &&
+      distinctProviders.every((provider) => provider.includes(normalizedProviderFilter))
+    ) {
+      return normalizedProviderFilter;
+    }
+
     throw new Error(
       `Optimize requires a single provider; found providers: ${distinctProviders.join(', ')}. Narrow with --provider.`,
     );
@@ -44,7 +52,7 @@ function resolveOptimizeProvider(
     return distinctProviders[0];
   }
 
-  return normalizeProviderValue(providerFilter) ?? 'unknown';
+  return normalizedProviderFilter ?? 'unknown';
 }
 
 export async function buildOptimizeData(
