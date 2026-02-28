@@ -4,6 +4,7 @@ import {
   type PricingFetcherRuntimeConfig,
 } from '../config/runtime-overrides.js';
 import { applyPricingToEvents } from '../pricing/cost-engine.js';
+import type { PricingSource } from '../pricing/types.js';
 import { LiteLLMPricingFetcher } from '../pricing/litellm-pricing-fetcher.js';
 
 import type {
@@ -70,6 +71,30 @@ export function shouldLoadPricingSource(events: UsageEvent[]): boolean {
   return events.some((event) => eventNeedsPricingLookup(event));
 }
 
+function hasAnyBillableTokenBuckets(events: UsageEvent[]): boolean {
+  return events.some(
+    (event) =>
+      event.inputTokens > 0 ||
+      event.outputTokens > 0 ||
+      event.reasoningTokens > 0 ||
+      event.cacheReadTokens > 0 ||
+      event.cacheWriteTokens > 0,
+  );
+}
+
+export type PricingLoadMode = 'auto' | 'force';
+
+function shouldLoadPricingSourceForMode(
+  events: UsageEvent[],
+  pricingLoadMode: PricingLoadMode,
+): boolean {
+  if (pricingLoadMode === 'force') {
+    return hasAnyBillableTokenBuckets(events);
+  }
+
+  return shouldLoadPricingSource(events);
+}
+
 type PricingSourceResolver = (
   options: ReportCommandOptions,
   runtimeConfig: PricingFetcherRuntimeConfig,
@@ -80,14 +105,16 @@ export async function resolveAndApplyPricingToEvents(
   options: ReportCommandOptions,
   runtimeConfig: PricingFetcherRuntimeConfig = getPricingFetcherRuntimeConfig(),
   loadPricingSource: PricingSourceResolver = resolvePricingSource,
+  pricingLoadMode: PricingLoadMode = 'auto',
 ): Promise<{
   pricedEvents: UsageEvent[];
   pricingOrigin: UsagePricingOrigin;
   pricingWarning?: string;
+  pricingSource?: PricingSource;
 }> {
   let pricingOrigin: UsagePricingOrigin = 'none';
 
-  if (!shouldLoadPricingSource(events)) {
+  if (!shouldLoadPricingSourceForMode(events, pricingLoadMode)) {
     return {
       pricedEvents: events,
       pricingOrigin,
@@ -120,5 +147,6 @@ export async function resolveAndApplyPricingToEvents(
   return {
     pricedEvents: applyPricingToEvents(events, pricingResult.source),
     pricingOrigin,
+    pricingSource: pricingResult.source,
   };
 }
