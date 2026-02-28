@@ -14,7 +14,7 @@ afterEach(async () => {
 });
 
 describe('createCli', () => {
-  it('registers daily, weekly, monthly, and efficiency commands', () => {
+  it('registers daily, weekly, monthly, efficiency, and optimize commands', () => {
     const cli = createCli();
 
     expect(cli.name()).toBe('llm-usage');
@@ -23,12 +23,15 @@ describe('createCli', () => {
       'weekly',
       'monthly',
       'efficiency',
+      'optimize',
     ]);
   });
 
   it('includes output, pricing, and source filter flags on report commands', () => {
     const cli = createCli();
-    const reportCommands = cli.commands.filter((command) => command.name() !== 'efficiency');
+    const reportCommands = cli.commands.filter(
+      (command) => command.name() !== 'efficiency' && command.name() !== 'optimize',
+    );
 
     for (const command of reportCommands) {
       expect(command.options.some((option) => option.long === '--markdown')).toBe(true);
@@ -45,6 +48,21 @@ describe('createCli', () => {
       expect(command.options.some((option) => option.long === '--source-dir')).toBe(true);
       expect(command.options.some((option) => option.long === '--model')).toBe(true);
     }
+  });
+
+  it('configures optimize command with candidate-model and top flags', () => {
+    const cli = createCli();
+    const optimizeCommand = cli.commands.find((command) => command.name() === 'optimize');
+
+    expect(optimizeCommand).toBeDefined();
+    expect(optimizeCommand?.options.some((option) => option.long === '--candidate-model')).toBe(
+      true,
+    );
+    expect(optimizeCommand?.options.some((option) => option.long === '--top')).toBe(true);
+    expect(optimizeCommand?.options.some((option) => option.long === '--repo-dir')).toBe(false);
+    expect(optimizeCommand?.options.some((option) => option.long === '--per-model-columns')).toBe(
+      false,
+    );
   });
 
   it('configures efficiency command with repository outcome flags', () => {
@@ -108,6 +126,9 @@ describe('createCli', () => {
       'llm-usage daily --pi-dir /tmp/pi-sessions --gemini-dir /tmp/.gemini --droid-dir /tmp/droid-sessions',
     );
     expect(compactHelp).toContain('llm-usage efficiency weekly --repo-dir /path/to/repo --json');
+    expect(compactHelp).toContain(
+      'llm-usage optimize monthly --provider openai --candidate-model gpt-4.1 --candidate-model gpt-5-codex --json',
+    );
     expect(compactHelp).toContain('npx --yes llm-usage-metrics@latest daily');
     expect(compactDailyCommandHelp).toContain('after source/provider/date filters');
   });
