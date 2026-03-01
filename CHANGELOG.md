@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.0](https://github.com/ayagmar/llm-usage-metrics/compare/v0.3.7...v0.4.0) (2026-03-01)
+
+### Bug Fixes
+
+* **codex:** avoid duplicate token_count double counting ([60d96b3](https://github.com/ayagmar/llm-usage-metrics/commit/60d96b3ea81b0e95351caaf6334749eb084be50a))
+
 ## [0.3.7](https://github.com/ayagmar/llm-usage-metrics/compare/v0.3.6...v0.3.7) (2026-03-01)
 
 ### Features
