@@ -160,6 +160,96 @@ describe('CodexSourceAdapter', () => {
     expect(events.every((event) => event.repoRoot === '/tmp/codex-repo')).toBe(true);
   });
 
+  it('does not double count duplicated token_count lines when totals do not advance', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'codex-source-dedup-last-usage-'));
+    tempDirs.push(root);
+
+    const filePath = path.join(root, 'session.jsonl');
+
+    await writeFile(
+      filePath,
+      [
+        JSON.stringify({
+          timestamp: '2026-02-14T10:00:00.000Z',
+          type: 'session_meta',
+          payload: {
+            id: 'codex-dedup',
+            model_provider: 'openai',
+          },
+        }),
+        JSON.stringify({
+          timestamp: '2026-02-14T10:00:01.000Z',
+          type: 'turn_context',
+          payload: { model: 'gpt-5.2-codex' },
+        }),
+        JSON.stringify({
+          timestamp: '2026-02-14T10:00:02.000Z',
+          type: 'event_msg',
+          payload: {
+            type: 'token_count',
+            info: {
+              total_token_usage: {
+                input_tokens: 100,
+                cached_input_tokens: 20,
+                output_tokens: 30,
+                reasoning_output_tokens: 5,
+                total_tokens: 130,
+              },
+              last_token_usage: {
+                input_tokens: 100,
+                cached_input_tokens: 20,
+                output_tokens: 30,
+                reasoning_output_tokens: 5,
+                total_tokens: 130,
+              },
+            },
+          },
+        }),
+        JSON.stringify({
+          timestamp: '2026-02-14T10:00:03.000Z',
+          type: 'event_msg',
+          payload: {
+            type: 'token_count',
+            info: {
+              total_token_usage: {
+                input_tokens: 100,
+                cached_input_tokens: 20,
+                output_tokens: 30,
+                reasoning_output_tokens: 5,
+                total_tokens: 130,
+              },
+              last_token_usage: {
+                input_tokens: 100,
+                cached_input_tokens: 20,
+                output_tokens: 30,
+                reasoning_output_tokens: 5,
+                total_tokens: 130,
+              },
+            },
+          },
+        }),
+      ].join('\n'),
+      'utf8',
+    );
+
+    const adapter = new CodexSourceAdapter({ sessionsDir: root });
+    const events = await adapter.parseFile(filePath);
+
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      source: 'codex',
+      sessionId: 'codex-dedup',
+      provider: 'openai',
+      model: 'gpt-5.2-codex',
+      inputTokens: 80,
+      cacheReadTokens: 20,
+      outputTokens: 30,
+      reasoningTokens: 5,
+      totalTokens: 130,
+      costMode: 'estimated',
+    });
+  });
+
   it('uses legacy model fallback when no model metadata exists', async () => {
     const fixturePath = path.resolve('tests/fixtures/codex/session-legacy-model.jsonl');
     const adapter = new CodexSourceAdapter();

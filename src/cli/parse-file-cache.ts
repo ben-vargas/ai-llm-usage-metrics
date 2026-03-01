@@ -11,7 +11,7 @@ import { normalizeSkippedRowReasons } from './normalize-skipped-row-reasons.js';
 import { asRecord } from '../utils/as-record.js';
 import { getUserCacheRootDir } from '../utils/cache-root-dir.js';
 
-const PARSE_FILE_CACHE_VERSION = 3;
+const PARSE_FILE_CACHE_VERSION = 4;
 const CACHE_KEY_SEPARATOR = '\u0000';
 
 export type ParseFileFingerprint = {
