@@ -20,6 +20,7 @@ Commands:
 - `weekly`
 - `monthly`
 - `efficiency <daily|weekly|monthly>`
+- `optimize <daily|weekly|monthly>`
 
 ## Options
 
@@ -27,6 +28,7 @@ Generated from root + command help output.
 
 | Option | Short | Argument | Description |
 | --- | --- | --- | --- |
+| `--candidate-model` | - | `<name>` | Candidate model for counterfactual pricing (repeatable or comma-separated) (default: []) (optimize only) |
 | `--codex-dir` | - | `<path>` | Path to .codex sessions directory |
 | `--droid-dir` | - | `<path>` | Path to Droid sessions directory |
 | `--gemini-dir` | - | `<path>` | Path to .gemini directory |
@@ -40,12 +42,13 @@ Generated from root + command help output.
 | `--pi-dir` | - | `<path>` | Path to .pi sessions directory |
 | `--pricing-offline` | - | - | Use cached LiteLLM pricing only (no network fetch) |
 | `--pricing-url` | - | `<url>` | Override LiteLLM pricing source URL |
-| `--provider` | - | `<name>` | Provider filter (substring match, optional) |
+| `--provider` | - | `<name>` | Billing-provider filter (substring match, optional; e.g. openai, anthropic, google) |
 | `--repo-dir` | - | `<path>` | Path to repository for Git outcome metrics (efficiency only) |
 | `--since` | - | `<YYYY-MM-DD>` | Inclusive start date filter |
 | `--source` | - | `<name>` | Filter by source id (repeatable or comma-separated, supported sources (5): pi, codex, gemini, droid, opencode) (default: []) |
 | `--source-dir` | - | `<source-id=path>` | Override source directory for directory-backed sources (repeatable) (default: []) |
 | `--timezone` | - | `<iana>` | Timezone for bucketing (default: local system timezone) |
+| `--top` | - | `<n>` | Show only the top N cheapest candidates (positive integer) (optimize only) |
 | `--until` | - | `<YYYY-MM-DD>` | Inclusive end date filter |
 | `--help` | `-h` | - | display help for command |
 | `--version` | `-V` | - | output the version number |
@@ -63,4 +66,5 @@ llm-usage daily --source-dir pi=/tmp/pi-sessions --source-dir gemini=/tmp/.gemin
 llm-usage daily --json
 llm-usage daily --markdown
 llm-usage efficiency weekly --repo-dir /path/to/repo --json
+llm-usage optimize monthly --provider openai --candidate-model gpt-4.1 --candidate-model gpt-5-codex --json
 ```

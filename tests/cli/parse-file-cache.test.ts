@@ -200,16 +200,25 @@ describe('ParseFileCache', () => {
     const tempDir = await mkdtemp(path.join(os.tmpdir(), 'parse-file-cache-load-'));
     tempDirs.push(tempDir);
     const cacheFilePath = path.join(tempDir, 'parse-file-cache.json');
-    const validEvent = createEvent({
+    const validEvent = {
       source: 'CODEX',
       sessionId: 'from-cache',
-      model: 'GPT-4.1',
-    });
+      timestamp: '2026-02-01T00:00:00.000Z',
+      provider: ' OpenAI-Codex ',
+      model: ' GPT-4.1 ',
+      inputTokens: 1,
+      outputTokens: 2,
+      reasoningTokens: 0,
+      cacheReadTokens: 0,
+      cacheWriteTokens: 0,
+      totalTokens: 3,
+      costMode: 'estimated',
+    };
 
     await writeFile(
       cacheFilePath,
       JSON.stringify({
-        version: 2,
+        version: 3,
         entries: [
           {
             source: 'CODEX',
@@ -276,7 +285,9 @@ describe('ParseFileCache', () => {
       cache.get('codex', '/tmp/bad-timestamp.jsonl', { size: 12, mtimeMs: 34 }),
     ).toBeUndefined();
     expect(cache.get('codex', '/tmp/ok.jsonl', { size: 12, mtimeMs: 34 })).toEqual({
-      events: [{ ...createEvent({ sessionId: 'from-cache', model: 'gpt-4.1' }) }],
+      events: [
+        { ...createEvent({ sessionId: 'from-cache', provider: 'openai', model: 'gpt-4.1' }) },
+      ],
       skippedRows: 9,
       skippedRowReasons: [{ reason: 'truncated', count: 3 }],
     });
@@ -303,7 +314,7 @@ describe('ParseFileCache', () => {
       version: number;
       entries: unknown[];
     };
-    expect(persisted).toEqual({ version: 2, entries: [] });
+    expect(persisted).toEqual({ version: 3, entries: [] });
   });
 
   it('handles unsupported cache versions by resetting payload on persist', async () => {
@@ -327,7 +338,7 @@ describe('ParseFileCache', () => {
       version: number;
       entries: unknown[];
     };
-    expect(persisted).toEqual({ version: 2, entries: [] });
+    expect(persisted).toEqual({ version: 3, entries: [] });
   });
 
   it('bounds persisted payload by max entries and max bytes', async () => {
@@ -397,7 +408,7 @@ describe('ParseFileCache', () => {
     await writeFile(
       cacheFilePath,
       JSON.stringify({
-        version: 2,
+        version: 3,
         entries: [
           {
             source: 'codex',

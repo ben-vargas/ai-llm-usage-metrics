@@ -4,6 +4,7 @@ import {
   normalizeUsdCost,
   type NumberLike,
 } from './normalization.js';
+import { normalizeProviderToBillingEntity } from './provider-normalization.js';
 
 export type SourceId = 'pi' | 'codex' | (string & {});
 
@@ -75,6 +76,10 @@ function normalizeOptionalText(value: string | undefined): string | undefined {
   return normalized || undefined;
 }
 
+function normalizeOptionalProvider(value: string | undefined): string | undefined {
+  return normalizeProviderToBillingEntity(value);
+}
+
 function normalizeOptionalPath(value: string | undefined): string | undefined {
   return normalizeOptionalText(value);
 }
@@ -126,7 +131,7 @@ export function createUsageEvent(input: UsageEventInput): UsageEvent {
     sessionId: requireText(input.sessionId, 'sessionId'),
     timestamp: normalizeTimestamp(input.timestamp),
     repoRoot: normalizeOptionalPath(input.repoRoot),
-    provider: normalizeOptionalText(input.provider),
+    provider: normalizeOptionalProvider(input.provider),
     model: normalizeOptionalModel(input.model),
     inputTokens,
     outputTokens,

@@ -58,8 +58,23 @@ When a denominator is zero, derived values render as `-` in terminal/markdown an
 When pricing is incomplete, affected USD values are prefixed with `~` in terminal/markdown.
 
 Usage filters (`--source`, `--provider`, `--model`, source-path overrides) also affect commit attribution: only commit days with matching repo-attributed usage events are counted.
+`--provider` scopes by billing entity (for example, `openai-codex` is normalized to `openai`).
 
 For deeper semantics (repo attribution, scope behavior, and interpretation guidance), see the [Efficiency](/efficiency/) page.
+
+## Optimize reports
+
+```bash
+llm-usage optimize monthly --provider openai --candidate-model gpt-4.1 --candidate-model gpt-5-codex
+llm-usage optimize weekly --provider openai --candidate-model gpt-4.1,gpt-5-codex --top 1 --json
+```
+
+Optimize output contains baseline and candidate rows per period:
+
+- baseline rows: observed token totals and baseline cost
+- candidate rows: hypothetical cost on each candidate model, savings delta, and notes for missing pricing/incomplete baselines
+
+For JSON and Markdown, `stdout` includes only the report body; diagnostics and warnings remain on `stderr`.
 
 ## Per-model columns
 

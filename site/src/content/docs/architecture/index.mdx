@@ -12,6 +12,9 @@ description: High-level runtime architecture and data flow.
 5. render (`terminal`, `json`, `markdown`)
 
 `efficiency` reporting reuses usage aggregation, attributes usage events to a repository root, then joins repo-scoped usage with local Git commit outcomes per period.
+`optimize` reporting reuses usage parsing/filtering and evaluates candidate-model counterfactual pricing on observed token totals.
+
+Provider fields are normalized to billing-entity identifiers at event normalization time (for example, `openai-codex` normalizes to `openai`).
 
 Repo attribution details:
 
@@ -33,6 +36,7 @@ Repo attribution details:
 9. `renderUsageReport` → `stdout report`
 10. `buildUsageData` → `emitDiagnostics` → `stderr diagnostics`
 11. `efficiency` path: `buildUsageData` + `collectGitOutcomes` + repo attribution → `aggregateEfficiency` → `renderEfficiencyReport`
+12. `optimize` path: `buildUsageData` + counterfactual engine → `renderOptimizeReport`
 
 ## Module boundaries
 
@@ -43,6 +47,7 @@ Repo attribution details:
 - `src/aggregate`: period/source bucketing and totals
 - `src/render`: output formatters
 - `src/efficiency`: repo attribution + Git outcome collection + efficiency aggregation
+- `src/optimize`: candidate-model counterfactual computation + optimize row contracts
 
 ## Design principles
 

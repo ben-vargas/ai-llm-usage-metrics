@@ -1,0 +1,243 @@
+import { describe, expect, it } from 'vitest';
+
+import {
+  buildCounterfactualRows,
+  normalizeCandidateModels,
+  parseTopOption,
+} from '../../src/optimize/aggregate-counterfactual.js';
+import {
+  createDefaultOpenAiPricingSource,
+  StaticPricingSource,
+} from '../helpers/static-pricing-source.js';
+import type { UsageReportRow } from '../../src/domain/usage-report-row.js';
+
+function createUsageRows(
+  overrides: { costUsd?: number; costIncomplete?: boolean } = {},
+): UsageReportRow[] {
+  const baselineCostUsd = 'costUsd' in overrides ? overrides.costUsd : 2.8;
+  const baselineCostIncomplete = 'costIncomplete' in overrides ? overrides.costIncomplete : false;
+
+  return [
+    {
+      rowType: 'period_source',
+      periodKey: '2026-02-10',
+      source: 'pi',
+      models: ['gpt-4.1'],
+      modelBreakdown: [],
+      inputTokens: 1_000_000,
+      outputTokens: 100_000,
+      reasoningTokens: 0,
+      cacheReadTokens: 0,
+      cacheWriteTokens: 0,
+      totalTokens: 1_100_000,
+      costUsd: baselineCostUsd,
+      costIncomplete: baselineCostIncomplete,
+    },
+    {
+      rowType: 'grand_total',
+      periodKey: 'ALL',
+      source: 'combined',
+      models: ['gpt-4.1'],
+      modelBreakdown: [],
+      inputTokens: 1_000_000,
+      outputTokens: 100_000,
+      reasoningTokens: 0,
+      cacheReadTokens: 0,
+      cacheWriteTokens: 0,
+      totalTokens: 1_100_000,
+      costUsd: baselineCostUsd,
+      costIncomplete: baselineCostIncomplete,
+    },
+  ];
+}
+
+describe('aggregate-counterfactual', () => {
+  it('normalizes candidate models from repeated/comma-separated values', () => {
+    expect(normalizeCandidateModels([' GPT-4.1 , gpt-5-codex ', 'gpt-4.1'])).toEqual([
+      'gpt-4.1',
+      'gpt-5-codex',
+    ]);
+  });
+
+  it('rejects missing or empty candidate models', () => {
+    expect(() => normalizeCandidateModels(undefined)).toThrow(
+      'At least one --candidate-model is required',
+    );
+    expect(() => normalizeCandidateModels([' , ', '   '])).toThrow(
+      '--candidate-model must contain at least one non-empty model name',
+    );
+  });
+
+  it('parses --top and rejects invalid values', () => {
+    expect(parseTopOption(undefined)).toBeUndefined();
+    expect(parseTopOption('2')).toBe(2);
+    expect(() => parseTopOption('0')).toThrow('--top must be a positive integer');
+    expect(() => parseTopOption('abc')).toThrow('--top must be a positive integer');
+  });
+
+  it('matches cost-engine semantics for counterfactual costs', () => {
+    const result = buildCounterfactualRows({
+      usageRows: createUsageRows(),
+      provider: 'openai',
+      candidateModels: ['gpt-4.1', 'gpt-5-codex'],
+      pricingSource: createDefaultOpenAiPricingSource(),
+    });
+
+    const allCandidateRows = result.rows.filter(
+      (row) => row.rowType === 'candidate' && row.periodKey === 'ALL',
+    );
+
+    expect(allCandidateRows[0]).toMatchObject({
+      candidateModel: 'gpt-5-codex',
+      hypotheticalCostUsd: 2.5,
+      savingsUsd: 0.3,
+    });
+    expect(allCandidateRows[1]).toMatchObject({
+      candidateModel: 'gpt-4.1',
+      hypotheticalCostUsd: 2.8,
+      savingsUsd: 0,
+      savingsPct: 0,
+    });
+  });
+
+  it('sorts missing pricing candidates last and reports missing coverage', () => {
+    const pricing = new StaticPricingSource({
+      pricingByModel: {
+        'gpt-4.1': {
+          inputPer1MUsd: 2,
+          outputPer1MUsd: 8,
+        },
+      },
+    });
+
+    const result = buildCounterfactualRows({
+      usageRows: createUsageRows(),
+      provider: 'openai',
+      candidateModels: ['missing-model', 'gpt-4.1'],
+      pricingSource: pricing,
+    });
+
+    const allCandidates = result.rows.filter(
+      (row): row is Extract<(typeof result.rows)[number], { rowType: 'candidate' }> =>
+        row.rowType === 'candidate' && row.periodKey === 'ALL',
+    );
+
+    expect(allCandidates.map((row) => row.candidateModel)).toEqual(['gpt-4.1', 'missing-model']);
+    expect(allCandidates[1]).toMatchObject({
+      hypotheticalCostUsd: undefined,
+      hypotheticalCostIncomplete: true,
+      notes: ['missing_pricing'],
+    });
+    expect(result.candidatesWithMissingPricing).toEqual(['missing-model']);
+  });
+
+  it('suppresses savings when baseline is incomplete', () => {
+    const result = buildCounterfactualRows({
+      usageRows: createUsageRows({ costUsd: undefined, costIncomplete: true }),
+      provider: 'openai',
+      candidateModels: ['gpt-4.1'],
+      pricingSource: createDefaultOpenAiPricingSource(),
+    });
+
+    const candidateRow = result.rows.find(
+      (row) => row.rowType === 'candidate' && row.periodKey === 'ALL',
+    );
+
+    expect(candidateRow).toMatchObject({
+      savingsUsd: undefined,
+      savingsPct: undefined,
+      notes: ['baseline_incomplete'],
+    });
+  });
+
+  it('applies --top using ALL-period ranking consistently across periods', () => {
+    const usageRows: UsageReportRow[] = [
+      {
+        rowType: 'period_source',
+        periodKey: '2026-02-09',
+        source: 'pi',
+        models: [],
+        modelBreakdown: [],
+        inputTokens: 500_000,
+        outputTokens: 50_000,
+        reasoningTokens: 0,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+        totalTokens: 550_000,
+        costUsd: 1.4,
+      },
+      {
+        rowType: 'period_source',
+        periodKey: '2026-02-10',
+        source: 'pi',
+        models: [],
+        modelBreakdown: [],
+        inputTokens: 1_000_000,
+        outputTokens: 100_000,
+        reasoningTokens: 0,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+        totalTokens: 1_100_000,
+        costUsd: 2.8,
+      },
+      {
+        rowType: 'grand_total',
+        periodKey: 'ALL',
+        source: 'combined',
+        models: [],
+        modelBreakdown: [],
+        inputTokens: 1_500_000,
+        outputTokens: 150_000,
+        reasoningTokens: 0,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+        totalTokens: 1_650_000,
+        costUsd: 4.2,
+      },
+    ];
+
+    const result = buildCounterfactualRows({
+      usageRows,
+      provider: 'openai',
+      candidateModels: ['gpt-4.1', 'gpt-5-codex'],
+      pricingSource: createDefaultOpenAiPricingSource(),
+      top: 1,
+    });
+
+    const candidateRows = result.rows.filter((row) => row.rowType === 'candidate');
+
+    expect(candidateRows).toHaveLength(3);
+    expect(new Set(candidateRows.map((row) => row.candidateModel))).toEqual(
+      new Set(['gpt-5-codex']),
+    );
+  });
+
+  it('reports missing pricing diagnostics for all requested candidates, not only top-N', () => {
+    const pricing = new StaticPricingSource({
+      pricingByModel: {
+        'gpt-4.1': {
+          inputPer1MUsd: 2,
+          outputPer1MUsd: 8,
+        },
+      },
+    });
+
+    const result = buildCounterfactualRows({
+      usageRows: createUsageRows(),
+      provider: 'openai',
+      candidateModels: ['gpt-4.1', 'missing-model-a', 'missing-model-b'],
+      pricingSource: pricing,
+      top: 1,
+    });
+
+    const allRowsCandidates = result.rows
+      .filter(
+        (row): row is Extract<(typeof result.rows)[number], { rowType: 'candidate' }> =>
+          row.rowType === 'candidate' && row.periodKey === 'ALL',
+      )
+      .map((row) => row.candidateModel);
+
+    expect(allRowsCandidates).toEqual(['gpt-4.1']);
+    expect(result.candidatesWithMissingPricing).toEqual(['missing-model-a', 'missing-model-b']);
+  });
+});

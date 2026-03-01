@@ -6,6 +6,7 @@ import type {
 import type { UsageReportRow } from '../domain/usage-report-row.js';
 import type { UsageEvent } from '../domain/usage-event.js';
 import type { EfficiencyRow } from '../efficiency/efficiency-row.js';
+import type { OptimizeRow } from '../optimize/optimize-row.js';
 import type { PricingSource } from '../pricing/types.js';
 import type { SourceAdapter } from '../sources/source-adapter.js';
 
@@ -33,6 +34,11 @@ export type ReportCommandOptions = {
 export type EfficiencyCommandOptions = Omit<ReportCommandOptions, 'perModelColumns'> & {
   repoDir?: string;
   includeMergeCommits?: boolean;
+};
+
+export type OptimizeCommandOptions = Omit<ReportCommandOptions, 'perModelColumns'> & {
+  candidateModel?: string | string[];
+  top?: string;
 };
 
 export type UsageSessionStats = {
@@ -91,6 +97,19 @@ export type EfficiencyDiagnostics = {
 export type EfficiencyDataResult = {
   rows: EfficiencyRow[];
   diagnostics: EfficiencyDiagnostics;
+};
+
+export type OptimizeDiagnostics = {
+  usage: UsageDiagnostics;
+  provider: string;
+  baselineCostIncomplete: boolean;
+  candidatesWithMissingPricing: string[];
+  warning?: string;
+};
+
+export type OptimizeDataResult = {
+  rows: OptimizeRow[];
+  diagnostics: OptimizeDiagnostics;
 };
 
 export type PricingLoadResult = {

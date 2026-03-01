@@ -15,6 +15,7 @@
 This keeps source-specific complexity isolated and report output deterministic.
 
 `efficiency` reports reuse the usage pipeline, attribute usage events to a repository root, then join repo-scoped usage totals with local Git outcome totals.
+`optimize` reports reuse the same usage parsing/filtering pipeline, then compute counterfactual candidate-model pricing over observed token totals.
 
 ## Runtime flow (flowchart)
 
@@ -25,7 +26,9 @@ flowchart LR
     C --> D[runUsageReport]
     D --> E[buildUsageData]
     C --> O[runEfficiencyReport]
+    C --> T[runOptimizeReport]
     O --> E
+    T --> E
     O --> P[collectGitOutcomes]
     O --> S[attributeUsageEventsToRepo]
     E --> S
@@ -39,6 +42,9 @@ flowchart LR
     G --> H[Pricing resolver\nLiteLLM cache/network]
     H --> I[Aggregator\nperiod/source totals]
     I --> J[UsageDataResult]
+    J --> U[Counterfactual engine\ncandidate ranking + deltas]
+    U --> V[renderOptimizeReport]
+    V --> L
 
     J --> K[renderUsageReport]
     K --> L[stdout report body]
@@ -46,6 +52,7 @@ flowchart LR
     D --> M[emitDiagnostics]
     M --> N[stderr diagnostics]
     O --> M
+    T --> M
 ```
 
 ## End-to-end sequence
@@ -63,6 +70,7 @@ sequenceDiagram
     participant Render as renderUsageReport
     participant Emit as emitDiagnostics
     participant Git as collectGitOutcomes
+    participant Cfx as counterfactual engine
 
     User->>Entry: llm-usage monthly --source pi,codex
     Entry->>Update: checkForUpdatesAndMaybeRestart()
@@ -93,6 +101,16 @@ sequenceDiagram
     Render-->>Run: report string
     Run->>Emit: emitDiagnostics(data.diagnostics.usage)
     Run-->>User: stderr diagnostics + stdout efficiency report
+
+    User->>Entry: llm-usage optimize monthly --candidate-model gpt-4.1
+    Entry->>Run: runOptimizeReport(...)
+    Run->>Build: buildUsageData(...)
+    Build-->>Run: usage events + rows + diagnostics
+    Run->>Cfx: evaluate candidate pricing on baseline token totals
+    Cfx-->>Run: baseline + candidate rows
+    Run->>Run: renderOptimizeReport(data, format)
+    Run->>Emit: emitDiagnostics(data.diagnostics.usage)
+    Run-->>User: stderr diagnostics + stdout optimize report
 ```
 
 ## Module map
@@ -104,12 +122,14 @@ sequenceDiagram
 - `src/aggregate`: daily/weekly/monthly bucketing and totals
 - `src/render`: terminal/markdown/json formatting
 - `src/efficiency`: git-outcome collection and efficiency aggregation
+- `src/optimize`: counterfactual candidate-model computation and row contracts
 - `src/update`: startup update check
 
 ## Core invariants
 
 - deterministic ordering (period/source/model)
 - source parsing isolated behind adapter contract
+- provider values are normalized to billing-entity identifiers at domain boundaries
 - diagnostics on `stderr`, report data on `stdout`
 - OpenCode runtime parsing is read-only (`node:sqlite`)
 - unresolved cost values are surfaced explicitly (`-` / `~$...` semantics)

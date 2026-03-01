@@ -56,6 +56,10 @@ export default defineConfig({
           link: '/efficiency',
         },
         {
+          label: 'Optimize',
+          link: '/optimize',
+        },
+        {
           label: 'Data Sources',
           items: [
             { label: 'Overview', link: '/sources/' },

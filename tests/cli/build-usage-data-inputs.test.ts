@@ -19,4 +19,12 @@ describe('build-usage-data-inputs', () => {
 
     expect(inputs.timezone).toBe('UTC');
   });
+
+  it('normalizes provider filter to billing-entity value', () => {
+    const inputs = normalizeBuildUsageInputs({
+      provider: ' OpenAI-Codex ',
+    });
+
+    expect(inputs.providerFilter).toBe('openai');
+  });
 });

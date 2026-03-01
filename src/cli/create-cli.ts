@@ -2,8 +2,13 @@ import { Command } from 'commander';
 
 import { getDefaultSourceIds } from '../sources/create-default-adapters.js';
 import { runEfficiencyReport } from './run-efficiency-report.js';
+import { runOptimizeReport } from './run-optimize-report.js';
 import { runUsageReport } from './run-usage-report.js';
-import type { EfficiencyCommandOptions, ReportCommandOptions } from './usage-data-contracts.js';
+import type {
+  EfficiencyCommandOptions,
+  OptimizeCommandOptions,
+  ReportCommandOptions,
+} from './usage-data-contracts.js';
 import type { ReportGranularity } from '../utils/time-buckets.js';
 
 export type CreateCliOptions = {
@@ -54,7 +59,10 @@ function addSharedOptions(
     .option('--since <YYYY-MM-DD>', 'Inclusive start date filter')
     .option('--until <YYYY-MM-DD>', 'Inclusive end date filter')
     .option('--timezone <iana>', 'Timezone for bucketing', defaultTimezone)
-    .option('--provider <name>', 'Provider filter (substring match, optional)')
+    .option(
+      '--provider <name>',
+      'Billing-provider filter (substring match, optional; e.g. openai, anthropic, google)',
+    )
     .option(
       '--model <name>',
       'Filter by model (repeatable/comma-separated; exact when exact match exists after source/provider/date filters, otherwise substring)',
@@ -128,6 +136,26 @@ function createEfficiencyCommand(): Command {
   return command;
 }
 
+function createOptimizeCommand(): Command {
+  const command = new Command('optimize');
+
+  addSharedOptions(command, { includePerModelColumns: false })
+    .argument('<granularity>', 'Granularity: daily | weekly | monthly', parseGranularityArgument)
+    .option(
+      '--candidate-model <name>',
+      'Candidate model for counterfactual pricing (repeatable or comma-separated)',
+      collectRepeatedOption,
+      [],
+    )
+    .option('--top <n>', 'Show only the top N cheapest candidates (positive integer)')
+    .description('Show counterfactual pricing report for candidate model(s)')
+    .action(async (granularity: ReportGranularity, options: OptimizeCommandOptions) => {
+      await runOptimizeReport(granularity, options);
+    });
+
+  return command;
+}
+
 function rootDescription(): string {
   const supportedSourceIds = getSupportedSourceIds();
   const allowedSourcesLabel = getAllowedSourcesLabel(supportedSourceIds);
@@ -148,6 +176,7 @@ function rootDescription(): string {
     '  $ llm-usage daily --source-dir pi=/tmp/pi-sessions --source-dir gemini=/tmp/.gemini --source-dir droid=/tmp/droid-sessions',
     '  $ llm-usage daily --pi-dir /tmp/pi-sessions --gemini-dir /tmp/.gemini --droid-dir /tmp/droid-sessions',
     '  $ llm-usage efficiency weekly --repo-dir /path/to/repo --json',
+    '  $ llm-usage optimize monthly --provider openai --candidate-model gpt-4.1 --candidate-model gpt-5-codex --json',
     '  $ npx --yes llm-usage-metrics@latest daily',
   ].join('\n');
 }
@@ -163,7 +192,8 @@ export function createCli(options: CreateCliOptions = {}): Command {
     .addCommand(createCommand('daily'))
     .addCommand(createCommand('weekly'))
     .addCommand(createCommand('monthly'))
-    .addCommand(createEfficiencyCommand());
+    .addCommand(createEfficiencyCommand())
+    .addCommand(createOptimizeCommand());
 
   return program;
 }

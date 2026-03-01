@@ -85,7 +85,15 @@ function isTruthyEnvFlag(value: string | undefined): boolean {
 
 export function shouldSkipUpdateCheckForArgv(argv: string[]): boolean {
   const executableArgs = argv.slice(2);
-  const commandNames = new Set(['daily', 'weekly', 'monthly', 'efficiency', 'help', 'version']);
+  const commandNames = new Set([
+    'daily',
+    'weekly',
+    'monthly',
+    'efficiency',
+    'optimize',
+    'help',
+    'version',
+  ]);
 
   if (executableArgs.length === 0) {
     return false;
