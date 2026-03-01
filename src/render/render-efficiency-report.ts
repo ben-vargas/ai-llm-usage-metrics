@@ -1,4 +1,5 @@
 import { markdownTable } from 'markdown-table';
+import pc from 'picocolors';
 
 import type { UsageReportRow } from '../domain/usage-report-row.js';
 import type { EfficiencyDataResult } from '../cli/usage-data-contracts.js';
@@ -24,6 +25,14 @@ export type RenderEfficiencyReportOptions = {
 
 const periodColumnIndex = 0;
 const minimumEfficiencyColumnWidth = 1;
+const commitsColumnIndex = 1;
+const linesAddedColumnIndex = 2;
+const linesDeletedColumnIndex = 3;
+const linesChangedColumnIndex = 4;
+const costColumnIndex = 11;
+const usdPerCommitColumnIndex = 12;
+const usdPer1kLinesChangedColumnIndex = 13;
+const commitsPerUsdColumnIndex = 16;
 
 type FittedEfficiencyTableCells = {
   headerCells: string[];
@@ -211,9 +220,91 @@ function fitTableCellsToTerminal(
   };
 }
 
-function renderTerminalEfficiencyTable(rows: EfficiencyRow[]): string {
+function styleDeltaCell(
+  value: number,
+  formattedValue: string,
+  options: { useColor: boolean },
+): string {
+  if (!options.useColor) {
+    return formattedValue;
+  }
+
+  if (value > 0) {
+    return pc.green(formattedValue);
+  }
+
+  if (value < 0) {
+    return pc.red(formattedValue);
+  }
+
+  return pc.dim(formattedValue);
+}
+
+function styleEfficiencyTerminalRows(
+  rows: EfficiencyRow[],
+  bodyRows: string[][],
+  options: { useColor: boolean },
+): string[][] {
+  return bodyRows.map((cells, rowIndex) => {
+    if (!options.useColor) {
+      return [...cells];
+    }
+
+    const row = rows[rowIndex];
+    const styledCells = [...cells];
+    const periodCell = styledCells[periodColumnIndex];
+
+    styledCells[periodColumnIndex] =
+      row.rowType === 'grand_total' ? pc.bold(pc.cyan(periodCell)) : pc.bold(periodCell);
+    styledCells[commitsColumnIndex] = pc.bold(styledCells[commitsColumnIndex]);
+    styledCells[linesAddedColumnIndex] = styleDeltaCell(
+      row.linesAdded,
+      styledCells[linesAddedColumnIndex],
+      options,
+    );
+    styledCells[linesDeletedColumnIndex] = styleDeltaCell(
+      row.linesDeleted * -1,
+      styledCells[linesDeletedColumnIndex],
+      options,
+    );
+    styledCells[linesChangedColumnIndex] = styleDeltaCell(
+      row.linesChanged,
+      styledCells[linesChangedColumnIndex],
+      options,
+    );
+
+    const costValue = row.costUsd;
+    if (costValue !== undefined && costValue > 0) {
+      styledCells[costColumnIndex] = pc.yellow(styledCells[costColumnIndex]);
+    }
+
+    const usdPerCommitValue = row.usdPerCommit;
+    if (usdPerCommitValue !== undefined && usdPerCommitValue > 0) {
+      styledCells[usdPerCommitColumnIndex] = pc.yellow(styledCells[usdPerCommitColumnIndex]);
+    }
+
+    const usdPer1kLinesChangedValue = row.usdPer1kLinesChanged;
+    if (usdPer1kLinesChangedValue !== undefined && usdPer1kLinesChangedValue > 0) {
+      styledCells[usdPer1kLinesChangedColumnIndex] = pc.yellow(
+        styledCells[usdPer1kLinesChangedColumnIndex],
+      );
+    }
+
+    const commitsPerUsdValue = row.commitsPerUsd;
+    if (commitsPerUsdValue !== undefined && commitsPerUsdValue > 0) {
+      styledCells[commitsPerUsdColumnIndex] = pc.green(styledCells[commitsPerUsdColumnIndex]);
+    }
+
+    return styledCells;
+  });
+}
+
+function renderTerminalEfficiencyTable(
+  rows: EfficiencyRow[],
+  options: { useColor: boolean },
+): string {
   const headerCells = Array.from(efficiencyTableHeaders);
-  const bodyRows = toEfficiencyTableCells(rows);
+  const bodyRows = styleEfficiencyTerminalRows(rows, toEfficiencyTableCells(rows), options);
   const tableSortRows = rows.map((row) => toTableSortRow(row));
   const fittedCells = fitTableCellsToTerminal(headerCells, bodyRows);
 
@@ -264,7 +355,7 @@ function renderTerminalEfficiencyReport(
   );
 
   outputLines.push('');
-  outputLines.push(renderTerminalEfficiencyTable(efficiencyData.rows));
+  outputLines.push(renderTerminalEfficiencyTable(efficiencyData.rows, { useColor }));
 
   return outputLines.join('\n');
 }
