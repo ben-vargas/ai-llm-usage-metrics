@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.3.7](https://github.com/ayagmar/llm-usage-metrics/compare/v0.3.6...v0.3.7) (2026-03-01)
+
+### Features
+
+* **cache:** update parse file cache version to 3 and normalize provider handling ([dc6cd3e](https://github.com/ayagmar/llm-usage-metrics/commit/dc6cd3e6144409fa117a300fbf4cb60844defbc5))
+* **optimize:** add optimize report command pipeline ([3adc137](https://github.com/ayagmar/llm-usage-metrics/commit/3adc1371ddcd9e473503b5e732d51754a1734df7))
+* **provider:** add error handling for unmatched optimize providers and improve test event structure ([ac27044](https://github.com/ayagmar/llm-usage-metrics/commit/ac270445cd66ab2e0eed14177768539d553652bd))
+* **render:** add optimize context and hide empty notes column ([e1da80a](https://github.com/ayagmar/llm-usage-metrics/commit/e1da80aba570148ac6f9e0e75ed4a6b763584b52))
+* **render:** colorize efficiency terminal table ([4900602](https://github.com/ayagmar/llm-usage-metrics/commit/490060214372c583cd263c90fd326c6483630212))
+
+### Bug Fixes
+
+* **optimize:** allow provider variants and highlight deltas ([ef35183](https://github.com/ayagmar/llm-usage-metrics/commit/ef35183cc6c42a3549ec609a828f22ad1b7e8cf0))
+* **optimize:** tighten renderer paths and runner coverage ([4e80b21](https://github.com/ayagmar/llm-usage-metrics/commit/4e80b21d420a430a247a1f6b326075d0ac81467b))
+* **optimize:** update candidatesWithMissingPricing to use input candidateModels ([4fedb2a](https://github.com/ayagmar/llm-usage-metrics/commit/4fedb2acfb479b8a5fe31598f29c13f1d7607cbe))
+* **provider:** normalize billing entities and disambiguate optimize scope ([eb1dbb4](https://github.com/ayagmar/llm-usage-metrics/commit/eb1dbb42d5b5288bcad422128dfe0e0f7bf33a07))
+
 ## [0.3.6](https://github.com/ayagmar/llm-usage-metrics/compare/v0.3.5...v0.3.6) (2026-02-27)
 
 ### Bug Fixes
