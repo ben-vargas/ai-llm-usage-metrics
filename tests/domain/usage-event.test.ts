@@ -110,6 +110,19 @@ describe('createUsageEvent', () => {
     expect(event.model).toBe('gpt-4.1');
   });
 
+  it('normalizes provider identifiers to billing entities', () => {
+    const event = createUsageEvent({
+      source: 'pi',
+      sessionId: 'session-provider-normalization',
+      timestamp: '2026-02-12T10:00:00Z',
+      provider: ' OpenAI-Codex ',
+      inputTokens: 1,
+      outputTokens: 1,
+    });
+
+    expect(event.provider).toBe('openai');
+  });
+
   it('keeps repo root metadata when provided', () => {
     const event = createUsageEvent({
       source: 'pi',

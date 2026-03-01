@@ -47,7 +47,7 @@ describe('PiSourceAdapter', () => {
       source: 'pi',
       sessionId: 'session-pi-1',
       repoRoot: '/tmp/pi-repo',
-      provider: 'openai-codex',
+      provider: 'openai',
       model: 'gpt-5.3-codex',
       inputTokens: 100,
       outputTokens: 20,

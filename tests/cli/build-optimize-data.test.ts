@@ -93,12 +93,11 @@ describe('buildOptimizeData', () => {
     expect(pricingLoaderSpy).not.toHaveBeenCalled();
   });
 
-  it('accepts provider variants under a matching provider filter label', async () => {
+  it('normalizes provider variants to a single billing provider scope', async () => {
     const result = await buildOptimizeData(
       'daily',
       {
         candidateModel: ['gpt-4.1'],
-        provider: 'openai',
       },
       runtimeDeps({
         adapters: [
@@ -241,5 +240,27 @@ describe('buildOptimizeData', () => {
     );
 
     expect(result.diagnostics.provider).toBe('openai');
+  });
+
+  it('rejects ambiguous provider substring matches with actionable guidance', async () => {
+    await expect(
+      buildOptimizeData(
+        'daily',
+        {
+          candidateModel: ['gpt-4.1'],
+          provider: 'vendor',
+        },
+        runtimeDeps({
+          adapters: [
+            createAdapter('pi', {
+              '/tmp/a.jsonl': [createBaseEvent({ provider: 'vendor-alpha' })],
+              '/tmp/b.jsonl': [createBaseEvent({ provider: 'vendor-beta' })],
+            }),
+          ],
+        }),
+      ),
+    ).rejects.toThrow(
+      'Optimize matched multiple providers for --provider "vendor": vendor-alpha, vendor-beta. Supply a more specific --provider value.',
+    );
   });
 });

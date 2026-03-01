@@ -1,4 +1,5 @@
 import type { SourceAdapter } from '../sources/source-adapter.js';
+import { normalizeProviderToBillingEntity } from '../domain/provider-normalization.js';
 import { compareByCodePoint } from '../utils/compare-by-code-point.js';
 
 import type { ReportCommandOptions } from './usage-data-contracts.js';
@@ -35,12 +36,7 @@ export function validateTimezone(timezone: string): void {
 }
 
 export function normalizeProviderFilter(provider: string | undefined): string | undefined {
-  if (!provider) {
-    return undefined;
-  }
-
-  const normalized = provider.trim().toLowerCase();
-  return normalized || undefined;
+  return normalizeProviderToBillingEntity(provider);
 }
 
 export function normalizeSourceFilter(

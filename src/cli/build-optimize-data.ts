@@ -1,6 +1,7 @@
 import { aggregateUsage } from '../aggregate/aggregate-usage.js';
 import { compareByCodePoint } from '../utils/compare-by-code-point.js';
 import type { ReportGranularity } from '../utils/time-buckets.js';
+import { normalizeProviderFilter } from './build-usage-data-inputs.js';
 import { buildUsageDiagnostics } from './build-usage-data-diagnostics.js';
 import {
   applyPricingToUsageEventDataset,
@@ -19,28 +20,32 @@ import {
 
 export type BuildOptimizeDataDeps = BuildUsageDataDeps;
 
-function normalizeProviderValue(provider: string | undefined): string | undefined {
-  if (!provider) {
-    return undefined;
-  }
-
-  const normalized = provider.trim().toLowerCase();
-  return normalized.length > 0 ? normalized : undefined;
-}
-
 function resolveOptimizeProvider(
   providers: Set<string>,
   providerFilter: string | undefined,
 ): string {
   const distinctProviders = [...providers].sort(compareByCodePoint);
-  const normalizedProviderFilter = normalizeProviderValue(providerFilter);
+  const normalizedProviderFilter = normalizeProviderFilter(providerFilter);
 
   if (distinctProviders.length > 1) {
-    if (
-      normalizedProviderFilter &&
-      distinctProviders.every((provider) => provider.includes(normalizedProviderFilter))
-    ) {
-      return normalizedProviderFilter;
+    if (normalizedProviderFilter) {
+      const matchingProviders = distinctProviders.filter((provider) =>
+        provider.includes(normalizedProviderFilter),
+      );
+
+      if (matchingProviders.includes(normalizedProviderFilter)) {
+        return normalizedProviderFilter;
+      }
+
+      if (matchingProviders.length === 1) {
+        return matchingProviders[0];
+      }
+
+      if (matchingProviders.length > 1) {
+        throw new Error(
+          `Optimize matched multiple providers for --provider "${normalizedProviderFilter}": ${matchingProviders.join(', ')}. Supply a more specific --provider value.`,
+        );
+      }
     }
 
     throw new Error(
@@ -66,7 +71,7 @@ export async function buildOptimizeData(
   const dataset = await buildUsageEventDataset(options, deps);
   const detectedProviders = new Set(
     dataset.filteredEvents
-      .map((event) => normalizeProviderValue(event.provider))
+      .map((event) => normalizeProviderFilter(event.provider))
       .filter((provider): provider is string => provider !== undefined),
   );
   const provider = resolveOptimizeProvider(

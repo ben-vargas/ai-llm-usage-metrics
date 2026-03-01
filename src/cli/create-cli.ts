@@ -59,7 +59,10 @@ function addSharedOptions(
     .option('--since <YYYY-MM-DD>', 'Inclusive start date filter')
     .option('--until <YYYY-MM-DD>', 'Inclusive end date filter')
     .option('--timezone <iana>', 'Timezone for bucketing', defaultTimezone)
-    .option('--provider <name>', 'Provider filter (substring match, optional)')
+    .option(
+      '--provider <name>',
+      'Billing-provider filter (substring match, optional; e.g. openai, anthropic, google)',
+    )
     .option(
       '--model <name>',
       'Filter by model (repeatable/comma-separated; exact when exact match exists after source/provider/date filters, otherwise substring)',
