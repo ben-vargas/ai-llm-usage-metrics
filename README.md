@@ -31,7 +31,7 @@ Aggregate token usage and costs from your local coding agent sessions. Supports 
 - **Efficiency Reports** — Correlate cost/tokens with repository commit outcomes
 - **Optimize Reports** — Counterfactual candidate-model pricing against observed token mix
 - **Multiple Outputs** — Terminal tables, JSON, or Markdown
-- **Smart Filtering** — By source, provider, model, and date ranges
+- **Smart Filtering** — By source, billing provider, model, and date ranges
 
 ## 🚀 Quick Start
 
@@ -145,6 +145,8 @@ llm-usage optimize monthly --provider openai --candidate-model gpt-4.1 --candida
 llm-usage optimize weekly --provider openai --candidate-model gpt-4.1,gpt-5-codex --top 1 --json
 ```
 
+`--provider` filters by billing entity. Provider aliases are normalized to billing roots (for example, `openai-codex` is treated as `openai`).
+
 ### Filtering
 
 ```bash
@@ -160,6 +162,8 @@ llm-usage monthly --model claude
 # Combined filters
 llm-usage monthly --source opencode --provider openai --model gpt-4.1
 ```
+
+Use `--source` to scope where events came from (`pi`, `codex`, `gemini`, `droid`, `opencode`), and `--provider` to scope the billing entity behind those events.
 
 ### Custom Paths
 

@@ -129,6 +129,7 @@ sequenceDiagram
 
 - deterministic ordering (period/source/model)
 - source parsing isolated behind adapter contract
+- provider values are normalized to billing-entity identifiers at domain boundaries
 - diagnostics on `stderr`, report data on `stdout`
 - OpenCode runtime parsing is read-only (`node:sqlite`)
 - unresolved cost values are surfaced explicitly (`-` / `~$...` semantics)

@@ -32,7 +32,8 @@ llm-usage optimize weekly \
 - Requires at least one `--candidate-model`.
 - Enforces a single provider context after filtering.
 - If multiple providers remain, narrow with `--provider`.
-- `--provider` matching stays substring-based, consistent with existing usage commands.
+- `--provider` is a billing-provider filter and matching stays substring-based, consistent with existing usage commands.
+- Provider aliases are normalized to billing roots (for example, `openai-codex` is treated as `openai`).
 - Candidate ranking is deterministic and based on `ALL` period hypothetical cost.
 
 ## Missing pricing and incomplete baselines

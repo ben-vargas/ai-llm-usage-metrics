@@ -14,6 +14,8 @@ description: High-level runtime architecture and data flow.
 `efficiency` reporting reuses usage aggregation, attributes usage events to a repository root, then joins repo-scoped usage with local Git commit outcomes per period.
 `optimize` reporting reuses usage parsing/filtering and evaluates candidate-model counterfactual pricing on observed token totals.
 
+Provider fields are normalized to billing-entity identifiers at event normalization time (for example, `openai-codex` normalizes to `openai`).
+
 Repo attribution details:
 
 - usage events are matched to the selected repository root through source metadata path hints (`repoRoot`/`cwd`-style hints)

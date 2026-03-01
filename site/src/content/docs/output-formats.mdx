@@ -58,6 +58,7 @@ When a denominator is zero, derived values render as `-` in terminal/markdown an
 When pricing is incomplete, affected USD values are prefixed with `~` in terminal/markdown.
 
 Usage filters (`--source`, `--provider`, `--model`, source-path overrides) also affect commit attribution: only commit days with matching repo-attributed usage events are counted.
+`--provider` scopes by billing entity (for example, `openai-codex` is normalized to `openai`).
 
 For deeper semantics (repo attribution, scope behavior, and interpretation guidance), see the [Efficiency](/efficiency/) page.
 
