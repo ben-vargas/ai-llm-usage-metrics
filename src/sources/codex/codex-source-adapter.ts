@@ -111,6 +111,18 @@ function deriveDeltaUsage(
   const totalUsage = toUsage(info.total_token_usage);
   const lastUsage = toUsage(info.last_token_usage);
 
+  if (totalUsage && previousTotalUsage) {
+    const deltaFromTotals = subtractUsage(totalUsage, previousTotalUsage);
+
+    if (hasUsageSignal(deltaFromTotals)) {
+      return { deltaUsage: deltaFromTotals, latestTotalUsage: totalUsage };
+    }
+
+    // Duplicate token_count rows can repeat the last per-turn usage while totals stay unchanged.
+    // Prefer totals and treat unchanged totals as no new usage signal.
+    return { latestTotalUsage: totalUsage };
+  }
+
   if (lastUsage) {
     return { deltaUsage: lastUsage, latestTotalUsage: totalUsage };
   }
