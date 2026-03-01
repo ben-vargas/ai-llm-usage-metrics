@@ -93,9 +93,50 @@ describe('renderOptimizeReport', () => {
     });
 
     expect(output).toContain('Weekly Optimize Report');
+    expect(output).toContain('Provider scope: openai');
+    expect(output).toContain('ALL baseline cost: $1.25');
+    expect(output).toContain('ALL best candidate: gpt-4.1 saves $0.15 (12.00%)');
+    expect(output).toContain(
+      'Savings = Baseline - Hypothetical (positive means cheaper candidate)',
+    );
     expect(output).toContain('│ Period');
     expect(output).toContain('│ Candidate');
     expect(output).toContain('│ Hypothetical Cost');
+  });
+
+  it('renders missing-pricing context in terminal output', () => {
+    const data = createOptimizeDataResult();
+    data.diagnostics.candidatesWithMissingPricing = ['gpt-4.1-mini'];
+
+    const output = renderOptimizeReport(data, 'terminal', {
+      granularity: 'monthly',
+      useColor: false,
+    });
+
+    expect(output).toContain('Missing candidate pricing: gpt-4.1-mini');
+  });
+
+  it('hides notes column when no candidate notes are present', () => {
+    const data = createOptimizeDataResult();
+    data.rows = data.rows.map((row) =>
+      row.rowType === 'candidate'
+        ? {
+            ...row,
+            notes: undefined,
+          }
+        : row,
+    );
+
+    const terminalOutput = renderOptimizeReport(data, 'terminal', {
+      granularity: 'monthly',
+      useColor: false,
+    });
+    const markdownOutput = renderOptimizeReport(data, 'markdown', {
+      granularity: 'monthly',
+    });
+
+    expect(terminalOutput).not.toContain('│ Notes');
+    expect(markdownOutput).not.toContain('| Notes');
   });
 
   it('keeps terminal table borders aligned with long candidate names', () => {

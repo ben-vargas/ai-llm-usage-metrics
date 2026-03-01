@@ -3,6 +3,7 @@ import pc from 'picocolors';
 
 import type { OptimizeDataResult } from '../cli/usage-data-contracts.js';
 import type { UsageReportRow } from '../domain/usage-report-row.js';
+import type { OptimizeBaselineRow, OptimizeCandidateRow } from '../optimize/optimize-row.js';
 import type { ReportGranularity } from '../utils/time-buckets.js';
 import { visibleWidth } from './table-text-layout.js';
 import { renderReportHeader } from './report-header.js';
@@ -16,7 +17,7 @@ export type RenderOptimizeReportOptions = {
   useColor?: boolean;
 };
 
-const optimizeTableHeaders = [
+const optimizeTableHeadersWithNotes = [
   'Period',
   'Candidate',
   'Hypothetical Cost',
@@ -24,6 +25,15 @@ const optimizeTableHeaders = [
   'Savings',
   'Savings %',
   'Notes',
+] as const;
+
+const optimizeTableHeadersWithoutNotes = [
+  'Period',
+  'Candidate',
+  'Hypothetical Cost',
+  'Baseline Cost',
+  'Savings',
+  'Savings %',
 ] as const;
 
 const usdFormatter = new Intl.NumberFormat('en-US', {
@@ -117,9 +127,72 @@ function styleNotesCell(
   return pc.yellow(formattedNotes);
 }
 
-function toTableCells(
+function formatAbsoluteUsd(value: number): string {
+  return usdFormatter.format(Math.abs(value));
+}
+
+function resolveTerminalContextLines(
   optimizeData: OptimizeDataResult,
   options: { useColor: boolean },
+): string[] {
+  const allBaselineRow = optimizeData.rows.find(
+    (row): row is OptimizeBaselineRow => row.rowType === 'baseline' && row.periodKey === 'ALL',
+  );
+  const allCandidateRows = optimizeData.rows.filter(
+    (row): row is OptimizeCandidateRow => row.rowType === 'candidate' && row.periodKey === 'ALL',
+  );
+  const lines: string[] = [];
+
+  const providerLine = `Provider scope: ${optimizeData.diagnostics.provider}`;
+  lines.push(options.useColor ? pc.cyan(providerLine) : providerLine);
+
+  if (allBaselineRow) {
+    lines.push(
+      `ALL baseline cost: ${formatUsd(allBaselineRow.baselineCostUsd, { approximate: allBaselineRow.baselineCostIncomplete })}`,
+    );
+  }
+
+  if (allCandidateRows.length > 0) {
+    const rowsWithSavings = allCandidateRows.filter((row) => row.savingsUsd !== undefined);
+    const bestRow =
+      rowsWithSavings.length > 0
+        ? rowsWithSavings.reduce((best, current) =>
+            (current.savingsUsd ?? Number.NEGATIVE_INFINITY) >
+            (best.savingsUsd ?? Number.NEGATIVE_INFINITY)
+              ? current
+              : best,
+          )
+        : undefined;
+
+    if (!bestRow || bestRow.savingsUsd === undefined) {
+      lines.push('ALL best candidate: unavailable (missing baseline or candidate pricing)');
+    } else if (bestRow.savingsUsd > 0) {
+      lines.push(
+        `ALL best candidate: ${bestRow.candidateModel} saves ${formatAbsoluteUsd(bestRow.savingsUsd)} (${formatPercent(bestRow.savingsPct)})`,
+      );
+    } else if (bestRow.savingsUsd < 0) {
+      lines.push(
+        `ALL best candidate: ${bestRow.candidateModel} increases cost by ${formatAbsoluteUsd(bestRow.savingsUsd)} (${formatPercent(bestRow.savingsPct)})`,
+      );
+    } else {
+      lines.push(`ALL best candidate: ${bestRow.candidateModel} matches baseline cost`);
+    }
+  }
+
+  if (optimizeData.diagnostics.candidatesWithMissingPricing.length > 0) {
+    const missingLine = `Missing candidate pricing: ${optimizeData.diagnostics.candidatesWithMissingPricing.join(', ')}`;
+    lines.push(options.useColor ? pc.yellow(missingLine) : missingLine);
+  }
+
+  const legendLine = 'Savings = Baseline - Hypothetical (positive means cheaper candidate)';
+  lines.push(options.useColor ? pc.dim(legendLine) : legendLine);
+
+  return lines;
+}
+
+function toTableCells(
+  optimizeData: OptimizeDataResult,
+  options: { useColor: boolean; includeNotesColumn: boolean },
 ): string[][] {
   const baselineByPeriod = new Map(
     optimizeData.rows
@@ -133,22 +206,23 @@ function toTableCells(
       options.useColor && row.periodKey === 'ALL' ? pc.bold(row.periodKey) : row.periodKey;
 
     if (row.rowType === 'baseline') {
-      return [
+      const baselineCells = [
         periodCell,
         styleCandidateCell('BASELINE', 'baseline', options.useColor),
         '-',
         formatUsd(row.baselineCostUsd, { approximate: row.baselineCostIncomplete }),
         '-',
         '-',
-        '-',
       ];
+
+      return options.includeNotesColumn ? [...baselineCells, '-'] : baselineCells;
     }
 
     const savingsCell = formatUsd(row.savingsUsd);
     const savingsPctCell = formatPercent(row.savingsPct);
     const notesCell = formatNotes(row.notes);
 
-    return [
+    const candidateCells = [
       periodCell,
       styleCandidateCell(row.candidateModel, 'candidate', options.useColor),
       formatUsd(row.hypotheticalCostUsd, { approximate: row.hypotheticalCostIncomplete }),
@@ -157,8 +231,11 @@ function toTableCells(
       }),
       styleDeltaCell(row.savingsUsd, savingsCell, options.useColor),
       styleDeltaCell(row.savingsPct, savingsPctCell, options.useColor),
-      styleNotesCell(row.notes, notesCell, options.useColor),
     ];
+
+    return options.includeNotesColumn
+      ? [...candidateCells, styleNotesCell(row.notes, notesCell, options.useColor)]
+      : candidateCells;
   });
 }
 
@@ -191,7 +268,13 @@ function resolveCandidateColumnWidth(tableCells: string[][]): number {
   return tableCells.reduce((maxWidth, row) => {
     const candidateValue = row[1] ?? '';
     return Math.max(maxWidth, visibleWidth(candidateValue));
-  }, visibleWidth(optimizeTableHeaders[1]));
+  }, visibleWidth(optimizeTableHeadersWithNotes[1]));
+}
+
+function resolveIncludeNotesColumn(optimizeData: OptimizeDataResult): boolean {
+  return optimizeData.rows.some(
+    (row) => row.rowType === 'candidate' && row.notes !== undefined && row.notes.length > 0,
+  );
 }
 
 function renderTerminalOptimizeReport(
@@ -199,8 +282,13 @@ function renderTerminalOptimizeReport(
   options: RenderOptimizeReportOptions,
 ): string {
   const useColor = options.useColor ?? shouldUseColorByDefault();
-  const tableCells = toTableCells(optimizeData, { useColor });
+  const includeNotesColumn = resolveIncludeNotesColumn(optimizeData);
+  const tableCells = toTableCells(optimizeData, { useColor, includeNotesColumn });
   const candidateColumnWidth = resolveCandidateColumnWidth(tableCells);
+  const contextLines = resolveTerminalContextLines(optimizeData, { useColor });
+  const headerCells = includeNotesColumn
+    ? [...optimizeTableHeadersWithNotes]
+    : [...optimizeTableHeadersWithoutNotes];
   const outputLines: string[] = [];
 
   outputLines.push(
@@ -210,11 +298,13 @@ function renderTerminalOptimizeReport(
     }),
   );
   outputLines.push('');
+  outputLines.push(...contextLines);
+  outputLines.push('');
   outputLines.push(
     renderUnicodeTable({
-      headerCells: [...optimizeTableHeaders],
+      headerCells,
       bodyRows: tableCells,
-      measureHeaderCells: [...optimizeTableHeaders],
+      measureHeaderCells: headerCells,
       measureBodyRows: tableCells,
       usageRows: toSortingUsageRows(optimizeData),
       tableLayout: 'compact',
@@ -227,14 +317,16 @@ function renderTerminalOptimizeReport(
 }
 
 function renderMarkdownOptimizeReport(optimizeData: OptimizeDataResult): string {
-  const bodyRows = toTableCells(optimizeData, { useColor: false }).map((row) =>
-    row.map((cell) => toMarkdownSafeCell(cell)),
-  );
-  const tableRows = [[...optimizeTableHeaders], ...bodyRows];
-  const alignment = optimizeTableHeaders.map((_, index) => (index <= 1 ? 'l' : 'r')) as (
-    | 'l'
-    | 'r'
-  )[];
+  const includeNotesColumn = resolveIncludeNotesColumn(optimizeData);
+  const headerCells = includeNotesColumn
+    ? [...optimizeTableHeadersWithNotes]
+    : [...optimizeTableHeadersWithoutNotes];
+  const bodyRows = toTableCells(optimizeData, {
+    useColor: false,
+    includeNotesColumn,
+  }).map((row) => row.map((cell) => toMarkdownSafeCell(cell)));
+  const tableRows = [headerCells, ...bodyRows];
+  const alignment = headerCells.map((_, index) => (index <= 1 ? 'l' : 'r')) as ('l' | 'r')[];
 
   return markdownTable(tableRows, { align: alignment });
 }
