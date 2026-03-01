@@ -2,6 +2,7 @@ import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { normalizeSourceId, type UsageEvent } from '../domain/usage-event.js';
+import { normalizeProviderToBillingEntity } from '../domain/provider-normalization.js';
 import type {
   SourceParseFileDiagnostics,
   SourceSkippedRowReasonStat,
@@ -10,7 +11,7 @@ import { normalizeSkippedRowReasons } from './normalize-skipped-row-reasons.js';
 import { asRecord } from '../utils/as-record.js';
 import { getUserCacheRootDir } from '../utils/cache-root-dir.js';
 
-const PARSE_FILE_CACHE_VERSION = 2;
+const PARSE_FILE_CACHE_VERSION = 3;
 const CACHE_KEY_SEPARATOR = '\u0000';
 
 export type ParseFileFingerprint = {
@@ -122,7 +123,9 @@ function normalizeCachedUsageEvent(value: unknown): UsageEvent | undefined {
     return undefined;
   }
 
-  const provider = typeof record.provider === 'string' ? record.provider.trim() : '';
+  const provider = normalizeProviderToBillingEntity(
+    typeof record.provider === 'string' ? record.provider : undefined,
+  );
   const model = typeof record.model === 'string' ? record.model.trim().toLowerCase() : '';
   const costUsd = toNonNegativeNumber(record.costUsd);
 
@@ -135,7 +138,7 @@ function normalizeCachedUsageEvent(value: unknown): UsageEvent | undefined {
     sessionId,
     timestamp,
     repoRoot: repoRoot || undefined,
-    provider: provider || undefined,
+    provider,
     model: model || undefined,
     inputTokens,
     outputTokens,

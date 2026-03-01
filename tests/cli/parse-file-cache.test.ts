@@ -203,13 +203,14 @@ describe('ParseFileCache', () => {
     const validEvent = createEvent({
       source: 'CODEX',
       sessionId: 'from-cache',
+      provider: 'openai-codex',
       model: 'GPT-4.1',
     });
 
     await writeFile(
       cacheFilePath,
       JSON.stringify({
-        version: 2,
+        version: 3,
         entries: [
           {
             source: 'CODEX',
@@ -276,7 +277,9 @@ describe('ParseFileCache', () => {
       cache.get('codex', '/tmp/bad-timestamp.jsonl', { size: 12, mtimeMs: 34 }),
     ).toBeUndefined();
     expect(cache.get('codex', '/tmp/ok.jsonl', { size: 12, mtimeMs: 34 })).toEqual({
-      events: [{ ...createEvent({ sessionId: 'from-cache', model: 'gpt-4.1' }) }],
+      events: [
+        { ...createEvent({ sessionId: 'from-cache', provider: 'openai', model: 'gpt-4.1' }) },
+      ],
       skippedRows: 9,
       skippedRowReasons: [{ reason: 'truncated', count: 3 }],
     });
@@ -303,7 +306,7 @@ describe('ParseFileCache', () => {
       version: number;
       entries: unknown[];
     };
-    expect(persisted).toEqual({ version: 2, entries: [] });
+    expect(persisted).toEqual({ version: 3, entries: [] });
   });
 
   it('handles unsupported cache versions by resetting payload on persist', async () => {
@@ -327,7 +330,7 @@ describe('ParseFileCache', () => {
       version: number;
       entries: unknown[];
     };
-    expect(persisted).toEqual({ version: 2, entries: [] });
+    expect(persisted).toEqual({ version: 3, entries: [] });
   });
 
   it('bounds persisted payload by max entries and max bytes', async () => {
@@ -397,7 +400,7 @@ describe('ParseFileCache', () => {
     await writeFile(
       cacheFilePath,
       JSON.stringify({
-        version: 2,
+        version: 3,
         entries: [
           {
             source: 'codex',
