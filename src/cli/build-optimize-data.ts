@@ -41,6 +41,12 @@ function resolveOptimizeProvider(
         return matchingProviders[0];
       }
 
+      if (matchingProviders.length === 0) {
+        throw new Error(
+          `Optimize --provider "${normalizedProviderFilter}" matched no providers. Available providers: ${distinctProviders.join(', ')}.`,
+        );
+      }
+
       if (matchingProviders.length > 1) {
         throw new Error(
           `Optimize matched multiple providers for --provider "${normalizedProviderFilter}": ${matchingProviders.join(', ')}. Supply a more specific --provider value.`,

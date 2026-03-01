@@ -200,12 +200,20 @@ describe('ParseFileCache', () => {
     const tempDir = await mkdtemp(path.join(os.tmpdir(), 'parse-file-cache-load-'));
     tempDirs.push(tempDir);
     const cacheFilePath = path.join(tempDir, 'parse-file-cache.json');
-    const validEvent = createEvent({
+    const validEvent = {
       source: 'CODEX',
       sessionId: 'from-cache',
-      provider: 'openai-codex',
-      model: 'GPT-4.1',
-    });
+      timestamp: '2026-02-01T00:00:00.000Z',
+      provider: ' OpenAI-Codex ',
+      model: ' GPT-4.1 ',
+      inputTokens: 1,
+      outputTokens: 2,
+      reasoningTokens: 0,
+      cacheReadTokens: 0,
+      cacheWriteTokens: 0,
+      totalTokens: 3,
+      costMode: 'estimated',
+    };
 
     await writeFile(
       cacheFilePath,
