@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.2](https://github.com/ayagmar/llm-usage-metrics/compare/v0.4.1...v0.4.2) (2026-03-02)
+
+### Bug Fixes
+
+* **render:** consolidate defs block and add missing escapeSvg ([d27fbb9](https://github.com/ayagmar/llm-usage-metrics/commit/d27fbb916d46d7e14770cba3c9bb4a2a93269b1c))
+
 ## [0.4.1](https://github.com/ayagmar/llm-usage-metrics/compare/v0.4.0...v0.4.1) (2026-03-02)
 
 ### Features
