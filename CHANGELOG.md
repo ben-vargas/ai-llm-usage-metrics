@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.4.1](https://github.com/ayagmar/llm-usage-metrics/compare/v0.4.0...v0.4.1) (2026-03-02)
+
+### Features
+
+* **cli:** add --share to usage commands with stacked area chart ([91a13b4](https://github.com/ayagmar/llm-usage-metrics/commit/91a13b497228a6d155999fb3332eb3e24f999355))
+* **cli:** wire efficiency and optimize share to restyled renderers ([3c35e5d](https://github.com/ayagmar/llm-usage-metrics/commit/3c35e5d3f6ae368fcb80f97d9ee1ee91bf5199d9))
+* **render:** add shared dark-theme SVG design system ([d174214](https://github.com/ayagmar/llm-usage-metrics/commit/d1742142bf3491e3b136c5c273c8920d80d42440)), closes [#0d1117](https://github.com/ayagmar/llm-usage-metrics/issues/0d1117)
+* **site:** redesign landing page with modern layout and animations ([e4d4018](https://github.com/ayagmar/llm-usage-metrics/commit/e4d401873e342e12586093b9b1073a7a8bf811db))
+
+### Bug Fixes
+
+* **efficiency:** use non-cache tokens for Tokens/Commit metric ([38650d7](https://github.com/ayagmar/llm-usage-metrics/commit/38650d789755b772fe9e26e6f0b88d638140e25f))
+* **render:** show actual max on axis label when all values are zero ([fffebe9](https://github.com/ayagmar/llm-usage-metrics/commit/fffebe9cdf479c417b4286336b387c73392d4355))
+
 ## [0.4.0](https://github.com/ayagmar/llm-usage-metrics/compare/v0.3.7...v0.4.0) (2026-03-01)
 
 ### Bug Fixes
