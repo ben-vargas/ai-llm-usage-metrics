@@ -46,6 +46,10 @@ describe('SourceAdapter contract', () => {
     };
 
     expect(isSourceAdapter(candidate)).toBe(true);
+    expect(isSourceAdapter(null)).toBe(false);
+    expect(isSourceAdapter(undefined)).toBe(false);
+    expect(isSourceAdapter(42)).toBe(false);
+    expect(isSourceAdapter('string')).toBe(false);
     expect(
       isSourceAdapter({
         id: '',
