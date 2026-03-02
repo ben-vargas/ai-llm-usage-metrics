@@ -85,7 +85,7 @@ function renderCommitBarLabels(
     .map((row, i) => {
       const x = chartLeft + i * stepX;
       const yTop = scaleY(row.commitCount, maxCommits, chartTop, chartBottom);
-      return `<text x="${x.toFixed(2)}" y="${(yTop - 8).toFixed(0)}" text-anchor="middle" font-size="12" font-weight="600" fill="${shareTheme.textSecondary}" font-family="${shareTheme.font}">${formatInteger(row.commitCount)}</text>`;
+      return `<text x="${x.toFixed(2)}" y="${(yTop - 8).toFixed(0)}" text-anchor="middle" font-size="12" font-weight="600" fill="${shareTheme.textSecondary}" font-family="${shareTheme.font}">${escapeSvg(formatInteger(row.commitCount))}</text>`;
     })
     .join('\n');
 }

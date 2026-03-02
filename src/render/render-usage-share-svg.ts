@@ -75,15 +75,9 @@ function buildStackedValues(series: SourceSeries[]): number[][] {
   return stacked;
 }
 
-/** Thin gradient accent strip at the SVG top edge. */
+/** Thin gradient accent strip at the SVG top edge (gradient defined in main defs). */
 function renderAccentBar(): string {
-  return [
-    `<defs><linearGradient id="accent-grad" x1="0" y1="0" x2="1" y2="0">`,
-    `  <stop offset="0%" stop-color="#10b981"/>`,
-    `  <stop offset="100%" stop-color="#06b6d4"/>`,
-    `</linearGradient></defs>`,
-    `<rect width="${W}" height="${ACCENT_H}" fill="url(#accent-grad)"/>`,
-  ].join('\n');
+  return `<rect width="${W}" height="${ACCENT_H}" fill="url(#accent-grad)"/>`;
 }
 
 /** Left-side stat column: big token count + cost. */
@@ -339,6 +333,10 @@ export function renderUsageShareSvg(
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
 <defs>
+  <linearGradient id="accent-grad" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%" stop-color="#10b981"/>
+    <stop offset="100%" stop-color="#06b6d4"/>
+  </linearGradient>
   <clipPath id="chart-clip">
     <rect x="${chartLeft}" y="${chartTop - 4}" width="${chartW}" height="${chartH + 8}"/>
   </clipPath>
