@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.3](https://github.com/ayagmar/llm-usage-metrics/compare/v0.4.2...v0.4.3) (2026-03-06)
+
+### Bug Fixes
+
+* **cli:** open share svgs with default app ([792d498](https://github.com/ayagmar/llm-usage-metrics/commit/792d49884d9baa240e86e132d90ee4c39fe9b02b))
+* **cli:** reject share opener on non-zero exit ([bdcadd1](https://github.com/ayagmar/llm-usage-metrics/commit/bdcadd16dc5234ccbe27286e16b16ae349802de4))
+* **cli:** stop waiting on detached share opener ([7b8e0ab](https://github.com/ayagmar/llm-usage-metrics/commit/7b8e0ab48c96cf7ac6361f23bdf2f66c1c5869f0))
+* **render:** prevent share svg stat and pill overlap ([efd48c1](https://github.com/ayagmar/llm-usage-metrics/commit/efd48c1985836fd29ee238cb52752c37fdeddc16))
+* **test:** disable share opener in automated environments ([262ca9f](https://github.com/ayagmar/llm-usage-metrics/commit/262ca9f777fc56351f996b7773719aec456dff84))
+* **test:** stub share write/open helper in report suites ([ddda321](https://github.com/ayagmar/llm-usage-metrics/commit/ddda321e76f9377428ec5c510a51166dc01797a2))
+* **test:** use regexp exec in share svg regression test ([58a2303](https://github.com/ayagmar/llm-usage-metrics/commit/58a2303341a83c82cd1c6adf35f3bf60065c2743))
+* update stale efficiency SVG description and improve test coverage ([90678d2](https://github.com/ayagmar/llm-usage-metrics/commit/90678d2eda3b386bd663616e048f6e5daa02925a))
+
 ## [0.4.2](https://github.com/ayagmar/llm-usage-metrics/compare/v0.4.1...v0.4.2) (2026-03-02)
 
 ### Bug Fixes
