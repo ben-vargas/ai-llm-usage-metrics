@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.5.0](https://github.com/ayagmar/llm-usage-metrics/compare/v0.4.3...v0.5.0) (2026-03-06)
+
+### Features
+
+* **cli:** rewrite report runtime and add trends ([54a7e7a](https://github.com/ayagmar/llm-usage-metrics/commit/54a7e7af3ef39ce2b0ad27dc253f1faffc39b9d3))
+
+### Bug Fixes
+
+* **trends:** address review feedback and coverage gaps ([f641461](https://github.com/ayagmar/llm-usage-metrics/commit/f6414613141bcf9955806344f470c3f4b63cd1a4))
+
 ## [0.4.3](https://github.com/ayagmar/llm-usage-metrics/compare/v0.4.2...v0.4.3) (2026-03-06)
 
 ### Bug Fixes
