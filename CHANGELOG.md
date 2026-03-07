@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.5.1](https://github.com/ayagmar/llm-usage-metrics/compare/v0.5.0...v0.5.1) (2026-03-07)
+
+### Features
+
+* **cli:** add runtime profiling diagnostics ([ee53c36](https://github.com/ayagmar/llm-usage-metrics/commit/ee53c3694339663919ba3d3c5cc5623c91ff58c8))
+
+### Bug Fixes
+
+* **cache:** make parse cache dependency-aware ([700b0f0](https://github.com/ayagmar/llm-usage-metrics/commit/700b0f0345c14f1a481bf6a65c3dd42d99562539))
+* **cli:** address remaining review follow-ups ([8953c1a](https://github.com/ayagmar/llm-usage-metrics/commit/8953c1a1689e918ed14cbebfd6f1a846c1809920))
+* **cli:** address review feedback ([be3d244](https://github.com/ayagmar/llm-usage-metrics/commit/be3d244c5c6b0258d3864ff69eae38dc8ddf5bc9))
+* **cli:** prune incompatible sources earlier ([69e6c08](https://github.com/ayagmar/llm-usage-metrics/commit/69e6c083c05cdc036374b730f0c71f8e0be9d6fb))
+* **cli:** reject incompatible explicit sources ([fde6b83](https://github.com/ayagmar/llm-usage-metrics/commit/fde6b832f407c376d23608b675d5711cd4404455))
+* **cli:** reject invalid parse cache dependencies ([9c5cc4a](https://github.com/ayagmar/llm-usage-metrics/commit/9c5cc4a9fbed83f31e7fe4fb79e9ab7f11f0ec6d))
+* **cli:** reuse usage event dataset in efficiency ([83701ef](https://github.com/ayagmar/llm-usage-metrics/commit/83701efd4cda6550d2c3c67739efe04f2455b61d))
+* **cli:** tighten review follow-up behavior ([0c1414a](https://github.com/ayagmar/llm-usage-metrics/commit/0c1414a276fcb4abf17ed4e53b6e4433d14560ef))
+* **index:** update command descriptions and add trends command ([c16fc6b](https://github.com/ayagmar/llm-usage-metrics/commit/c16fc6b8cf07c1377e6d7f0abf0076bcd5815e0f))
+* **pricing:** align optimize and usage semantics ([af5850f](https://github.com/ayagmar/llm-usage-metrics/commit/af5850fc67ad660f0ea38468c71626238bd1ef04))
+* **pricing:** enhance cost estimation logic and add alias resolution in tests ([0185402](https://github.com/ayagmar/llm-usage-metrics/commit/01854026a6745925fbb05e52d29afedb1a3ada58))
+* **render:** compress empty edges in trends charts ([795f4e5](https://github.com/ayagmar/llm-usage-metrics/commit/795f4e59fdfcb4f4e3fd14f465428dc61b508851))
+* **render:** preserve visible activity in trends charts ([03e0e4a](https://github.com/ayagmar/llm-usage-metrics/commit/03e0e4a5ff13edc6f6a7db79cf199ef60cc74319))
+* **tests:** enhance error handling and add tests for cache and adapter functionality ([154b440](https://github.com/ayagmar/llm-usage-metrics/commit/154b4404b6bfc49dc6b97f1489c21626394c26cd))
+* **update:** refresh stale checks in background ([e5cac9b](https://github.com/ayagmar/llm-usage-metrics/commit/e5cac9b506c2e62f2736bc0158dc054a2549d24d))
+
 ## [0.5.0](https://github.com/ayagmar/llm-usage-metrics/compare/v0.4.3...v0.5.0) (2026-03-06)
 
 ### Features
