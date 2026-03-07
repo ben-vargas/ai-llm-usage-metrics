@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.2](https://github.com/ayagmar/llm-usage-metrics/compare/v0.5.1...v0.5.2) (2026-03-07)
+
+### Bug Fixes
+
+* **reports:** preserve bucket-only and merged usage ([d363649](https://github.com/ayagmar/llm-usage-metrics/commit/d36364941fa56be5ea9fa8eb48667eb4257f0a8f))
+* **sources:** harden timestamp and discovery parsing ([3cd9c31](https://github.com/ayagmar/llm-usage-metrics/commit/3cd9c31d21503623f9a4dcf9d21602c6e5e5106f))
+* update token handling and enhance file discovery logic ([8bd7e6d](https://github.com/ayagmar/llm-usage-metrics/commit/8bd7e6d1bbf78675bc35574f0323579352c2c43f))
+
 ## [0.5.1](https://github.com/ayagmar/llm-usage-metrics/compare/v0.5.0...v0.5.1) (2026-03-07)
 
 ### Features
