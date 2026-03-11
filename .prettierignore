@@ -4,3 +4,4 @@ node_modules
 site
 docs/ai
 CHANGELOG.md
+pnpm-lock.yaml
