@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.6.0](https://github.com/ayagmar/llm-usage-metrics/compare/v0.5.2...v0.6.0) (2026-03-11)
+
+### Bug Fixes
+
+* **render:** close remaining codecov gaps ([4d0b77f](https://github.com/ayagmar/llm-usage-metrics/commit/4d0b77f62eb8b0caca27b1c7f14552dea4324e5d))
+* **render:** enhance terminal and Markdown table output for better readability and model ranking ([bdf973d](https://github.com/ayagmar/llm-usage-metrics/commit/bdf973deba185937c33be4cb73dfc6e947b1ffef))
+* **render:** escape bare markdown autolinks ([7f33772](https://github.com/ayagmar/llm-usage-metrics/commit/7f3377246487941ad392dc35682484faf48a765a))
+* **render:** harden markdown escaping and model styling ([d1e0fa1](https://github.com/ayagmar/llm-usage-metrics/commit/d1e0fa1b22701b82e746bb929dd7dae5af6d02a9))
+* **render:** improve terminal usage table readability ([d177c4b](https://github.com/ayagmar/llm-usage-metrics/commit/d177c4ba3829aefc83b95b25bb5ea11c2d2f96db))
+* **security:** generate and enforce canonical docs ([9817130](https://github.com/ayagmar/llm-usage-metrics/commit/9817130c592786f1c94ccb93506b0e184df586bd))
+
 ## [0.5.2](https://github.com/ayagmar/llm-usage-metrics/compare/v0.5.1...v0.5.2) (2026-03-07)
 
 ### Bug Fixes
